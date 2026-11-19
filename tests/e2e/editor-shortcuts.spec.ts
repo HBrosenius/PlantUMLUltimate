@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { openAddDialog, openRibbonGroup, prepareEditor, setSource, source } from "./editor-helpers";
 
 test("undoes continuous typing as one step", async ({ page }) => {

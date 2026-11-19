@@ -1,5 +1,5 @@
 import { pointInText, prepareEditor, setSource, source, waitForDiagramRender } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readFileSync } from "node:fs";
 
 test.beforeEach(async ({ page }) => {

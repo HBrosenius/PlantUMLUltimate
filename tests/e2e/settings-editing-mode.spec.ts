@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor } from "./editor-helpers";
 
 async function openSettings(page: Parameters<typeof prepareEditor>[0]) {

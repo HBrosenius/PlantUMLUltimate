@@ -1,5 +1,5 @@
 import { openRibbonGroup, prepareEditor, fillSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("closes Gantt inspectors with one Escape from the canvas and a field", async ({ page }) => {
   await prepareEditor(page);

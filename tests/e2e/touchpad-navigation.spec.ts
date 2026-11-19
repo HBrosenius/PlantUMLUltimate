@@ -1,5 +1,5 @@
 import { openRibbonGroup, prepareEditor, setSource, source, readEditorSource } from "./editor-helpers";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 
 test("touchpad scrolling pans and pinch zooms without changing source or page zoom", async ({ page }) => {
   test.setTimeout(75_000);

@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, source } from "./editor-helpers";
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator } from "./coverage";
 
 async function noOverflow(element: Locator) {
   expect(await element.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);

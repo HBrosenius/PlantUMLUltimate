@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
 const wideTimeline = (alpha: string) =>

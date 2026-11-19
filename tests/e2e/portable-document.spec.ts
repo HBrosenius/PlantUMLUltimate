@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("saves and reopens a portable document with retained history", async ({ page }) => {
   await page.addInitScript(() => {

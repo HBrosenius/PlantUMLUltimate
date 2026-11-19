@@ -1,5 +1,5 @@
 import { openRibbonGroup, linkedDiagramMenu, prepareEditor, setSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 async function selectWbsNode(page: import("@playwright/test").Page, name: string) {
   await page.getByRole("button", { name: `Select WBS node ${name}` }).focus();

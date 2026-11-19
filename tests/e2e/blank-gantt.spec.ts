@@ -1,5 +1,5 @@
 import { openRibbonGroup, readEditorSource, waitForDiagramRender } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("a blank Gantt renders without sample tasks and supports adding the first task", async ({ page }) => {
   await page.goto("/");

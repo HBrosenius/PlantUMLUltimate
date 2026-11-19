@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "./coverage";
 import * as Y from "yjs";
 
 const sharedSource = "@startgantt\n[Secured edit] lasts 4 days\n@endgantt";

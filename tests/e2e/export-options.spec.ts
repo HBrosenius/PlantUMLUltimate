@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
 const diagram = source("[Design] requires 5 days");

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { readFileSync } from "node:fs";
 import { prepareEditor, readEditorSource } from "./editor-helpers";
 const tabs = (page: Page) => page.locator(".document-tab > button:first-child");

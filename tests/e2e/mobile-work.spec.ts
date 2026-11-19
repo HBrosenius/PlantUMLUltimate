@@ -1,5 +1,5 @@
 import { auditScreenshot } from "./audit-screenshot";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
 test.use({ hasTouch: true });
 const source =

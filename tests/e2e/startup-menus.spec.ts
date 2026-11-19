@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("File submenus receive keyboard focus and return it to their trigger", async ({ page }) => {
   await prepareEditor(page);

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor } from "./editor-helpers";
 
 test("protects closed-diagram metadata when creating, opening, and closing projects", async ({ page }) => {

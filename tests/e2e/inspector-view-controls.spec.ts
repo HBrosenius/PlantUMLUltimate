@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
 // Zoom is in natural-size units, so fitting or zooming is how an open inspector's target is brought into view.

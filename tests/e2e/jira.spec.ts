@@ -1,5 +1,5 @@
 import { openRibbonGroup, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { fileURLToPath } from "node:url";

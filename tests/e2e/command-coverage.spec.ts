@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { prepareEditor, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 
 async function palette(page: Page, query = "") {

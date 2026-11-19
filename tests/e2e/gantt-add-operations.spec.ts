@@ -6,7 +6,7 @@ import {
   source,
   waitForDiagramRender,
 } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("keeps Add independent of task selection and reuses calendar editing with undo", async ({ page }) => {
   await prepareEditor(page);

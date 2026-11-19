@@ -26,9 +26,47 @@ jobs:
       - run: npm ci
       - run: npm run validate
 
+  coverage-browser:
+    # Report-only: runs the Chromium browser tests against an Istanbul-instrumented app (E2E_COVERAGE)
+    # and uploads what they executed; the `coverage` job merges it with the unit coverage. Separate
+    # from `browser` so instrumentation can never slow or fail a required check.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --ipc=host
+    name: coverage-browser · shard ${{ matrix.shard }}/4
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/4
+        env:
+          E2E_COVERAGE: "1"
+          COVERAGE_SHARD: ${{ matrix.shard }}
+          HOME: /root
+      - name: Upload browser coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-browser-${{ matrix.shard }}
+          path: coverage/e2e
+          if-no-files-found: ignore
+          retention-days: 1
+
   coverage:
-    # Report-only: measures the unit and component tests (not the browser tests or the Workers).
-    # It is not a required check, so a failure here never blocks a merge.
+    # Report-only: measures the unit and component tests (not the Workers) and, when the browser
+    # shards above produced any, merges in what the Chromium browser tests covered. It is not a
+    # required check, so a failure here never blocks a merge.
+    needs: coverage-browser
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -38,22 +76,31 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run test:coverage | tee coverage-summary.txt
+      - run: npm run test:coverage
+      - name: Download browser coverage
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-browser-*
+          path: coverage/e2e
+          merge-multiple: true
+      - name: Merge unit and browser coverage
+        run: npm run coverage:report
       - name: Show coverage in the job summary
         if: always()
         run: |
           {
-            echo "### Unit and component test coverage"
-            echo '```'
-            sed -n '/Coverage summary/,$p' coverage-summary.txt
-            echo '```'
+            echo "### Test coverage"
+            cat coverage/combined/summary.md
+            echo
+            echo "Combined counts a statement as covered if the unit or the Chromium browser tests ran it. Browser coverage covers the web app's own sources, not the Workers; pages a test opens from a context it created itself are not measured."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
-          path: coverage
+          path: coverage/combined
           if-no-files-found: ignore
           retention-days: 14
 

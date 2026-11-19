@@ -1,5 +1,5 @@
 import { openDiagramOptions, prepareEditor, setSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("applies a task delay without changing the project finish", async ({ page }) => {
   await prepareEditor(page);

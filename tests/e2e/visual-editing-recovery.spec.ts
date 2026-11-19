@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./coverage";
 import { prepareEditor, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 
 const fillers = Array.from({ length: 24 }, (_, index) => `Filler${index}`);
