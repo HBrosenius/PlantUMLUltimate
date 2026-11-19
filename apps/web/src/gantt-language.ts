@@ -715,6 +715,23 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
         : undefined;
     if (keywordRepair)
       return [{ from: diagnostic.range.from, to: diagnostic.range.to, message: diagnostic.message, ...keywordRepair }];
+    if (diagnostic.code === "duplicate-start") {
+      const line = wholeLineRange(source, diagnostic.range);
+      const standalone =
+        /^\s*(?:then\s+)?\[[^\]]+]\s+starts\s+(?:\d+\s+\w+\s+(?:after|before)\s+|at\s+)\[[^\]]+]'s\s+(?:start|end)\s*$/i;
+      if (!standalone.test(source.slice(line.from, line.to).replace(/\r?\n$/, ""))) return [];
+      const successor = parsed.document.dependencies.find((item) => item.sourceRange.from === diagnostic.range.from);
+      return [
+        {
+          from: line.from,
+          to: line.to,
+          replacement: "",
+          message: diagnostic.message,
+          label: "Remove this start constraint",
+          choiceGroup: `duplicate-start:${successor?.successorTaskId ?? diagnostic.range.from}`,
+        },
+      ];
+    }
     if (diagnostic.code === "unknown-task") {
       const normalize = (reference: string) => reference.trim().toLowerCase();
       const unknown = normalize(text);
@@ -749,6 +766,11 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
     }
     // Keep repairs narrow so a suggestion preserves the task, anchor and value.
     const syntaxRepairs: Array<[RegExp, string, string]> = [
+      [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+(?:start|end))(?:\s*'s\s+(?:start|end))+(\s*)$/i,
+        "$1$2",
+        "Remove repeated 's end/'s start",
+      ],
       [
         /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends))\s+(\[[^\]]+]'s\s+(?:start|end)\s*)$/i,
         "$1 at $2",
