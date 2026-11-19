@@ -736,9 +736,7 @@ export function addCanonicalGanttOverlay(
       // anchor on the leftmost bar and extend only across segments that touch it
       // (allowing for closed-day gaps), so the check sits at this task's own end.
       const gapLimit = (canonicalDayWidth ?? 16) * 3;
-      const segments = bounds
-        .filter((item) => item.width > 0)
-        .sort((a, b) => a.x - b.x);
+      const segments = bounds.filter((item) => item.width > 0).sort((a, b) => a.x - b.x);
       let markerRight = segments[0] ? segments[0].x + segments[0].width : right;
       for (const segment of segments.slice(1)) {
         if (segment.x - markerRight > gapLimit) break;
