@@ -6,8 +6,7 @@ const apply = (source: string, fix: { from: number; to: number; replacement: str
   source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
 
 it("removes a repeated 's end anchor", () => {
-  const source =
-    "@startgantt\n[A] lasts 5 days\n[B] starts at [A]'s end's end\n[B] lasts 5 days\n@endgantt";
+  const source = "@startgantt\n[A] lasts 5 days\n[B] starts at [A]'s end's end\n[B] lasts 5 days\n@endgantt";
   expect(parseGantt(source).diagnostics.some((item) => item.severity === "error")).toBe(true);
   const fix = ganttQuickFixes(source).find((item) => item.label === "Remove repeated 's end/'s start");
   expect(fix).toBeDefined();
