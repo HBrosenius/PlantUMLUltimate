@@ -25,6 +25,17 @@ function settingsTarget(origin: Element, anchor: Element): Element | undefined {
   return anchor.querySelector(settingsSelector) ?? undefined;
 }
 
+/**
+ * A linked Gantt task is one big anchor: its bar and its label both count as the link. Treating a
+ * plain click as the link opens a menu that swallows the click, so the task is never selected and its
+ * resize and dependency handles (which only work on a selected task) are unreachable. A plain click
+ * on a Gantt task therefore selects it, wherever it lands; Alt-click, Enter on the focused link, or
+ * the task card's own link button open the link.
+ */
+function isGanttTaskTarget(origin: Element): boolean {
+  return origin.closest("[data-visual-task-id]") !== null;
+}
+
 /** The external URL a diagram link points to, or undefined when it is not one the app should open. */
 export function diagramLinkTarget(anchor: Element, base: string): string | undefined {
   const raw = anchor.getAttribute("href") ?? anchor.getAttributeNS("http://www.w3.org/1999/xlink", "href");
@@ -63,6 +74,26 @@ export function installDiagramLinkGuard(
       dismissMenu?.();
       const origin = event.target as Element;
       const selection = settingsTarget(origin, anchor);
+      if (
+        selection &&
+        event instanceof MouseEvent &&
+        event.type === "click" &&
+        !event.altKey &&
+        isGanttTaskTarget(origin)
+      ) {
+        // Pass Shift/Ctrl/Cmd on so multi-selection keeps working.
+        const click = new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          shiftKey: event.shiftKey,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+        });
+        click.preventDefault();
+        settingsClicks.add(click);
+        selection.dispatchEvent(click);
+        return;
+      }
       const bounds = anchor.getBoundingClientRect();
       const pointer = event instanceof MouseEvent && (event.clientX !== 0 || event.clientY !== 0);
       dismissMenu =

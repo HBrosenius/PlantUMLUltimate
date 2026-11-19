@@ -76,7 +76,8 @@ async function openSource(page: Page, kind: string, source: string) {
 
 // WebKit can report an anchor's content quad for its child text. Use native
 // SVG geometry and check the actual hit target before a real mouse click.
-async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle" = "left") {
+// A plain click on a Gantt task selects it (so its handles stay reachable); Alt-click opens the link.
+async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle" = "left", alt = false) {
   // The preview can re-render (replacing the SVG nodes) while it settles, so
   // re-locate, scroll and hit-test as one retryable unit and click only a
   // point that was verified against the current DOM.
@@ -99,7 +100,12 @@ async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle"
     expect(result.hit).toBe(result.expected);
     point = result;
   }).toPass({ timeout: 10_000 });
-  await page.mouse.click(point.x, point.y, { button });
+  if (alt) await page.keyboard.down("Alt");
+  try {
+    await page.mouse.click(point.x, point.y, { button });
+  } finally {
+    if (alt) await page.keyboard.up("Alt");
+  }
 }
 
 for (const [index, item] of cases.entries()) {
@@ -124,7 +130,7 @@ for (const [index, item] of cases.entries()) {
     expect(await link.evaluate((element) => getComputedStyle(element).cursor)).toBe("pointer");
     const editorUrl = page.url();
     const menu = page.getByRole("menu", { name: "Linked element" });
-    await clickSvgLink(page, link);
+    await clickSvgLink(page, link, "left", item.kind === "Gantt");
     await expect(menu).toBeVisible();
     await expect(menu).toContainText(href);
     expect(context.pages()).toHaveLength(1);
@@ -133,7 +139,7 @@ for (const [index, item] of cases.entries()) {
     expect(page.url()).toBe(editorUrl);
     expect(await readEditorSource(page)).toBe(source);
 
-    await clickSvgLink(page, link);
+    await clickSvgLink(page, link, "left", item.kind === "Gantt");
     const opened = context.waitForEvent("page");
     await menu.getByRole("menuitem", { name: "Open URL", exact: true }).click();
     const destination = await opened;
@@ -161,7 +167,7 @@ for (const [index, item] of cases.entries()) {
       await middleDestination.close();
     }
     if (item.kind !== "Activity") {
-      await clickSvgLink(page, link);
+      await clickSvgLink(page, link, "left", item.kind === "Gantt");
       await menu.getByRole("menuitem", { name: "Open settings", exact: true }).click();
       await expect(menu).toBeHidden();
       await expect(page.locator('aside[aria-label$="inspector"]')).toBeVisible();
@@ -240,17 +246,17 @@ for (const colorScheme of ["light", "dark"] as const) {
     await openSource(page, "Gantt", cases[0]!.source(href));
     const link = page.locator(`svg a[href="${href}"] text`).last();
     const menu = page.getByRole("menu", { name: "Linked element" });
-    await clickSvgLink(page, link);
+    await clickSvgLink(page, link, "left", true);
     await expect(menu.getByRole("menuitem", { name: "Open settings" })).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(menu.getByRole("menuitem", { name: "Open URL" })).toBeFocused();
     await page.screenshot({ path: testInfo.outputPath(`link-menu-${colorScheme}.png`) });
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
-    await clickSvgLink(page, link);
+    await clickSvgLink(page, link, "left", true);
     await page.getByRole("button", { name: "Copy code", exact: true }).click();
     await expect(menu).toBeHidden();
-    await clickSvgLink(page, link);
+    await clickSvgLink(page, link, "left", true);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
     await expect(menu).toBeHidden();
