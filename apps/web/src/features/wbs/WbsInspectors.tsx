@@ -1,8 +1,9 @@
 import { InspectorPanel } from "../../InspectorPanel";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsRelationship } from "@plantuml-studio/diagram-wbs";
 import { ColorField } from "../../ColorField";
 import { IconField } from "../../IconField";
+import { mergeChangedFields } from "../../inspector-sync";
 
 export function WbsNodeInspector({
   node,
@@ -38,13 +39,31 @@ export function WbsNodeInspector({
   const [link, setLink] = useState(node.link ?? "");
   const [icon, setIcon] = useState(node.icon ?? "");
   const [side, setSide] = useState<"left" | "right">(node.side === "left" ? "left" : "right");
+  // Only take fields the source changed, so committing one field does not wipe what was just typed
+  // into the next one when the re-parsed node arrives.
+  const sourceValues = {
+    label: node.label,
+    color: node.color ?? "",
+    textColor: node.textColor ?? "",
+    link: node.link ?? "",
+    icon: node.icon ?? "",
+    side: (node.side === "left" ? "left" : "right") as "left" | "right",
+  };
+  const previousSource = useRef(sourceValues);
   useEffect(() => {
-    setLabel(node.label);
-    setColor(node.color ?? "");
-    setTextColor(node.textColor ?? "");
-    setLink(node.link ?? "");
-    setIcon(node.icon ?? "");
-    setSide(node.side === "left" ? "left" : "right");
+    const previous = previousSource.current;
+    previousSource.current = sourceValues;
+    const local = { label, color, textColor, link, icon, side };
+    const merged = mergeChangedFields(local, previous, sourceValues);
+    if (merged === local) return;
+    setLabel(merged.label);
+    setColor(merged.color);
+    setTextColor(merged.textColor);
+    setLink(merged.link);
+    setIcon(merged.icon);
+    setSide(merged.side);
+    // Runs only when the node's own values change; local edits are read, not tracked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.label, node.color, node.textColor, node.link, node.icon, node.side]);
   const labelMissing = !label.trim();
   const iconTrimmed = icon.trim();

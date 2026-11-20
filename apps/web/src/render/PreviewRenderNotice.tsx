@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RenderStatus } from "../model";
 import { syntaxErrorLocation } from "./syntax-error";
+import { formatMegabytes, useRendererDownload } from "./renderer-download";
 
 export function PreviewRenderNotice({
   status,
@@ -14,6 +15,7 @@ export function PreviewRenderNotice({
   onRetry(): void;
 }) {
   const [slow, setSlow] = useState(false);
+  const download = useRendererDownload();
   const [dismissedError, setDismissedError] = useState<string | undefined>();
   useEffect(() => {
     if (status !== "rendering") return;
@@ -75,9 +77,11 @@ export function PreviewRenderNotice({
         </>
       ) : (
         <span>
-          {slow
-            ? "This is taking longer than usual. You can keep editing while rendering continues."
-            : "You can keep editing while the preview updates."}
+          {download.active && download.loadedBytes > 0
+            ? `Downloading the local renderer (${formatMegabytes(download.loadedBytes)}). You can keep editing.`
+            : slow
+              ? "This is taking longer than usual. You can keep editing while rendering continues."
+              : "You can keep editing while the preview updates."}
         </span>
       )}
     </div>

@@ -1,10 +1,11 @@
+import { memo } from "react";
 export interface FileSaveState {
   documentId: string;
   status: "saving" | "saved" | "downloaded" | "error" | "cancelled";
   message?: string;
 }
 
-export function FileSaveStatus({
+function FileSaveStatusView({
   dirty,
   state,
   fileCopy,
@@ -65,3 +66,6 @@ export function FileSaveStatus({
     </span>
   );
 }
+
+/** Skips re-rendering while its props are unchanged; callers pass stable handlers. */
+export const FileSaveStatus = memo(FileSaveStatusView);

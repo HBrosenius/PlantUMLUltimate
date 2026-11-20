@@ -17,7 +17,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
-it("coalesces cursor recovery without rewriting source and still journals content immediately", async () => {
+it("coalesces cursor recovery without rewriting source and journals content within one frame", async () => {
   const { result } = renderHook(() => usePersistedWorkspace());
   await waitFor(() => expect(result.current[2]).toBe(true));
   vi.mocked(saveWorkspaceRecovery).mockClear();
@@ -27,6 +27,30 @@ it("coalesces cursor recovery without rewriting source and still journals conten
   expect(saveWorkspaceRecovery).not.toHaveBeenCalled();
   await waitFor(() => expect(saveWorkspaceNavigation).toHaveBeenCalledTimes(1));
   act(() => result.current[1]((current) => ({ ...current, source: current.source + "\n' saved edit" })));
+  await waitFor(() => expect(saveWorkspaceRecovery).toHaveBeenCalledTimes(1));
+});
+it("writes a burst of edits once, with the newest session, and flushes it when the page is hidden", async () => {
+  const { result } = renderHook(() => usePersistedWorkspace());
+  await waitFor(() => expect(result.current[2]).toBe(true));
+  vi.mocked(saveWorkspaceRecovery).mockClear();
+  for (const edit of ["a", "b", "c", "d", "e"])
+    act(() => result.current[1]((current) => ({ ...current, source: current.source + edit })));
+  // Nothing has been serialized yet: the writes are waiting for the next frame.
+  expect(saveWorkspaceRecovery).not.toHaveBeenCalled();
+  act(() => window.dispatchEvent(new Event("pagehide")));
+  expect(saveWorkspaceRecovery).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(saveWorkspaceRecovery).mock.calls[0]![0].documents[0]!.source).toMatch(/abcde$/);
+  // The flush consumed the pending write; the frame that follows has nothing left to do.
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  expect(saveWorkspaceRecovery).toHaveBeenCalledTimes(1);
+});
+it("writes pending recovery when the workspace unmounts", async () => {
+  const { result, unmount } = renderHook(() => usePersistedWorkspace());
+  await waitFor(() => expect(result.current[2]).toBe(true));
+  vi.mocked(saveWorkspaceRecovery).mockClear();
+  act(() => result.current[1]((current) => ({ ...current, source: current.source + "!" })));
+  expect(saveWorkspaceRecovery).not.toHaveBeenCalled();
+  unmount();
   expect(saveWorkspaceRecovery).toHaveBeenCalledTimes(1);
 });
 it("writes the final navigation position synchronously before page close", async () => {

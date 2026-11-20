@@ -39,7 +39,7 @@ test("replaces a held obsolete render while Split view stays editable", async ({
 });
 
 for (const operation of ["switch", "close"] as const) {
-  test(`${operation} disposes a held render and shows the other document`, async ({ page }) => {
+  test(`${operation} supersedes a held render and shows the other document in the same renderer`, async ({ page }) => {
     await holdObsoleteRender(page);
     await prepareEditor(page);
     await setSource(page, "@startgantt\n[Original preview] lasts 2 days\n@endgantt");
@@ -70,8 +70,9 @@ for (const operation of ["switch", "close"] as const) {
         .click();
     }
     await expect(page.locator(".diagram svg")).toContainText("Other document");
-    await expect.poll(() => oldFrame!.evaluate((element) => element.isConnected)).toBe(false);
+    // The renderer outlives tabs: the held render is cancelled in place and the frame is kept.
     await expect(tabs).toHaveCount(operation === "switch" ? 2 : 1);
+    expect(await oldFrame!.evaluate((element) => element.isConnected)).toBe(true);
     await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(1);
   });
 }
