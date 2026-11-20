@@ -132,7 +132,7 @@ for (const width of [390, 1280]) {
     await editor.press("ControlOrMeta+Shift+m");
     await fillSource(page, '@startuml\nclass "Customer" as Account\n@enduml');
     await expect(explanation).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Explain error", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Explain error", exact: true })).toHaveCount(0);
   });
 }
 

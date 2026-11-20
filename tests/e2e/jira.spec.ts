@@ -1,4 +1,4 @@
-import { openRibbonGroup, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
+import { fillSource, openRibbonGroup, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test, type Page } from "./coverage";
 import { readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
@@ -172,8 +172,10 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
   // returns the old text, the edit below then wipes the import, and no local changes exist to review.
   await expect(dialog).toHaveCount(0);
   await expect(editor).toContainText("[jira_10001] ends 2026-09-05");
-  const imported = await editor.innerText();
-  await editor.fill(
+  const imported = await readEditorSource(page);
+  // fillSource verifies the replacement: Firefox's contenteditable fill can leave the old import in place.
+  await fillSource(
+    page,
     imported
       .replace(
         "[Ship Jira integration] as [jira_10001] starts 2026-09-01",
@@ -402,8 +404,14 @@ test("retains uncertain publish results across panel closes and requires a fresh
   await dialog.getByRole("button", { name: "Apply changes" }).click();
 
   const editor = page.locator(".cm-content");
-  const imported = await editor.innerText();
-  await editor.fill(
+  // Wait for the import to reach the editor before rewriting it (see #124): reading too early returns the
+  // old text, the import then lands on top of the edit, and no local date changes exist to publish.
+  await expect(dialog).toHaveCount(0);
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-05");
+  const imported = await readEditorSource(page);
+  // fillSource verifies the replacement: Firefox's contenteditable fill can leave the old import in place.
+  await fillSource(
+    page,
     imported
       .replace(
         "[Ship Jira integration] as [jira_10001] starts 2026-09-01",
@@ -411,6 +419,7 @@ test("retains uncertain publish results across panel closes and requires a fresh
       )
       .replace("[jira_10001] ends 2026-09-05", "[jira_10001] ends 2026-09-06"),
   );
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-06");
 
   await openJira(page);
   dialog = page.getByRole("dialog", { name: "Jira integration" });

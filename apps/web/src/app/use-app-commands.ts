@@ -1,6 +1,6 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
 import type { Command } from "@plantuml-studio/editor-core";
-import { optionShortcut } from "../platform-shortcuts";
+import { modShortcut, optionShortcut } from "../platform-shortcuts";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "../diagram-zoom";
 import type { SourceHistory } from "../../../../packages/editor-core/src/history";
 import type { ActiveCollaboration } from "../use-collaboration-lifecycle";
@@ -310,7 +310,7 @@ export function useAppCommands({
         id: "file.close-tab",
         label: "Close tab",
         category: "File",
-        shortcut: "⌘W",
+        shortcut: modShortcut("W"),
         run: () => closeTab(tabs.activeId),
       },
       ...([-1, 1] as const).map((direction) => ({
@@ -368,9 +368,9 @@ export function useAppCommands({
         ? [{ id: "plan.jira", label: "Jira…", category: "Plan", run: () => setJiraDialogOpen(true) }]
         : []),
       ...creationCommands.map((command) => ({ ...command, enabled: !commandReadOnly })),
-      { id: "file.new", label: "New diagram", category: "File", shortcut: "⌘N", run: newDocument },
-      { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
-      { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveCurrentDocument },
+      { id: "file.new", label: "New diagram", category: "File", shortcut: modShortcut("N"), run: newDocument },
+      { id: "file.open", label: "Open…", category: "File", shortcut: modShortcut("O"), run: openDocument },
+      { id: "file.save", label: "Save", category: "File", shortcut: modShortcut("S"), run: saveCurrentDocument },
       {
         id: "settings.open",
         label: "Settings…",
@@ -410,7 +410,7 @@ export function useAppCommands({
         id: "view.diagram-outline",
         label: "Diagram outline…",
         category: "View",
-        shortcut: "⇧⌘O",
+        shortcut: modShortcut("O", true),
         run: () => openDialog({ kind: "diagram-outline" }),
       },
       ...diagramCommands.map((command) => ({
@@ -424,8 +424,22 @@ export function useAppCommands({
         shortcut: "?",
         run: () => openDialog({ kind: "help" }),
       },
-      { id: "edit.undo", label: "Undo", category: "Edit", shortcut: "⌘Z", enabled: activeHistory.canUndo, run: undo },
-      { id: "edit.redo", label: "Redo", category: "Edit", shortcut: "⇧⌘Z", enabled: activeHistory.canRedo, run: redo },
+      {
+        id: "edit.undo",
+        label: "Undo",
+        category: "Edit",
+        shortcut: modShortcut("Z"),
+        enabled: activeHistory.canUndo,
+        run: undo,
+      },
+      {
+        id: "edit.redo",
+        label: "Redo",
+        category: "Edit",
+        shortcut: modShortcut("Z", true),
+        enabled: activeHistory.canRedo,
+        run: redo,
+      },
       ...(workspace.diagramKind === "gantt"
         ? [{ id: "view.tasks", label: "Tasks view", category: "View", run: openTasksView }]
         : []),
@@ -433,7 +447,7 @@ export function useAppCommands({
         id: `view.${mode}`,
         label: `${mode[0]!.toUpperCase()}${mode.slice(1)} view`,
         category: "View",
-        shortcut: `⌘${mode === "code" ? 1 : mode === "split" ? 2 : mode === "diagram" ? 3 : 4}`,
+        shortcut: modShortcut(String(mode === "code" ? 1 : mode === "split" ? 2 : mode === "diagram" ? 3 : 4)),
         run: () => update("viewMode", mode),
       })),
       {
