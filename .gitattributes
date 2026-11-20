@@ -1,0 +1,20 @@
+# Check text files out with LF on every platform. Tests, fixtures and the
+# source formatter assume LF; Windows checkouts with core.autocrlf=true
+# would otherwise get CRLF and fail.
+* text=auto eol=lf
+
+# Binary formats
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+*.pumlu binary
+*.woff binary
+*.woff2 binary
+*.wasm binary
+*.mp4 binary
+*.webm binary
+*.mp3 binary
