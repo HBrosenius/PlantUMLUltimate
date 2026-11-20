@@ -43,10 +43,11 @@ export function CommandPalette({ commands, onClose }: { commands: Command[]; onC
           }),
     [commands, query, recentIds],
   );
-  const matches = useMemo(
-    () => [...recent, ...filterCommands(commands, query).filter((command) => !recent.includes(command))],
-    [commands, query, recent],
-  );
+  const matches = useMemo(() => {
+    const rest = filterCommands(commands, query).filter((command) => !recent.includes(command));
+    // Unavailable commands stay listed, for discovery, but after everything that can run now.
+    return [...recent, ...rest.filter(isEnabled), ...rest.filter((command) => !isEnabled(command))];
+  }, [commands, query, recent]);
   useEffect(() => input.current?.focus(), []);
   useEffect(() => setSelected(0), [query]);
   // Never highlight a disabled command: fall back to the first enabled match (or none).

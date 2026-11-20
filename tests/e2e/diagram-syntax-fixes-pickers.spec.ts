@@ -189,8 +189,8 @@ test("source error navigation wraps and refreshes after repair and undo", async 
   await expect(announcement).toContainText("Error 1 of 1, line 3");
   await editor.press("ControlOrMeta+.");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Previous error", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Next error", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Previous error", exact: true })).toHaveCount(0);
   await editor.press("ControlOrMeta+z");
   await expect(editor.locator(".cm-line")).toHaveText(["@startgantt", lines[1]!, lines[2]!]);
   await editor.press("ControlOrMeta+z");
@@ -290,7 +290,7 @@ test("rapid edit, reopen, apply, and history bursts preserve exact source", asyn
   await expect(editor.locator(".cm-line")).toHaveText([...prefix, "@startgantt", lines[1]!, lines[2]!]);
   await expect(suggestions).not.toBeVisible();
   await expect(page.locator(".cm-fix-target")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Next error", exact: true })).toHaveCount(0);
   await expect(editor).toBeFocused();
 });
 
@@ -337,5 +337,5 @@ test("rapid tab switches and fixes keep separate documents and previews isolated
   await expect(editor.locator(".cm-line")).toHaveText(["@startgantt", first[1]!, first[2]!]);
   await expect(suggestions).not.toBeVisible();
   await expect(page.locator(".cm-fix-target")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Next error", exact: true })).toHaveCount(0);
 });

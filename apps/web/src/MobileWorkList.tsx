@@ -57,7 +57,7 @@ export function MobileWorkList({
   return (
     <section className="mobile-work-list" aria-label={kind === "gantt" ? "Mobile task list" : "Mobile WBS list"}>
       <header>
-        <h2>{kind === "gantt" ? "Task check-in" : "Work breakdown"}</h2>
+        <h2>{kind === "gantt" ? "Task list" : "WBS list"}</h2>
         <p>
           {kind === "gantt"
             ? "Choose a task to update progress and resources."
@@ -258,7 +258,7 @@ function MobileProperties({
       className="mobile-properties-sheet"
       role="dialog"
       aria-modal="true"
-      aria-label={`${kind === "gantt" ? "Task check-in" : "Work package"}: ${item?.label ?? "Unavailable"}`}
+      aria-label={`${kind === "gantt" ? "Task" : "Work package"}: ${item?.label ?? "Unavailable"}`}
     >
       <header>
         <h2 ref={title} tabIndex={-1}>

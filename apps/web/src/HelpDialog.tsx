@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
-import { isApplePlatform, optionShortcut } from "./platform-shortcuts";
+import { isApplePlatform, modShortcut, optionShortcut } from "./platform-shortcuts";
 import type { DiagramKind } from "./model";
 import { trainingVideos } from "./training-videos";
 import { appIdentity } from "./app-identity";
@@ -120,8 +120,7 @@ const topics: Topic[] = [
 
 function shortcuts(): Shortcut[] {
   const apple = isApplePlatform();
-  const mod = (key: string, shift = false) =>
-    apple ? `${shift ? "⇧" : ""}⌘${key}` : `Ctrl+${shift ? "Shift+" : ""}${key}`;
+  const mod = (key: string, shift = false) => modShortcut(key, shift, apple);
   const rows: Shortcut[] = [];
   const add = (group: Topic["group"], keys: string, action: string) => rows.push({ group, keys, action });
   for (const [key, action] of [
