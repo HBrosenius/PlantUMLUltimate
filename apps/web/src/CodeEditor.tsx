@@ -1291,33 +1291,30 @@ export function CodeEditor({
     <section className="editor-pane" aria-label="Code editor section">
       {batchContent}
       <div className="editor-actions">
-        <button
-          type="button"
-          aria-label="Previous error"
-          title="Previous error (Shift+F8)"
-          disabled={!errors.length}
-          onClick={() => navigateError(-1)}
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          aria-label="Next error"
-          title="Next error (F8)"
-          disabled={!errors.length}
-          onClick={() => navigateError(1)}
-        >
-          ↓
-        </button>
-        <button
-          type="button"
-          aria-label="Explain error"
-          title="Explain error (Ctrl/⌘ + Shift + M)"
-          disabled={!errors.length}
-          onClick={explainError}
-        >
-          ?
-        </button>
+        {/* Error navigation only appears while the source has errors; the status bar covers the no-issues state. */}
+        {errors.length > 0 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous error"
+              title="Previous error (Shift+F8)"
+              onClick={() => navigateError(-1)}
+            >
+              ↑
+            </button>
+            <button type="button" aria-label="Next error" title="Next error (F8)" onClick={() => navigateError(1)}>
+              ↓
+            </button>
+            <button
+              type="button"
+              aria-label="Explain error"
+              title="Explain error (Ctrl/⌘ + Shift + M)"
+              onClick={explainError}
+            >
+              ?
+            </button>
+          </>
+        )}
         <span className="source-error-announcement" role="status">
           {errorAnnouncement}
         </span>

@@ -19,8 +19,13 @@ export interface RenderResult {
 
 export function createDefaultGanttSource(today = new Date()): string {
   // Use local calendar fields for today, then UTC calendar arithmetic to avoid DST shifts.
-  const dateAt = (offset: number) =>
-    new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + offset)).toISOString().slice(0, 10);
+  // Weekends are closed below, so a date that lands on one moves forward to Monday.
+  const dateAt = (offset: number) => {
+    const date = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + offset));
+    const weekday = date.getUTCDay();
+    if (weekday === 6 || weekday === 0) date.setUTCDate(date.getUTCDate() + (weekday === 6 ? 2 : 1));
+    return date.toISOString().slice(0, 10);
+  };
   return `@startgantt
 
 Project starts ${dateAt(-7)}
