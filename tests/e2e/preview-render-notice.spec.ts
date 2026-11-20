@@ -97,7 +97,8 @@ for (const [kind, source] of Object.entries(diagrams)) {
     const retiredFrame = await page.locator('iframe[title="Local PlantUML renderer"]').elementHandle();
     await page.locator(".document-tab > button:first-child").filter({ hasText: "Other.pumlu" }).click();
     await expect(svg).toContainText("Other document", { timeout: 45_000 });
-    await expect.poll(() => retiredFrame!.evaluate((element) => element.isConnected)).toBe(false);
+    // Switching tabs cancels the held render inside the long-lived renderer instead of replacing its frame.
+    expect(await retiredFrame!.evaluate((element) => element.isConnected)).toBe(true);
     const heldAgain = page.waitForEvent("console", { predicate: (message) => message.text() === "notice-test-held" });
     await page.locator(".document-tab > button:first-child").filter({ hasText: "Recovery.pumlu" }).click();
     await heldAgain;

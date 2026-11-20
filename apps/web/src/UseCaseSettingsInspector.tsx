@@ -2,6 +2,7 @@ import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useRef, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { UseCaseSettings } from "./usecase-settings";
+import { mergeChangedFields } from "./inspector-sync";
 
 export function UseCaseSettingsInspector({
   settings,
@@ -14,12 +15,12 @@ export function UseCaseSettingsInspector({
 }) {
   const [value, setValue] = useState(settings);
   const colorListId = useId();
-  const previousSettings = useRef(JSON.stringify(settings));
+  const previousSettings = useRef(settings);
   useEffect(() => {
-    const next = JSON.stringify(settings);
-    if (next === previousSettings.current) return;
-    previousSettings.current = next;
-    setValue(settings);
+    const previous = previousSettings.current;
+    previousSettings.current = settings;
+    // Only take fields the source changed, so a field still being typed into keeps its value.
+    setValue((current) => mergeChangedFields(current, previous, settings));
   }, [settings]);
   const update = <K extends keyof UseCaseSettings>(key: K, next: UseCaseSettings[K], save = false) => {
     const updated = { ...value, [key]: next };

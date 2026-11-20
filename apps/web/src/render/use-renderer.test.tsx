@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRenderer } from "./use-renderer";
 import * as svgSanitizer from "./sanitize-svg";
 import { buildFontAtlas } from "./font-atlas";
+import { DEBOUNCE_MIN_MS } from "./render-debounce";
 
 vi.mock("./renderer-assets", () => ({
   loadRendererAssets: vi.fn(async () => ({ engine: "", graphviz: "", worker: "", icons: "" })),
@@ -17,6 +18,7 @@ const svg = (label: string) => `<svg xmlns="http://www.w3.org/2000/svg"><text>${
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
   cleanup();
+  document.querySelectorAll("iframe").forEach((frame) => frame.remove());
   vi.clearAllTimers();
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -174,22 +176,81 @@ it("starts a fresh cancellation window after obsolete font preparation is abando
   expect(frame.requests().at(-1)!.source).toBe(source("Newest"));
 });
 
-it("rejects replies from a retired document frame after switching tabs", async () => {
-  const { result, rerender, frame: oldFrame } = await setup();
-  const oldRequest = oldFrame.requests().at(-1)!;
+it("keeps one renderer across tabs and rejects a late reply for the previous document", async () => {
+  const { result, rerender, frame } = await setup();
+  const oldRequest = frame.requests().at(-1)!;
   rerender({ text: source("Other document"), documentId: "B" });
-  await act(async () => {});
-  const nextFrame = rendererFrame();
-  await nextFrame.receive({ type: "ready" });
-  await advance();
-  const nextRequest = nextFrame.requests().at(-1)!;
-  await oldFrame.receive({ type: "result", requestId: oldRequest.requestId, svg: svg("Wrong document") });
+  // The old render is still running; it is cancelled after the grace period and the new one follows.
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(700);
+  });
+  // The same frame serves the other document: no second renderer is created.
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+  const nextRequest = frame.requests().at(-1)!;
+  expect(nextRequest.documentId).toBe("B");
+  await frame.receive({ type: "result", requestId: oldRequest.requestId, svg: svg("Wrong document") });
   expect(result.current.result).toBeUndefined();
-  await nextFrame.receive({ type: "result", requestId: nextRequest.requestId, svg: svg("Other document") });
+  await frame.receive({ type: "result", requestId: nextRequest.requestId, svg: svg("Other document") });
   expect(result.current.result).toMatchObject({ documentId: "B", source: source("Other document") });
-  await oldFrame.receive({ type: "result", requestId: oldRequest.requestId, error: "Late old-document failure" });
+  await frame.receive({ type: "result", requestId: oldRequest.requestId, error: "Late old-document failure" });
   expect(result.current.status).toBe("idle");
   expect(result.current.result?.documentId).toBe("B");
+});
+
+it("keeps the renderer when the preview is hidden and answers from it when shown again", async () => {
+  const hook = renderHook(({ text, enabled }) => useRenderer(text, enabled, "native", "A"), {
+    initialProps: { text: source("Original"), enabled: true },
+  });
+  await act(async () => {});
+  const frame = rendererFrame();
+  await frame.receive({ type: "ready" });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Original") });
+  hook.rerender({ text: source("Original"), enabled: false });
+  await advance();
+  expect(frame.element.isConnected).toBe(true);
+  expect(frame.outgoing.mock.calls.some(([message]) => message.type === "dispose")).toBe(false);
+  hook.rerender({ text: source("Edited while hidden"), enabled: true });
+  await advance();
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+  expect(frame.requests().at(-1)!.source).toBe(source("Edited while hidden"));
+});
+
+it("does not start a renderer while the preview has never been shown", async () => {
+  renderHook(() => useRenderer(source("Hidden"), false, "native", "A"));
+  await act(async () => {});
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(0);
+});
+
+it("adds Graphviz to the running renderer once instead of rebooting it for a different layout engine", async () => {
+  const hook = renderHook(
+    ({ text, engine }: { text: string; engine: "native" | "graphviz" }) => useRenderer(text, true, engine, "A"),
+    { initialProps: { text: source("Native"), engine: "native" as "native" | "graphviz" } },
+  );
+  await act(async () => {});
+  const frame = rendererFrame();
+  await frame.receive({ type: "ready" });
+  await advance();
+  expect(frame.requests().at(-1)!.layoutEngine).toBe("native");
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Native") });
+  const graphvizMessages = () => frame.outgoing.mock.calls.filter(([message]) => message.type === "add-graphviz");
+  expect(graphvizMessages()).toHaveLength(0);
+
+  hook.rerender({ text: "@startuml\nclass A\n@enduml", engine: "graphviz" });
+  await advance();
+  await act(async () => {});
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+  expect(graphvizMessages()).toHaveLength(1);
+  const classRequest = frame.requests().at(-1)!;
+  expect(classRequest.layoutEngine).toBe("graphviz");
+  // Graphviz is delivered before the render that needs it.
+  const order = frame.outgoing.mock.calls.map(([message]) => message.type);
+  expect(order.lastIndexOf("add-graphviz")).toBeLessThan(order.lastIndexOf("render"));
+  await frame.receive({ type: "result", requestId: classRequest.requestId, svg: svg("Class") });
+
+  hook.rerender({ text: "@startuml\nclass B\n@enduml", engine: "graphviz" });
+  await advance();
+  expect(graphvizMessages()).toHaveLength(1);
 });
 
 it("retains the rendered source on failure and recovers on correction", async () => {
@@ -246,4 +307,117 @@ it("loads a bundled theme on demand before sending the expanded source to the re
   const latest = frame.requests().at(-1)!;
   expect(latest.renderSource).toContain("' !theme blueprint expanded locally by PlantUML Ultimate");
   expect(latest.renderSource).toContain('!$BGCOLOR = "#003153"');
+});
+
+it("sends the first edit after a pause quickly and waits longer while typing continues", async () => {
+  const { rerender, frame } = await setup();
+  await frame.receive({
+    type: "result",
+    requestId: frame.requests().at(-1)!.requestId,
+    svg: svg("Original"),
+    durationMs: 200,
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000);
+  });
+  rerender({ text: source("After a pause"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MIN_MS - 1);
+  });
+  expect(frame.requests()).toHaveLength(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  // Well below the former fixed 150 ms wait, even though the last render took 200 ms.
+  expect(frame.requests().map((request) => request.source)).toEqual([source("Original"), source("After a pause")]);
+  await frame.receive({
+    type: "result",
+    requestId: frame.requests().at(-1)!.requestId,
+    svg: svg("After"),
+    durationMs: 200,
+  });
+  rerender({ text: source("Typing 1"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(99);
+  });
+  // Within the typing window the wait follows half of the 200 ms render.
+  expect(frame.requests()).toHaveLength(2);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  expect(frame.requests().at(-1)!.source).toBe(source("Typing 1"));
+});
+
+it("serves a render-cache hit synchronously without contacting the renderer", async () => {
+  const { result, rerender, frame } = await setup();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Original") });
+  rerender({ text: source("Edited"), documentId: "A" });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Edited") });
+  const sent = frame.requests().length;
+  rerender({ text: source("Original"), documentId: "A" });
+  // No timer has been advanced: the cached preview is already current.
+  expect(result.current.status).toBe("idle");
+  expect(result.current.result?.source).toBe(source("Original"));
+  expect(frame.requests()).toHaveLength(sent);
+});
+
+it("pre-warms the renderer while no preview is wanted and renders the first request without a boot", async () => {
+  const hook = renderHook(({ enabled }) => useRenderer(source("First"), enabled, "native", "A", { prewarm: true }), {
+    initialProps: { enabled: false },
+  });
+  await act(async () => {});
+  // Nothing starts before the page is idle...
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(0);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+  const frame = rendererFrame();
+  await frame.receive({ type: "ready" });
+  // ...but no render request is made for a preview nobody asked for.
+  await advance();
+  expect(frame.requests()).toHaveLength(0);
+  expect(hook.result.current.status).toBe("idle");
+  hook.rerender({ enabled: true });
+  await advance();
+  expect(frame.requests().map((request) => request.source)).toEqual([source("First")]);
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+});
+
+it("keeps a failed warm-up silent until a preview is wanted", async () => {
+  const hook = renderHook(({ enabled }) => useRenderer(source("First"), enabled, "native", "A", { prewarm: true }), {
+    initialProps: { enabled: false },
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  const frame = rendererFrame();
+  // Two failed starts: the automatic retry is used up.
+  await frame.receive({ type: "bootstrap-error", error: "blocked" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(150);
+  });
+  const retry = rendererFrame();
+  await retry.receive({ type: "bootstrap-error", error: "blocked" });
+  expect(hook.result.current.status).toBe("idle");
+  expect(hook.result.current.result).toBeUndefined();
+});
+
+it("keeps a document's newest preview visible while its changed source renders after a tab switch", async () => {
+  const { result, rerender, frame } = await setup();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("A original") });
+  rerender({ text: source("B original"), documentId: "B" });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("B original") });
+  // Back to document A with a source that has never been rendered (it changed while hidden).
+  rerender({ text: source("A edited in code view"), documentId: "A" });
+  expect(result.current.status).toBe("rendering");
+  expect(result.current.result).toMatchObject({ documentId: "A", source: source("Original"), svg: svg("A original") });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("A edited") });
+  expect(result.current.result).toMatchObject({ source: source("A edited in code view"), svg: svg("A edited") });
+  // A document that was never rendered still shows nothing rather than another document's diagram.
+  rerender({ text: source("C new"), documentId: "C" });
+  expect(result.current.result).toBeUndefined();
 });

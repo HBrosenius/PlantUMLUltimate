@@ -1,5 +1,6 @@
 import { loadEditorPreferences } from "./editor-preferences";
 import { migrateSavedScenarios } from "./saved-delivery-scenarios";
+import { createCoalescedWriter } from "./coalesced-writer";
 import { sameWorkspaceContent } from "./workspace-content";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
@@ -24,6 +25,10 @@ export function usePersistedWorkspace() {
   const [hydrated, setHydrated] = useState(false);
   const recoveredContent = useRef<WorkspaceSession | undefined>(undefined);
   const contentPending = useRef(false);
+  // Recovery serializes the whole session synchronously; bursts of edits are written once per frame
+  // and flushed immediately when the page is hidden or closed.
+  const recoveryWriter = useRef<ReturnType<typeof createCoalescedWriter<WorkspaceSession>>>(undefined);
+  recoveryWriter.current ??= createCoalescedWriter(saveWorkspaceRecovery);
 
   useEffect(() => {
     let active = true;
@@ -44,7 +49,7 @@ export function usePersistedWorkspace() {
   useEffect(() => {
     if (!hydrated) return;
     if (!recoveredContent.current || !sameWorkspaceContent(recoveredContent.current, session)) {
-      saveWorkspaceRecovery(session);
+      recoveryWriter.current?.schedule(session);
       recoveredContent.current = session;
       contentPending.current = true;
     }
@@ -69,9 +74,22 @@ export function usePersistedWorkspace() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const flush = () => saveWorkspaceNavigation(sessionRef.current);
+    const writer = recoveryWriter.current;
+    const flushRecovery = () => writer?.flush();
+    const flush = () => {
+      flushRecovery();
+      saveWorkspaceNavigation(sessionRef.current);
+    };
+    const hidden = () => {
+      if (document.visibilityState === "hidden") flushRecovery();
+    };
     window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", hidden);
+      flushRecovery();
+    };
   }, [hydrated]);
 
   const workspace = useMemo(() => activeWorkspace(session), [session]);
@@ -283,7 +301,7 @@ export function usePersistedWorkspace() {
       };
       sessionRef.current = next;
       if (sameWorkspaceContent(current, next)) saveWorkspaceNavigation(next);
-      else saveWorkspaceRecovery(next);
+      else recoveryWriter.current?.writeNow(next);
     }
     setSession((current) => ({
       ...current,

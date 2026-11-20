@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { ProjectRecoveryStatus } from "./projects/use-embedded-project";
 import {
   describeStorageHealth,
@@ -12,7 +12,7 @@ import {
 const ESTIMATE_INTERVAL_MS = 60_000;
 
 /** Status-bar indicator for browser storage; warns when recovery data can no longer be saved. */
-export function StorageStatus({
+function StorageStatusView({
   onExplain,
   recoveryStatus,
   encrypted = false,
@@ -137,3 +137,6 @@ export function StorageStatus({
     </div>
   );
 }
+
+/** Skips re-rendering while its props are unchanged; callers pass stable handlers. */
+export const StorageStatus = memo(StorageStatusView);

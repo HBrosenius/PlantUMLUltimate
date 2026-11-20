@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { placeDock } from "./dock-placement";
+import { watchLayout } from "./layout-watch";
 import type { AddItem, DockAction, StageSelection } from "./stage-selection";
 
 interface Rect {
@@ -24,11 +25,9 @@ function useAnchorRect(
       setNeighbours([]);
       return;
     }
-    let frame = 0;
-    const tick = () => {
-      frame = requestAnimationFrame(tick);
-      const root = container.current;
-      if (!root) return;
+    const root = container.current;
+    if (!root) return;
+    const measure = () => {
       const elements = (() => {
         try {
           return [...root.querySelectorAll(selector)];
@@ -76,8 +75,9 @@ function useAnchorRect(
           : next,
       );
     };
-    tick();
-    return () => cancelAnimationFrame(frame);
+    measure();
+    // Re-measure when pan, zoom, resize, a new render or an edit can have moved the element.
+    return watchLayout(root, measure);
   }, [container, selector, neighbourSelector]);
   return { rect, neighbours };
 }

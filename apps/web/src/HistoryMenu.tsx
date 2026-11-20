@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 /** Most steps shown in each section; older steps stay reachable with repeated undo. */
 const VISIBLE_STEPS = 25;
@@ -6,7 +6,7 @@ const VISIBLE_STEPS = 25;
 /**
  * Lists recent undo and redo steps. Choosing a step undoes (or redoes) everything up to and including it.
  */
-export function HistoryMenu({
+function HistoryMenuView({
   undoSteps,
   redoSteps,
   onUndo,
@@ -116,3 +116,6 @@ export function HistoryMenu({
     </div>
   );
 }
+
+/** Skips re-rendering while its props are unchanged; callers pass stable handlers. */
+export const HistoryMenu = memo(HistoryMenuView);
