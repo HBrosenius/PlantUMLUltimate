@@ -1,5 +1,5 @@
 import { openRibbonGroup, prepareEditor, fillSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("task basics lead, optional choices persist, and invalid drafts remain recoverable", async ({
   page,

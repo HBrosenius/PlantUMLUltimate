@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 async function prepareWbs(page: Parameters<typeof prepareEditor>[0]) {
   await prepareEditor(page);

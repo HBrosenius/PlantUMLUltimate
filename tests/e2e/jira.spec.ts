@@ -1,5 +1,6 @@
-import { openRibbonGroup } from "./editor-helpers";
-import { expect, test, type Page } from "@playwright/test";
+import { openRibbonGroup, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
+import { expect, test, type Page } from "./coverage";
+import { readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { createServer as createViteServer } from "vite";
@@ -21,9 +22,16 @@ async function openGantt(page: Page, url = "/") {
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 
-async function openJira(page: Page) {
+async function openJira(page: Page, tab: "import" | "link" = "import") {
   await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Jira…" }).click();
+  // Once connected the dialog has Link and Import tabs; before that it shows the connect form.
+  const importTab = page.getByRole("tab", { name: "Import from query" });
+  await importTab
+    .or(page.getByRole("button", { name: "Connect with Atlassian OAuth" }))
+    .first()
+    .waitFor();
+  if (tab === "import" && (await importTab.isVisible())) await importTab.click();
 }
 
 function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:00:00.000Z") {
@@ -98,6 +106,7 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
   await openGantt(page);
 
   await openJira(page);
+  await expect(page.getByText("Connected to Acme Jira")).toBeVisible();
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByLabel("JQL").fill("project = APP ORDER BY Rank");
@@ -159,6 +168,10 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
   await dialog.getByRole("button", { name: "Apply changes" }).click();
 
   const editor = page.locator(".cm-content");
+  // Wait for the import to reach the editor before rewriting it. Reading too early (slow runners)
+  // returns the old text, the edit below then wipes the import, and no local changes exist to review.
+  await expect(dialog).toHaveCount(0);
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-05");
   const imported = await editor.innerText();
   await editor.fill(
     imported
@@ -168,6 +181,7 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
       )
       .replace("[jira_10001] ends 2026-09-05", "[jira_10001] ends 2026-09-06"),
   );
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-06");
 
   await openJira(page);
   dialog = page.getByRole("dialog", { name: "Jira integration" });
@@ -430,4 +444,228 @@ test("retains uncertain publish results across panel closes and requires a fresh
   await openJira(page);
   await expect(dialog.getByRole("region", { name: "Jira publish results" })).toContainText("APP-123");
   await expect(dialog.getByRole("button", { name: "Review refresh" })).toBeEnabled();
+});
+
+test("shows live status for tasks linked to Jira issues", async ({ page }) => {
+  const base = jiraIssue();
+  const requests = await mockJira(page, {
+    current: [
+      {
+        ...base,
+        fields: {
+          ...base.fields,
+          issuetype: { name: "Epic" },
+          priority: { name: "High" },
+          progress: { total: 100, percent: 40 },
+        },
+      },
+    ],
+  });
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n[Next] as [next] starts at [build]'s end and lasts 1 day\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+
+  await expect(page.locator('.diagram svg [data-jira-status="live-progress"]')).toHaveCount(1);
+  const search = requests.find((request) => request.url === "/api/issues/search");
+  expect(search?.body).toMatchObject({ cloudId: "cloud-1", jql: "key in (APP-123)" });
+
+  const bar = page.getByRole("group", { name: "Linked Jira issues" });
+  await expect(bar).toContainText("1 linked");
+  const card = page.getByLabel("Task details for Build");
+  await page.locator('.diagram svg a[href*="APP-123"]').first().hover({ force: true });
+  // The Jira details are a section of the normal task card, not a separate popup.
+  await expect(card).toContainText("Dates");
+  await expect(card).toContainText("APP-123");
+  await expect(card).toContainText("Ship Jira integration");
+  await expect(card).toContainText("Epic · High");
+  await expect(card).toContainText("2026-09-05");
+  await expect(card).toContainText(/diagram \d days? earlier/);
+  await expect(card).toContainText("40%");
+  await expect(card).toContainText("Updated");
+  // PlantUML relationships (From/To) stay together above the Jira section, so the two are not confused.
+  const text = await card.innerText();
+  expect(text.indexOf("Next")).toBeGreaterThan(-1);
+  expect(text.indexOf("Next")).toBeLessThan(text.indexOf("Jira · APP-123"));
+
+  // Keyboard users get the same card on focus, as for any task.
+  await page.mouse.move(0, 0);
+  await expect(card).toHaveCount(0);
+  await page.locator('.diagram svg [data-task-id="build"]').first().focus();
+  await expect(card).toContainText("APP-123");
+
+  // Status badge on the bar, and an issue-key pill behind the "Show issue keys" toggle.
+  await expect(page.locator(".diagram svg .jira-link-marker")).toHaveCount(1);
+  await expect(page.locator("[data-jira-key]")).toHaveCount(0);
+  await bar.getByLabel("Show issue keys").check();
+  await expect(page.locator('.diagram svg [data-jira-key="APP-123"]')).toHaveCount(1);
+
+  // Exports carry the same markers (the renderer's raw SVG has no task groups to hang them on).
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export…", exact: true }).click();
+  const exportDialog = page.getByRole("dialog", { name: "Export preview", exact: true });
+  await exportDialog.getByRole("combobox", { name: "Format", exact: true }).selectOption("svg");
+  const download = page.waitForEvent("download");
+  await exportDialog.getByRole("button", { name: "Download SVG" }).click();
+  const exported = readFileSync((await (await download).path())!, "utf8");
+  expect(exported).toContain("jira-link-marker");
+  expect(exported).toContain("APP-123");
+  await page.keyboard.press("Escape");
+
+  const before = requests.filter((request) => request.url === "/api/issues/search").length;
+  await bar.getByRole("button", { name: "Refresh" }).click();
+  await expect.poll(() => requests.filter((request) => request.url === "/api/issues/search").length).toBe(before + 1);
+});
+
+test("explains why a linked task has no status and offers to connect", async ({ page }) => {
+  await mockJira(page);
+  await page.route(integrationRoute, async (route) => {
+    if (new URL(route.request().url()).pathname.endsWith("/api/connection")) {
+      await route.fulfill({ status: 401, json: { connected: false } });
+      return;
+    }
+    await route.fallback();
+  });
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+
+  await page.locator('.diagram svg [data-task-id="build"]').first().focus();
+  await expect(page.getByLabel("Task details for Build")).toContainText("Not connected to Jira");
+  // Both the bar above the diagram and the task card offer to connect.
+  await expect(
+    page.getByRole("group", { name: "Linked Jira issues" }).getByRole("button", { name: "Connect Jira…" }),
+  ).toBeVisible();
+  await page.getByLabel("Task details for Build").getByRole("button", { name: "Connect Jira…" }).click();
+  await expect(page.getByRole("dialog", { name: "Jira integration" })).toBeVisible();
+});
+
+test("links a task to an existing Jira issue from the dialog without importing", async ({ page }) => {
+  const requests = await mockJira(page);
+  await openGantt(page);
+  await setSource(page, "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n@endgantt");
+  await waitForDiagramRender(page);
+
+  await openJira(page, "link");
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog).toContainText("Link tasks to issues to show their status");
+  await expect(dialog.getByRole("tab", { name: "Link issue" })).toHaveAttribute("aria-selected", "true");
+  // No import controls and no review step on the Link tab.
+  await expect(dialog.getByLabel("JQL")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Review import" })).toHaveCount(0);
+
+  await dialog.getByLabel("Issue key or link").fill("not an issue");
+  await dialog.getByRole("button", { name: "Look up issue" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Enter an issue key");
+
+  await dialog.getByLabel("Issue key or link").fill("app-123");
+  await dialog.getByRole("button", { name: "Look up issue" }).click();
+  await expect(dialog.getByRole("status")).toContainText("APP-123");
+  expect(requests.find((request) => request.url === "/api/issues/search")?.body).toMatchObject({
+    jql: "key in (APP-123)",
+  });
+  await dialog.getByRole("button", { name: "Link task" }).click();
+
+  await expect(dialog).toHaveCount(0);
+  expect(await readEditorSource(page)).toContain(
+    "[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]",
+  );
+  await expect(page.locator('.diagram svg [data-jira-status="live-progress"]')).toHaveCount(1);
+});
+
+test("opens the Link tab for the selected task from the task inspector", async ({ page }) => {
+  await mockJira(page);
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[First] as [first] lasts 3 days\n[Second] as [second] lasts 3 days\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+  await page.locator('.diagram svg [data-task-id="second"]').first().click({ force: true });
+  await page.getByRole("button", { name: "Link Jira issue…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog.getByRole("tab", { name: "Link issue" })).toHaveAttribute("aria-selected", "true");
+  await expect(dialog.getByLabel("Task")).toHaveValue("second");
+});
+
+test("a Jira-linked task selects on any click, resizes, and still offers its link", async ({ page }) => {
+  await mockJira(page);
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] starts 2026-09-02 and lasts 4 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+  await expect(page.locator(".diagram svg .jira-link-marker")).toHaveCount(1);
+  // Keys on puts a pill right behind the bar's end, where the resize handle appears.
+  await page.getByLabel("Show issue keys").check();
+  await page.evaluate(() => {
+    (window as typeof window & { opened?: unknown[] }).opened = [];
+    window.open = (...args) => {
+      (window as typeof window & { opened?: unknown[] }).opened!.push(args);
+      return null;
+    };
+  });
+
+  const selected = page.locator(".diagram");
+  // WebKit reports a different box for SVG text, so click the centre of the native SVG geometry.
+  const clickAt = async (locator: ReturnType<Page["locator"]>) => {
+    let point = { x: 0, y: 0 };
+    await expect(async () => {
+      await locator.scrollIntoViewIfNeeded({ timeout: 2000 });
+      point = await locator.evaluate((element) => {
+        const graphic = element as SVGGraphicsElement;
+        const box = graphic.getBBox();
+        const matrix = graphic.getScreenCTM();
+        if (!matrix) throw new Error("SVG element is not laid out");
+        const p = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(matrix);
+        return { x: p.x, y: p.y };
+      });
+    }).toPass({ timeout: 10_000 });
+    await page.mouse.click(point.x, point.y);
+  };
+  // A plain click selects the task whether it lands on the bar or on the label (it is all one link),
+  // and never opens the link menu in the way.
+  await clickAt(page.locator('.diagram svg rect[data-visual-task-id="build"]').first());
+  await expect(page.locator(".diagram-link-menu")).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-selected-task", "build");
+  await page.keyboard.press("Escape");
+  await expect(selected).not.toHaveAttribute("data-selected-task", "build");
+  await clickAt(page.locator('.diagram svg text[data-visual-task-id="build"]').first());
+  await expect(page.locator(".diagram-link-menu")).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-selected-task", "build");
+
+  // The end handle is reachable and resizing works.
+  const handle = page.locator('.diagram svg [data-task-id="build"] .resize-handle');
+  const handleBox = (await handle.boundingBox())!;
+  const x = handleBox.x + handleBox.width / 2;
+  const y = handleBox.y + handleBox.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => readEditorSource(page)).not.toContain("lasts 4 days");
+  await waitForDiagramRender(page); // the resize re-renders the chart; clicking mid-render misses the target
+
+  // Alt-click opens the link menu.
+  await page.keyboard.press("Escape");
+  await page.keyboard.down("Alt");
+  await clickAt(page.locator('.diagram svg a[href*="APP-123"] text').last());
+  await page.keyboard.up("Alt");
+  await expect(page.locator(".diagram-link-menu")).toContainText("APP-123");
+  await page.keyboard.press("Escape");
+
+  // The task card also opens the issue, in a separate tab.
+  await page.locator('.diagram svg [data-task-id="build"]').first().focus();
+  await page.getByLabel("Task details for Build").getByRole("button", { name: "Open in Jira" }).click();
+  expect(await page.evaluate(() => (window as typeof window & { opened?: unknown[] }).opened)).toEqual([
+    ["https://acme.atlassian.net/browse/APP-123", "_blank", "noopener,noreferrer"],
+  ]);
 });

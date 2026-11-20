@@ -1,5 +1,5 @@
 import { auditScreenshot } from "./audit-screenshot";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor } from "./editor-helpers";
 
 const before = "@startgantt\nProject starts 2026-10-02\n[Build] as [b] lasts 2 days\n@endgantt";

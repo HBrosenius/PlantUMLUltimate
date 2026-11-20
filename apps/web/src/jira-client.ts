@@ -62,9 +62,16 @@ class JiraRequestError extends Error {
   }
 }
 
+// In development the default Worker is reached through the dev proxy, which the Worker's CORS
+// allowlist requires; every Jira request must use this base.
+function jiraApiBase(endpoint: string): string {
+  const base = endpoint.replace(/\/$/, "");
+  return import.meta.env.DEV && base === "https://jira.plantuml.brosenius.se" ? "/__jira" : base;
+}
+
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
   const base = endpoint.replace(/\/$/, "");
-  const apiBase = import.meta.env.DEV && base === "https://jira.plantuml.brosenius.se" ? "/__jira" : base;
+  const apiBase = jiraApiBase(endpoint);
   let response: Response;
   try {
     response = await fetch(`${apiBase}${path}`, {
@@ -189,7 +196,7 @@ export async function jiraUpdateIssues(
 }
 
 export async function disconnectJira(endpoint: string): Promise<void> {
-  const response = await fetch(`${endpoint.replace(/\/$/, "")}/api/disconnect`, {
+  const response = await fetch(`${jiraApiBase(endpoint)}/api/disconnect`, {
     method: "POST",
     credentials: "include",
   });

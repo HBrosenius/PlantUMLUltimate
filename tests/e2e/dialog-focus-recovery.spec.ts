@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 for (const kind of ["Gantt", "Sequence", "Activity"]) {

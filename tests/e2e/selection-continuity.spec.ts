@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, setSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 for (const kind of ["Class", "Component", "Use Case"]) {

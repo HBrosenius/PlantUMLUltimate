@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 const sequence = `@startuml
  participant Alice

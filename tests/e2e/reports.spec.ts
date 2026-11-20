@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test.use({ locale: "sv-SE" });
 

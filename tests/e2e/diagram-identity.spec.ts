@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, readEditorSource } from "./editor-helpers";
 
 test("three separate diagrams expose names, types and distinct close controls", async ({ page }, testInfo) => {

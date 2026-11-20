@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor, source, openRibbonGroup } from "./editor-helpers";
 
 for (const kind of ["Class", "Component", "Activity"] as const) {

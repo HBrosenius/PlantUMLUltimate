@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor } from "./editor-helpers";
 
 type SaveHarness = { mode: string; bytes(): number[]; finish?: () => void; aborted: number };

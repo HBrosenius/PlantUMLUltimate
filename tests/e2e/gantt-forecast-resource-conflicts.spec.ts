@@ -1,5 +1,5 @@
 import { openDiagramOptions, prepareEditor, setSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("shows resource conflicts introduced by remaining work without moving forecast dates", async ({ page }) => {
   await prepareEditor(page);

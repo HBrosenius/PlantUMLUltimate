@@ -1,5 +1,5 @@
 import { openRibbonGroup, prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("Diagram mode exposes source without Settings", async ({ page }, testInfo) => {
   await page.goto("/");

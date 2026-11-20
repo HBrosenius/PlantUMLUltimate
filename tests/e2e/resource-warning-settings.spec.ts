@@ -1,5 +1,5 @@
 import { openRibbonGroup, prepareEditor, setSource, source } from "./editor-helpers";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 
 async function settings(page: Page) {
   await page.getByRole("button", { name: "Settings" }).click();

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readEditorSource } from "./editor-helpers";
 
 test("starts with actions, exposes examples and keeps learning optional", async ({ page }) => {

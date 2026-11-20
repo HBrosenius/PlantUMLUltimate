@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor } from "./editor-helpers";
 import { DEFAULT_SOURCE } from "../../apps/web/src/model";
 

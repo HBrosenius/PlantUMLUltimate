@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 import { prepareEditor, setSource, source, readEditorSource, fillSource, waitForDiagramRender } from "./editor-helpers";
 
 const diagrams: Record<string, string> = {

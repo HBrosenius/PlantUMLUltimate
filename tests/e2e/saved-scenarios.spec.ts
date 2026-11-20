@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { decodeDocument, decodeProject } from "@plantuml-studio/document-format";
 const source = `@startgantt
 Project starts 2026-10-01

@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, openAddDialog, prepareEditor, setSource, source } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readFileSync } from "node:fs";
 
 test.beforeEach(async ({ page }) => {

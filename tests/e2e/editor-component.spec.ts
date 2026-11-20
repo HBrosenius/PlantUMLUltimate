@@ -1,5 +1,5 @@
 import { openRibbonGroup, openAddDialog, prepareEditor, waitForDiagramRender } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);

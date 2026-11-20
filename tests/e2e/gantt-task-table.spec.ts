@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 const source = `@startgantt
 !theme cerulean

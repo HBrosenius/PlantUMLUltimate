@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, readEditorSource, setSource, source } from "./editor-helpers";
 
 const gantt = source(

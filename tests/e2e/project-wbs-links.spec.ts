@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test("links nodes in three WBS diagrams and saves the project", async ({ page }) => {

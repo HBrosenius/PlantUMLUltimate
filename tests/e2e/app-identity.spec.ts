@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, openRibbonGroup } from "./editor-helpers";
 
 test("local installs expose their address, distinctive manifest, icon and About details", async ({

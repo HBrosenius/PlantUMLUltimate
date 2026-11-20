@@ -1,6 +1,6 @@
 import { auditScreenshot } from "./audit-screenshot";
 import { openRibbonGroup, prepareEditor, setSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
   await page.addInitScript(() => {

@@ -750,6 +750,11 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
     // Keep repairs narrow so a suggestion preserves the task, anchor and value.
     const syntaxRepairs: Array<[RegExp, string, string]> = [
       [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+(?:start|end))(?:\s*'s\s+(?:start|end))+(\s*)$/i,
+        "$1$2",
+        "Remove repeated 's end/'s start",
+      ],
+      [
         /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends))\s+(\[[^\]]+]'s\s+(?:start|end)\s*)$/i,
         "$1 at $2",
         "Add missing at",

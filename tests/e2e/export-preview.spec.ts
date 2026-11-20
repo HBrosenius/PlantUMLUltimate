@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readFileSync } from "node:fs";
 import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 async function open(page: Parameters<typeof prepareEditor>[0], name: string) {

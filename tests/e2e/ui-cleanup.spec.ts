@@ -1,5 +1,5 @@
 import { openRibbonGroup, openDiagramOptions, prepareEditor, setSource, source } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("keeps both toolbars usable across desktop and phone layouts", async ({ page }) => {
   await prepareEditor(page);
