@@ -18,7 +18,7 @@ test("touch check-in stages progress/resources, fits a reduced viewport and supp
   await expect(page.locator(".cm-editor")).toHaveCount(0);
   if (info.project.name === "chromium") await auditScreenshot(page, "docs/audits/2026-10-10-a33/task-list-phone.png");
   await list.getByRole("button", { name: "Open task Build" }).tap();
-  const sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
+  const sheet = page.getByRole("dialog", { name: "Task: Build" });
   await sheet.getByLabel("Progress (%)").fill("150");
   await expect(sheet.getByRole("button", { name: "Apply check-in" })).toBeDisabled();
   await sheet.getByLabel("Progress (%)").fill("60");
@@ -53,12 +53,12 @@ test("touch check-in stages progress/resources, fits a reduced viewport and supp
 test("cancels check-in, reveals a task without opening its inspector and restores desktop layout", async ({ page }) => {
   const list = await phone(page);
   await list.getByRole("button", { name: "Open task Build" }).tap();
-  let sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
+  let sheet = page.getByRole("dialog", { name: "Task: Build" });
   await sheet.getByLabel("Progress (%)").fill("90");
   await sheet.getByRole("button", { name: "Cancel" }).tap();
   await expect(list.getByRole("button", { name: "Open task Build" })).toBeFocused();
   await list.getByRole("button", { name: "Open task Build" }).tap();
-  sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
+  sheet = page.getByRole("dialog", { name: "Task: Build" });
   await sheet.getByRole("button", { name: "View on diagram" }).tap();
   await expect(page.locator(".diagram svg")).toBeVisible();
   await expect(page.locator(".task-inspector:visible")).toHaveCount(0);
@@ -112,7 +112,7 @@ test("supports dark appearance and keyboard navigation in the phone sheet", asyn
   await settings.getByRole("button", { name: "Apply", exact: true }).tap();
   await list.getByRole("button", { name: "Open task Build" }).focus();
   await page.keyboard.press("Enter");
-  const sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
+  const sheet = page.getByRole("dialog", { name: "Task: Build" });
   await expect(sheet).toBeVisible();
   await expect(sheet).toHaveCSS("background-color", "rgb(25, 28, 35)");
   await sheet.getByRole("button", { name: "Cancel" }).focus();
@@ -130,7 +130,7 @@ test("keeps sheet actions inside a zoomed visual viewport", async ({ page, conte
   test.skip(browserName !== "chromium", "CDP page-scale control is Chromium-only");
   const list = await phone(page);
   await list.getByRole("button", { name: "Open task Build" }).tap();
-  const sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
+  const sheet = page.getByRole("dialog", { name: "Task: Build" });
   const cdp = await context.newCDPSession(page);
   await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1.25 });
   await expect

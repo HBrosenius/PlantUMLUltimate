@@ -36,19 +36,26 @@ describe("CommandPalette", () => {
     const input = screen.getByRole("combobox", { name: "Search commands" });
     const options = screen.getAllByRole("option");
     expect(input).toHaveAttribute("aria-controls", screen.getByRole("listbox").id);
+    // Enabled commands come first, in their original order; unavailable ones follow.
+    expect(options.map((option) => option.textContent)).toEqual([
+      expect.stringContaining("alpha"),
+      expect.stringContaining("gamma"),
+      expect.stringContaining("disabled-first"),
+      expect.stringContaining("beta"),
+    ]);
     // The first enabled command is highlighted initially.
-    expect(input).toHaveAttribute("aria-activedescendant", options[1]!.id);
-    expect(options[1]).toHaveAttribute("aria-selected", "true");
+    expect(input).toHaveAttribute("aria-activedescendant", options[0]!.id);
+    expect(options[0]).toHaveAttribute("aria-selected", "true");
     expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "nearest" });
 
     fireEvent.keyDown(input, { key: "ArrowDown" });
-    expect(input).toHaveAttribute("aria-activedescendant", options[3]!.id);
+    expect(input).toHaveAttribute("aria-activedescendant", options[1]!.id);
     fireEvent.keyDown(input, { key: "ArrowDown" });
-    expect(input).toHaveAttribute("aria-activedescendant", options[3]!.id);
-    fireEvent.keyDown(input, { key: "ArrowUp" });
     expect(input).toHaveAttribute("aria-activedescendant", options[1]!.id);
     fireEvent.keyDown(input, { key: "ArrowUp" });
-    expect(input).toHaveAttribute("aria-activedescendant", options[1]!.id);
+    expect(input).toHaveAttribute("aria-activedescendant", options[0]!.id);
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(input).toHaveAttribute("aria-activedescendant", options[0]!.id);
 
     fireEvent.keyDown(input, { key: "ArrowDown" });
     fireEvent.keyDown(input, { key: "Enter" });

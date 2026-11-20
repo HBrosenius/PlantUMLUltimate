@@ -1,4 +1,5 @@
 import "./stage.css";
+import { modShortcut } from "../platform-shortcuts";
 
 export interface StageTopBarProps {
   documents: Array<{ id: string; label: string; dirty: boolean }>;
@@ -72,7 +73,7 @@ export function StageTopBar({
         True render
       </button>
       <button type="button" className="stage-palette" onClick={onOpenPalette} aria-keyshortcuts="Control+K Meta+K">
-        <span aria-hidden="true">⌘K</span> Ask or do…
+        <span aria-hidden="true">{modShortcut("K")}</span> Ask or do…
       </button>
       <button type="button" className={`stage-save${dirty ? " needed" : ""}`} disabled={saving} onClick={onSave}>
         {saving ? "Saving…" : dirty ? "Save ●" : "Save"}
