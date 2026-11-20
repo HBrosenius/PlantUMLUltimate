@@ -7,12 +7,16 @@ test.use({ timezoneId: "Europe/Stockholm" });
 // land inside the starter's chart range; only the expected dates are derived from it.
 // Shift by calendar days from Stockholm's date, as the app does. Shifting by 24-hour steps first would
 // cross a DST change and, within an hour of midnight, land on the wrong Stockholm date.
+// Like the app, a date that lands on the starter's closed weekend moves forward to Monday.
 const stockholmDate = (base: Date, offsetDays: number) => {
   const [year, month, day] = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm" })
     .format(base)
     .split("-")
     .map(Number);
-  return new Date(Date.UTC(year!, month! - 1, day! + offsetDays)).toISOString().slice(0, 10);
+  const date = new Date(Date.UTC(year!, month! - 1, day! + offsetDays));
+  const weekday = date.getUTCDay();
+  if (weekday === 6 || weekday === 0) date.setUTCDate(date.getUTCDate() + (weekday === 6 ? 2 : 1));
+  return date.toISOString().slice(0, 10);
 };
 
 test("new Gantt diagrams use today's calendar and highlight today", async ({ page }) => {
