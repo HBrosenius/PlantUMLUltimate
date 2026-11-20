@@ -1,0 +1,11 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  - {
+    LineThickness 1
+  }
+}
+</style>
+* Root
+** A
+@endmindmap

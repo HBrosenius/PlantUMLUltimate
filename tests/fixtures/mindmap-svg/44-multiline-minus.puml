@@ -1,0 +1,6 @@
+@startmindmap
++ Root
+--:left multi
+line two;
+++ Right
+@endmindmap

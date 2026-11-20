@@ -1,0 +1,13 @@
+@startmindmap
+*[#Orange] Root
+**[#lightgreen] Green
+** Classed <<green>>
+*** Plain
+<style>
+mindmapDiagram {
+  .green {
+    BackgroundColor lightgreen
+  }
+}
+</style>
+@endmindmap

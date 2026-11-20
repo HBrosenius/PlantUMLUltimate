@@ -1,0 +1,10 @@
+@startmindmap
+* Root
+**:line one
+line two
+- not a node
++ not a node either
+* not a node
+# not a node;
+** Next
+@endmindmap

@@ -1,0 +1,8 @@
+@startmindmap
+* **Bold root**
+** //italic// and --strike--
+** __underline__ and ""mono""
+** <b>html bold</b> <i>html italic</i>
+** <color:red>red text</color> plain
+** <size:20>big</size>
+@endmindmap

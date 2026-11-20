@@ -1,0 +1,7 @@
+@startmindmap
+* Root
+** Level 2
+  * Indented star under level 2
+    * Deeper indented
+- Dash at col 0
+@endmindmap

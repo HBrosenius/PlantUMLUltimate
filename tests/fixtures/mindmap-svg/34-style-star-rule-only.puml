@@ -1,0 +1,11 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  * {
+    FontSize 12
+  }
+}
+</style>
+* Root
+** A
+@endmindmap

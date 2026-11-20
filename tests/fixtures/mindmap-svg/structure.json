@@ -1,0 +1,3754 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.6",
+  "fixtures": {
+    "01-basic": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 109.57,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "A1",
+          "x": 188.91,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "A2",
+          "x": 188.91,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "B",
+          "x": 109.57,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "B1",
+          "x": 188.91,
+          "y": 145,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 6
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 6,
+        "text": 6,
+        "path": 5
+      }
+    },
+    "02-arithmetic": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 204.5,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Right1",
+          "x": 304.07,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R1a",
+          "x": 414.54,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Right2",
+          "x": 304.07,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Left1",
+          "x": 103.36,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "L1a",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "Left2",
+          "x": 103.36,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 7
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 7,
+        "text": 7,
+        "path": 6
+      }
+    },
+    "03-left-side-star": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 188.93,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 288.5,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R2",
+          "x": 288.5,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "L1",
+          "x": 103.36,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "L2",
+          "x": 103.36,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "L2a",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 6
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 6,
+        "text": 6,
+        "path": 5
+      }
+    },
+    "04-left-side-plus": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 170.26,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 269.83,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "AfterLeftPlus",
+          "x": 269.83,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "AfterLeftMinus",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "05-duplicate-labels": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 238.72,
+          "y": 117,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Branch 1",
+          "x": 338.29,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Pros",
+          "x": 464.32,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Cons",
+          "x": 464.32,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Branch 2",
+          "x": 338.29,
+          "y": 173,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "Pros",
+          "x": 464.32,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "Cons",
+          "x": 464.32,
+          "y": 201,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "Branch 3",
+          "x": 112.68,
+          "y": 117,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "Pros",
+          "x": 13.9,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "Cons",
+          "x": 10,
+          "y": 145,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 10
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 10,
+        "text": 10,
+        "path": 9
+      }
+    },
+    "06-direction-ltr": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "B1",
+          "x": 188.91,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "07-direction-ttb": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 36.5,
+          "y": 23,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 20,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 69.34,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "B1",
+          "x": 65.44,
+          "y": 145,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "08-direction-rtl": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 176.46,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 97.12,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 97.12,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "B1",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "09-direction-btt": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 89.34,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "10-colors-style-class": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Green",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Classed ",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Plain",
+          "x": 234.04,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "11-boxless": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 142.26,
+          "y": 42,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Boxless right",
+          "x": 234.83,
+          "y": 42,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Deep boxless",
+          "x": 367.98,
+          "y": 42,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Boxless left",
+          "x": 7.68,
+          "y": 14,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Boxed left",
+          "x": 10,
+          "y": 51,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 5
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 2,
+        "text": 5,
+        "path": 4
+      }
+    },
+    "12-multiline": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 101,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "line one",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "line two",
+          "x": 109.57,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "- not a node",
+          "x": 109.57,
+          "y": 65,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "+ not a node either",
+          "x": 109.57,
+          "y": 81,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "not a node",
+          "x": 121.57,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "1.",
+          "x": 109.57,
+          "y": 113,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "not a node",
+          "x": 125.14,
+          "y": 113,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "Next",
+          "x": 109.57,
+          "y": 169,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 9
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 9,
+        "circle": 1,
+        "path": 2
+      }
+    },
+    "13-several-roots": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root one",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 136.82,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Root two",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "B",
+          "x": 135.25,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 2
+      }
+    },
+    "14-title-caption-footer": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Head text",
+          "x": 95.11,
+          "y": 9,
+          "parents": ["g.header", "g"]
+        },
+        {
+          "order": 1,
+          "text": "My Title",
+          "x": 43.02,
+          "y": 35,
+          "parents": ["g.title", "g"]
+        },
+        {
+          "order": 2,
+          "text": "Root",
+          "x": 10,
+          "y": 82,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "A",
+          "x": 109.57,
+          "y": 82,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Legend text",
+          "x": 47.74,
+          "y": 135,
+          "parents": ["g.legend", "g"]
+        },
+        {
+          "order": 5,
+          "text": "My Caption",
+          "x": 33.55,
+          "y": 170,
+          "parents": ["g.caption", "g"]
+        },
+        {
+          "order": 6,
+          "text": "Foot text",
+          "x": 49.5,
+          "y": 184,
+          "parents": ["g.footer", "g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 2
+        },
+        {
+          "class": "header",
+          "data": {
+            "data-source-line": "3"
+          },
+          "texts": 1
+        },
+        {
+          "class": "title",
+          "data": {
+            "data-source-line": "1"
+          },
+          "texts": 1
+        },
+        {
+          "class": "legend",
+          "data": {
+            "data-source-line": "7"
+          },
+          "texts": 1
+        },
+        {
+          "class": "caption",
+          "data": {
+            "data-source-line": "2"
+          },
+          "texts": 1
+        },
+        {
+          "class": "footer",
+          "data": {
+            "data-source-line": "6"
+          },
+          "texts": 1
+        }
+      ],
+      "dataAttributes": ["g[data-source-line]"],
+      "elements": {
+        "defs": 1,
+        "g": 6,
+        "text": 7,
+        "rect": 3,
+        "path": 1
+      }
+    },
+    "15-style-block-star-rules": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 20) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "<style>",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "mindmapDiagram {",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  node {",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "    BackgroundColor white",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": "  }",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        },
+        {
+          "order": 12,
+          "text": "  .myStyle * {",
+          "x": 5,
+          "y": 216,
+          "parents": ["g"]
+        },
+        {
+          "order": 13,
+          "text": "    LineColor red",
+          "x": 5,
+          "y": 232,
+          "parents": ["g"]
+        },
+        {
+          "order": 14,
+          "text": "  }",
+          "x": 5,
+          "y": 248,
+          "parents": ["g"]
+        },
+        {
+          "order": 15,
+          "text": "  :depth(1) {",
+          "x": 5,
+          "y": 264,
+          "parents": ["g"]
+        },
+        {
+          "order": 16,
+          "text": "    BackgroundColor yellow",
+          "x": 5,
+          "y": 280,
+          "parents": ["g"]
+        },
+        {
+          "order": 17,
+          "text": "  }",
+          "x": 5,
+          "y": 296,
+          "parents": ["g"]
+        },
+        {
+          "order": 18,
+          "text": "  * {",
+          "x": 5,
+          "y": 312,
+          "parents": ["g"]
+        },
+        {
+          "order": 19,
+          "text": "    FontSize 12",
+          "x": 5,
+          "y": 328,
+          "parents": ["g"]
+        },
+        {
+          "order": 20,
+          "text": "  }",
+          "x": 5,
+          "y": 344,
+          "parents": ["g"]
+        },
+        {
+          "order": 21,
+          "text": "  - {",
+          "x": 5,
+          "y": 360,
+          "parents": ["g"]
+        },
+        {
+          "order": 22,
+          "text": "    LineThickness 1",
+          "x": 5,
+          "y": 376,
+          "parents": ["g"]
+        },
+        {
+          "order": 23,
+          "text": "  }",
+          "x": 5,
+          "y": 392,
+          "parents": ["g"]
+        },
+        {
+          "order": 24,
+          "text": "}",
+          "x": 5,
+          "y": 408,
+          "parents": ["g"]
+        },
+        {
+          "order": 25,
+          "text": "</style>",
+          "x": 5,
+          "y": 424,
+          "parents": ["g"]
+        },
+        {
+          "order": 26,
+          "text": " You should send a mail to plantuml@gmail.com with this log (V$version$) java.lang.IllegalStateException: STAR[*] (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 440,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 27
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 27,
+        "rect": 1
+      }
+    },
+    "16-creole": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Bold root",
+          "x": 10,
+          "y": 148.5,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "italic",
+          "x": 142.21,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": " and ",
+          "x": 170.21,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "strike",
+          "x": 201.35,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "underline",
+          "x": 142.21,
+          "y": 90,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " and ",
+          "x": 199.81,
+          "y": 90,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "mono",
+          "x": 230.94,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "html bold",
+          "x": 142.21,
+          "y": 146,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": " ",
+          "x": 205.19,
+          "y": 146,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "html italic",
+          "x": 209.08,
+          "y": 146,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "red text",
+          "x": 142.21,
+          "y": 202,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " plain",
+          "x": 188.9,
+          "y": 202,
+          "parents": ["g"]
+        },
+        {
+          "order": 12,
+          "text": "big",
+          "x": 142.21,
+          "y": 263,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 13
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 6,
+        "text": 13,
+        "path": 5
+      }
+    },
+    "17-icons-and-unicode": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": " Flagged root",
+          "x": 21.33,
+          "y": 61.5,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " Star é",
+          "x": 185.16,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Image ",
+          "x": 173.83,
+          "y": 90,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "[img TBD42102]",
+          "x": 216.63,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "path": 4,
+        "text": 4
+      }
+    },
+    "18-markdown-headers": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Child 1",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Grand 1",
+          "x": 223.15,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Child 2",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "19-markdown-list-indent-star": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Child 1",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Grand 1",
+          "x": 223.15,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Child 2",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "20-markdown-list-mixed": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 5) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "** Level 2",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  * Indented star under level 2",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "    * Deeper indented",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " error42L (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 12
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 12,
+        "rect": 1
+      }
+    },
+    "21-markdown-gfm-dash-list": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 3) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": " - Child 1",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 10
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 10,
+        "rect": 1
+      }
+    },
+    "22-skinparam-width": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 39.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "with",
+          "x": 43.46,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": " ",
+          "x": 68.36,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "a",
+          "x": 72.25,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "very",
+          "x": 10,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": " ",
+          "x": 36.45,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "long",
+          "x": 40.34,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": " ",
+          "x": 66.81,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "label",
+          "x": 70.7,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "that",
+          "x": 10,
+          "y": 65,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " ",
+          "x": 33.35,
+          "y": 65,
+          "parents": ["g"]
+        },
+        {
+          "order": 12,
+          "text": "should",
+          "x": 37.24,
+          "y": 65,
+          "parents": ["g"]
+        },
+        {
+          "order": 13,
+          "text": "wrap",
+          "x": 10,
+          "y": 81,
+          "parents": ["g"]
+        },
+        {
+          "order": 14,
+          "text": " ",
+          "x": 40.34,
+          "y": 81,
+          "parents": ["g"]
+        },
+        {
+          "order": 15,
+          "text": "because",
+          "x": 44.23,
+          "y": 81,
+          "parents": ["g"]
+        },
+        {
+          "order": 16,
+          "text": "of",
+          "x": 10,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 17,
+          "text": " ",
+          "x": 21.68,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 18,
+          "text": "the",
+          "x": 25.57,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 19,
+          "text": " ",
+          "x": 45.03,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 20,
+          "text": "maximum",
+          "x": 48.92,
+          "y": 97,
+          "parents": ["g"]
+        },
+        {
+          "order": 21,
+          "text": "width",
+          "x": 10,
+          "y": 113,
+          "parents": ["g"]
+        },
+        {
+          "order": 22,
+          "text": "Child",
+          "x": 179.59,
+          "y": 73,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 23
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 2,
+        "text": 23,
+        "path": 1
+      }
+    },
+    "23-arrow-and-alias": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 5) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "** A (a)",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "** B (b)",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "a -> b",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 12
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 12,
+        "rect": 1
+      }
+    },
+    "24-right-side-keyword": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R2",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "25-mixed-sides": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 201.39,
+          "y": 117,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Star R",
+          "x": 300.96,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Plus R",
+          "x": 300.96,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Star again",
+          "x": 300.96,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Plus after left side",
+          "x": 300.96,
+          "y": 201,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "Minus L",
+          "x": 82.37,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "Star L",
+          "x": 94.03,
+          "y": 117,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "Minus after left side",
+          "x": 10,
+          "y": 173,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 8
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 8,
+        "text": 8,
+        "path": 7
+      }
+    },
+    "26-ttb-both-sides": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 43.11,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 20,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R2",
+          "x": 77.9,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "L1",
+          "x": 22.32,
+          "y": 23,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "L2",
+          "x": 77.9,
+          "y": 23,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 5
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 5,
+        "text": 5,
+        "path": 4
+      }
+    },
+    "27-link-and-stereotype": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Link label",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Stereotyped ",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "28-deep-both-sides": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 290.08,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 389.65,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R1a",
+          "x": 477.54,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "R1a1",
+          "x": 573.23,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "L1",
+          "x": 204.5,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "L1a",
+          "x": 111.14,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "L1a1",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "L1b",
+          "x": 111.14,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 8
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 8,
+        "text": 8,
+        "path": 7
+      }
+    },
+    "29-markdown-hash-list-indent4": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Child by star",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Grand by two spaces",
+          "x": 157.81,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "Great by four spaces",
+          "x": 359.32,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 2
+      }
+    },
+    "31-indent-stack": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 4) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "    * Four",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  * Two",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": " Bad indentation (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 11
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 11,
+        "rect": 1
+      }
+    },
+    "32-indent-tabs": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Tab one",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Tab two",
+          "x": 229.39,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "33-hash-then-indent": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 5) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "# Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "## Child",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  * Under child by indent",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "    * Deeper",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " error42L (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 12
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 12,
+        "rect": 1
+      }
+    },
+    "34-style-star-rule-only": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 8) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "<style>",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "mindmapDiagram {",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  * {",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "    FontSize 12",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": "  }",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        },
+        {
+          "order": 12,
+          "text": "}",
+          "x": 5,
+          "y": 216,
+          "parents": ["g"]
+        },
+        {
+          "order": 13,
+          "text": "</style>",
+          "x": 5,
+          "y": 232,
+          "parents": ["g"]
+        },
+        {
+          "order": 14,
+          "text": " You should send a mail to plantuml@gmail.com with this log (V$version$) java.lang.IllegalStateException: STAR[*] (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 248,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 15
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 15,
+        "rect": 1
+      }
+    },
+    "35-style-dash-rule-only": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 2
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 2,
+        "text": 2,
+        "path": 1
+      }
+    },
+    "36-style-depth-selector-only": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 2
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 2,
+        "text": 2,
+        "path": 1
+      }
+    },
+    "37-style-dot-star-selector-only": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A ",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 2
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 2,
+        "text": 2,
+        "path": 1
+      }
+    },
+    "38-gfm-dash-col0": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 4) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "# Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "- Child",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  - Grand",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 11
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 11,
+        "rect": 1
+      }
+    },
+    "39-left-side-two-roots": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "R1",
+          "x": 87.79,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "a",
+          "x": 175.68,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "b",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "R2",
+          "x": 87.79,
+          "y": 117,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "c",
+          "x": 10.79,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "d",
+          "x": 10,
+          "y": 145,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 6
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 6,
+        "text": 6,
+        "path": 4
+      }
+    },
+    "40-left-side-multiline": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 136.83,
+          "y": 69,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R",
+          "x": 236.4,
+          "y": 69,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "multi",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "line node",
+          "x": 10,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "L2",
+          "x": 51.25,
+          "y": 105,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 5
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 5,
+        "path": 3
+      }
+    },
+    "41-mixed-marker": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 104.91,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Ok",
+          "x": 204.48,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Bad",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "42-ttb-duplicates": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 54,
+          "y": 145,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "B1",
+          "x": 25.83,
+          "y": 206,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Pros",
+          "x": 20,
+          "y": 267,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "B2",
+          "x": 94.62,
+          "y": 206,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "Pros",
+          "x": 88.79,
+          "y": 267,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": "B3",
+          "x": 60.22,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "Pros",
+          "x": 54.39,
+          "y": 23,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 7
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 7,
+        "text": 7,
+        "path": 6
+      }
+    },
+    "43-rtl-both-sides": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 97.9,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "R1",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "L1",
+          "x": 12.32,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "44-multiline-minus": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 4) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "+ Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "--:left multi",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "line two;",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 11
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 11,
+        "rect": 1
+      }
+    },
+    "45-trailing-spaces-and-blank": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A  ",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "46-markdown-star-under-star-marker": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Level 2",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Indented",
+          "x": 224.72,
+          "y": 33,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "47-left-then-right-side": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 95.57,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "L0",
+          "x": 195.14,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "R1",
+          "x": 195.14,
+          "y": 89,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "L1",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "48-indent-2-4": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "a",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "b",
+          "x": 187.36,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "c",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "49-indent-4-8": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "a",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "b",
+          "x": 187.36,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "c",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "50-star2-then-indent": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 5) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "** L2",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "  * x",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": "    * y",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        },
+        {
+          "order": 11,
+          "text": " error42L (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 200,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 12
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 12,
+        "rect": 1
+      }
+    },
+    "51-star2-indent-then-star2": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "L2",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "x",
+          "x": 195.14,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "L2b",
+          "x": 109.57,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 4
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 4,
+        "path": 3
+      }
+    },
+    "52-plus-multiline": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 4) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "+ Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "++:r multi",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "line;",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 11
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 11,
+        "rect": 1
+      }
+    },
+    "53-minus-multiline-star-root": {
+      "status": "engine-error",
+      "texts": [
+        {
+          "order": 0,
+          "text": "PlantUML version $version$ / $git.commit.id$ [Unknown compile time]",
+          "x": 5,
+          "y": 17,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": " ",
+          "x": 5,
+          "y": 31,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "This version of PlantUML is 306 days old, so you should",
+          "x": 5,
+          "y": 45,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "consider upgrading from https://plantuml.com/download",
+          "x": 5,
+          "y": 59,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "[From textarea (line 4) ]",
+          "x": 6,
+          "y": 84,
+          "parents": ["g"]
+        },
+        {
+          "order": 5,
+          "text": " ",
+          "x": 5,
+          "y": 104,
+          "parents": ["g"]
+        },
+        {
+          "order": 6,
+          "text": "@startmindmap",
+          "x": 5,
+          "y": 120,
+          "parents": ["g"]
+        },
+        {
+          "order": 7,
+          "text": "* Root",
+          "x": 5,
+          "y": 136,
+          "parents": ["g"]
+        },
+        {
+          "order": 8,
+          "text": "--:l multi",
+          "x": 5,
+          "y": 152,
+          "parents": ["g"]
+        },
+        {
+          "order": 9,
+          "text": "line;",
+          "x": 5,
+          "y": 168,
+          "parents": ["g"]
+        },
+        {
+          "order": 10,
+          "text": " Syntax Error? (Assumed diagram type: mindmap)",
+          "x": 5,
+          "y": 184,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 11
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "text": 11,
+        "rect": 1
+      }
+    },
+    "54-indent-skips-level": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "Deep at once",
+          "x": 109.57,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "Second root",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 1
+      }
+    },
+    "55-rtl-two-level": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 89.34,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "56-btt-two-level": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 89.34,
+          "y": 61,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "A",
+          "x": 10,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "B",
+          "x": 10,
+          "y": 89,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 3
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 3,
+        "text": 3,
+        "path": 2
+      }
+    },
+    "30-crlf": {
+      "status": "ok",
+      "texts": [
+        {
+          "order": 0,
+          "text": "Root",
+          "x": 90.11,
+          "y": 69,
+          "parents": ["g"]
+        },
+        {
+          "order": 1,
+          "text": "a",
+          "x": 189.68,
+          "y": 33,
+          "parents": ["g"]
+        },
+        {
+          "order": 2,
+          "text": "b",
+          "x": 189.68,
+          "y": 49,
+          "parents": ["g"]
+        },
+        {
+          "order": 3,
+          "text": "C",
+          "x": 189.68,
+          "y": 105,
+          "parents": ["g"]
+        },
+        {
+          "order": 4,
+          "text": "D",
+          "x": 10,
+          "y": 69,
+          "parents": ["g"]
+        }
+      ],
+      "groups": [
+        {
+          "data": {},
+          "texts": 5
+        }
+      ],
+      "dataAttributes": [],
+      "elements": {
+        "defs": 1,
+        "g": 1,
+        "rect": 4,
+        "text": 5,
+        "path": 3
+      }
+    }
+  }
+}

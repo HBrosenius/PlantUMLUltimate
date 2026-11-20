@@ -1,0 +1,11 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  :depth(1) {
+    BackgroundColor yellow
+  }
+}
+</style>
+* Root
+** A
+@endmindmap
