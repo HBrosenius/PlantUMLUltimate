@@ -10,6 +10,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@plantuml-studio/diagram-tree": "*",
     "@plantuml-studio/language-core": "*",
     "@plantuml-studio/language-plantuml": "*"
   }
