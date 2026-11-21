@@ -17,6 +17,8 @@ import type { useDiagramMultiSelection } from "../use-diagram-multi-selection";
 import type { GanttTask } from "../../../../packages/diagram-gantt/src/model";
 import type { ResolvableDeclaration } from "../../../../packages/project-model/src/types";
 import type { WbsNode } from "../../../../packages/diagram-wbs/src/model";
+import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
+import { MindmapMenuItems } from "../features/mindmap/MindmapMenuItems";
 import type { PresentationDocument } from "../presentation-review";
 import type { RefObject, Dispatch, SetStateAction, ComponentProps } from "react";
 import type { TextRange } from "../../../../packages/language-core/src/index";
@@ -89,6 +91,7 @@ export interface AppOverlaysProps {
     | { request: SemanticRenameRequest; source: string; documentId: string; anchor: { left: number; bottom: number } }
     | undefined;
   linkedWbs: DocumentSnapshot | undefined;
+  mindmap: MindmapEditor;
   menuGanttTask: GanttTask | undefined;
   menuLinkedGantt: { wbsAlias: string; ganttAlias: string } | undefined;
   menuLinkedWbs: { wbsAlias: string; ganttAlias: string } | undefined;
@@ -201,6 +204,7 @@ export function AppOverlays({
   duplicateTaskOccurrence,
   inlineRename,
   linkedWbs,
+  mindmap,
   menuGanttTask,
   menuLinkedGantt,
   menuLinkedWbs,
@@ -469,6 +473,14 @@ export function AppOverlays({
                 Duplicate task
               </button>
             )}
+          {workspace.diagramKind === "mindmap" && menuOccurrence?.kind === "mindmap-node" && (
+            <MindmapMenuItems
+              mindmap={mindmap}
+              nodeId={menuOccurrence.key}
+              readOnly={commandReadOnly}
+              onDone={() => setSymbolMenu(undefined)}
+            />
+          )}
           <button
             autoFocus={
               !canDuplicateMenuElement &&

@@ -180,6 +180,7 @@ export function useSymbolNavigation({
           key: closestValue("data-activity-object-id"),
         },
         { kind: "wbs-node", key: closestValue("data-wbs-node-id") },
+        { kind: "mindmap-node", key: closestValue("data-mindmap-node-id") },
       ];
       for (const candidate of candidates) {
         if (!candidate.key) continue;

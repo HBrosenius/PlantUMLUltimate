@@ -40,6 +40,7 @@ export interface useAppCommandsInputs {
   openUseCaseSettingsFromToolbar: () => void;
   openVersionHistory: () => Promise<void>;
   openWbsSettings: () => void;
+  openMindmapSettings: () => void;
   project: VirtualProject | undefined;
   redo: (steps?: unknown) => void;
   renameCommandPosition: number;
@@ -117,6 +118,7 @@ export function useAppCommands({
   openUseCaseSettingsFromToolbar,
   openVersionHistory,
   openWbsSettings,
+  openMindmapSettings,
   project,
   redo,
   renameCommandPosition,
@@ -192,58 +194,74 @@ export function useAppCommands({
               run: () => openDialog({ kind: "delivery-scenario" }),
             },
           ]
-        : workspace.diagramKind === "wbs"
+        : workspace.diagramKind === "mindmap"
           ? [
               {
-                id: "edit.add-wbs-node",
-                label: "Add WBS node…",
+                id: "edit.add-mindmap-node",
+                label: "Add mindmap node…",
                 category: "Edit",
                 shortcut: optionShortcut("N"),
-                run: () => openDialog({ kind: "add-wbs-node" }),
+                run: () => openDialog({ kind: "add-mindmap-node" }),
               },
               {
-                id: "edit.wbs-settings",
-                label: "WBS settings…",
+                id: "edit.mindmap-settings",
+                label: "Mindmap settings…",
                 category: "Edit",
-                run: openWbsSettings,
+                run: openMindmapSettings,
               },
             ]
-          : workspace.diagramKind === "sequence"
+          : workspace.diagramKind === "wbs"
             ? [
                 {
-                  id: "edit.add-participant",
-                  label: "Add participant…",
+                  id: "edit.add-wbs-node",
+                  label: "Add WBS node…",
                   category: "Edit",
-                  shortcut: optionShortcut("P"),
-                  run: () => openDialog({ kind: "add-sequence-participant" }),
+                  shortcut: optionShortcut("N"),
+                  run: () => openDialog({ kind: "add-wbs-node" }),
                 },
                 {
-                  id: "edit.add-message",
-                  label: "Add message…",
+                  id: "edit.wbs-settings",
+                  label: "WBS settings…",
                   category: "Edit",
-                  shortcut: optionShortcut("M"),
-                  run: () => openDialog({ kind: "add-sequence-message" }),
-                },
-                {
-                  id: "edit.add-fragment",
-                  label: "Add combined fragment…",
-                  category: "Edit",
-                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
-                },
-                {
-                  id: "edit.add-activation",
-                  label: "Add activation…",
-                  category: "Edit",
-                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
-                },
-                {
-                  id: "edit.add-note",
-                  label: "Add Sequence note…",
-                  category: "Edit",
-                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
+                  run: openWbsSettings,
                 },
               ]
-            : [];
+            : workspace.diagramKind === "sequence"
+              ? [
+                  {
+                    id: "edit.add-participant",
+                    label: "Add participant…",
+                    category: "Edit",
+                    shortcut: optionShortcut("P"),
+                    run: () => openDialog({ kind: "add-sequence-participant" }),
+                  },
+                  {
+                    id: "edit.add-message",
+                    label: "Add message…",
+                    category: "Edit",
+                    shortcut: optionShortcut("M"),
+                    run: () => openDialog({ kind: "add-sequence-message" }),
+                  },
+                  {
+                    id: "edit.add-fragment",
+                    label: "Add combined fragment…",
+                    category: "Edit",
+                    run: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
+                  },
+                  {
+                    id: "edit.add-activation",
+                    label: "Add activation…",
+                    category: "Edit",
+                    run: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
+                  },
+                  {
+                    id: "edit.add-note",
+                    label: "Add Sequence note…",
+                    category: "Edit",
+                    run: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
+                  },
+                ]
+              : [];
     const creationCommands: Command[] =
       workspace.diagramKind === "usecase"
         ? [
@@ -530,6 +548,7 @@ export function useAppCommands({
     openDocument,
     openDialog,
     openWbsSettings,
+    openMindmapSettings,
     openProjectInspector,
     openResourcePanel,
     openReports,
