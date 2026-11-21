@@ -707,6 +707,10 @@
 .wbs-inspector-link-section > .calculated-hint {
   margin: 0;
 }
+/* The save note stands on its own, not under a field, so it needs space above. */
+.wbs-node-inspector > .calculated-hint {
+  margin-top: 10px;
+}
 .wbs-node-inspector .wbs-link-section {
   display: grid;
   gap: 10px;
