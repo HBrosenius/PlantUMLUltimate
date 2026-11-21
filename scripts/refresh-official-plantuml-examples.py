@@ -27,14 +27,14 @@ class Examples(HTMLParser):
         if tag == "textarea" and self.active:
             self.active = False
             source = "".join(self.parts).strip()
-            if any(source.startswith(f"@start{kind}") and f"@end{kind}" in source for kind in ["uml", "gantt", "wbs"]):
+            if any(source.startswith(f"@start{kind}") and f"@end{kind}" in source for kind in ["uml", "gantt", "wbs", "mindmap"]):
                 self.examples.append(source)
 
 
 root = Path(__file__).resolve().parents[1]
 # Fetch and validate all requested pages before replacing any corpus.
 pages = {"class": "class-diagram", "usecase": "use-case-diagram", "component": "component-diagram",
-         "activity": "activity-diagram-beta", "gantt": "gantt-diagram", "wbs": "wbs-diagram", "sequence": "sequence-diagram"}
+         "activity": "activity-diagram-beta", "gantt": "gantt-diagram", "wbs": "wbs-diagram", "mindmap": "mindmap-diagram", "sequence": "sequence-diagram"}
 arguments = argparse.ArgumentParser(description=__doc__)
 arguments.add_argument("--kinds", nargs="+", choices=pages, default=["class", "usecase"])
 selected = arguments.parse_args().kinds

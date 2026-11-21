@@ -1,0 +1,17 @@
+{
+  "name": "@plantuml-studio/diagram-mindmap",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@plantuml-studio/diagram-tree": "*",
+    "@plantuml-studio/language-core": "*",
+    "@plantuml-studio/language-plantuml": "*"
+  }
+}
