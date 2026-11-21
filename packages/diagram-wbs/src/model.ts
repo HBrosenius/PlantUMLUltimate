@@ -1,49 +1,13 @@
-import type { LanguageDiagnostic, TextRange } from "@plantuml-studio/language-core";
+import type { TreeDocument, TreeNode, TreeNodeInput, TreeRelationship, TreeSide } from "@plantuml-studio/diagram-tree";
 
-export type WbsSide = "root" | "left" | "right";
+export type WbsSide = TreeSide;
 
-export interface WbsNode {
-  id: string;
-  label: string;
-  depth: number;
-  side: WbsSide;
-  marker: string;
-  /** Written as `**_ Label`: the node is drawn without a box. */
-  boxless?: boolean;
+export interface WbsNode extends TreeNode {
   alias?: string;
-  parentId?: string;
-  color?: string;
-  textColor?: string;
-  stereotype?: string;
-  link?: string;
-  icon?: string;
-  sourceRange: TextRange;
-  subtreeRange: TextRange;
 }
 
-export interface WbsRelationship {
-  id: string;
-  from: string;
-  to: string;
-  arrow: string;
-  color?: string;
-  sourceRange: TextRange;
-}
+export type WbsRelationship = TreeRelationship;
 
-export interface WbsDocument {
-  nodes: WbsNode[];
-  roots: WbsNode[];
-  relationships: WbsRelationship[];
-  unknown: Array<{ text: string; range: TextRange }>;
-  diagnostics: LanguageDiagnostic[];
-}
+export type WbsDocument = TreeDocument<WbsNode>;
 
-export interface WbsNodeInput {
-  label: string;
-  color?: string;
-  textColor?: string;
-  stereotype?: string;
-  link?: string;
-  icon?: string;
-  side?: Exclude<WbsSide, "root">;
-}
+export type WbsNodeInput = TreeNodeInput;

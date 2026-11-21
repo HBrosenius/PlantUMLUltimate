@@ -467,6 +467,7 @@ packages/diagram-sequence/   Sequence parser, model, and source transformations
 packages/diagram-usecase/    Use Case parser, model, and source transformations
 packages/diagram-class/      Class parser, model, and source transformations
 packages/diagram-activity/   Activity parser, model, and source transformations
+packages/diagram-tree/       Shared marker-tree parser and subtree operations (used by WBS)
 packages/diagram-wbs/        WBS parser, model, and source transformations
 packages/editor-core/        Framework-independent command and history logic
 packages/language-core/      Diagram adapter contracts
