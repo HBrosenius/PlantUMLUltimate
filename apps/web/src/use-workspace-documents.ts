@@ -7,6 +7,7 @@ import {
   DEFAULT_SEQUENCE_SOURCE,
   createDefaultGanttSource,
   DEFAULT_USECASE_SOURCE,
+  DEFAULT_MINDMAP_SOURCE,
   DEFAULT_WBS_SOURCE,
   type DiagramKind,
 } from "./model";
@@ -49,18 +50,34 @@ type Options = {
 };
 
 export function starterSource(diagramKind: DiagramKind): string {
-  if (diagramKind === "sequence") return DEFAULT_SEQUENCE_SOURCE;
-  if (diagramKind === "usecase") return DEFAULT_USECASE_SOURCE;
-  if (diagramKind === "class") return DEFAULT_CLASS_SOURCE;
-  if (diagramKind === "component") return DEFAULT_COMPONENT_SOURCE;
-  if (diagramKind === "activity") return DEFAULT_ACTIVITY_SOURCE;
-  if (diagramKind === "wbs") return DEFAULT_WBS_SOURCE;
-  return createDefaultGanttSource();
+  switch (diagramKind) {
+    case "gantt":
+      return createDefaultGanttSource();
+    case "sequence":
+      return DEFAULT_SEQUENCE_SOURCE;
+    case "usecase":
+      return DEFAULT_USECASE_SOURCE;
+    case "class":
+      return DEFAULT_CLASS_SOURCE;
+    case "component":
+      return DEFAULT_COMPONENT_SOURCE;
+    case "activity":
+      return DEFAULT_ACTIVITY_SOURCE;
+    case "wbs":
+      return DEFAULT_WBS_SOURCE;
+    case "mindmap":
+      return DEFAULT_MINDMAP_SOURCE;
+    default: {
+      const unreachable: never = diagramKind;
+      throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
+    }
+  }
 }
 
 export function diagramKindDisplayName(diagramKind: DiagramKind): string {
   if (diagramKind === "usecase") return "Use Case";
   if (diagramKind === "wbs") return "WBS";
+  if (diagramKind === "mindmap") return "Mindmap";
   return `${diagramKind[0]!.toUpperCase()}${diagramKind.slice(1)}`;
 }
 

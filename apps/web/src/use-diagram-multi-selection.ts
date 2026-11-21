@@ -51,7 +51,10 @@ export function useDiagramMultiSelection({
   const pressedItem = useRef<{ key: string; source: string; x: number; y: number; toggled: boolean } | undefined>(
     undefined,
   );
-  const items = useMemo(() => (kind === "gantt" ? [] : diagramBulkItems(kind, source)), [kind, source]);
+  const items = useMemo(
+    () => (kind === "gantt" || kind === "mindmap" ? [] : diagramBulkItems(kind, source)),
+    [kind, source],
+  );
   const pendingPlainKey =
     plainSelection.current?.documentId === documentId &&
     plainSelection.current.kind === kind &&
@@ -106,7 +109,7 @@ export function useDiagramMultiSelection({
   };
   const onPointerDownCapture = (event: React.PointerEvent) => {
     pressedItem.current = undefined;
-    if (kind === "gantt" || event.button !== 0) return;
+    if (kind === "gantt" || kind === "mindmap" || event.button !== 0) return;
     const item = targetItem(event.target);
     if (!item) return;
     pressedItem.current = { key: item.key, source, x: event.clientX, y: event.clientY, toggled: modifier(event) };
@@ -125,7 +128,7 @@ export function useDiagramMultiSelection({
     event.stopPropagation();
   };
   const onClickCapture = (event: React.MouseEvent) => {
-    if (kind === "gantt") return;
+    if (kind === "gantt" || kind === "mindmap") return;
     // Preview selection can recreate SVG hit targets between pointerdown and click.
     const pressed = pressedItem.current;
     pressedItem.current = undefined;
@@ -170,7 +173,7 @@ export function useDiagramMultiSelection({
     return () => window.removeEventListener("pointerup", handle, true);
   }, []);
   const onKeyDownCapture = (event: React.KeyboardEvent) => {
-    if (kind === "gantt" || !["Enter", " "].includes(event.key)) return;
+    if (kind === "gantt" || kind === "mindmap" || !["Enter", " "].includes(event.key)) return;
     const item = targetItem(event.target);
     if (!item) return;
     if (modifier(event)) {
@@ -187,7 +190,7 @@ export function useDiagramMultiSelection({
     }
   };
   const copy = () => {
-    if (kind === "gantt") return;
+    if (kind === "gantt" || kind === "mindmap") return;
     const currentKeys = selectionKeys();
     const copied = copyDiagramItems(kind, source, currentKeys);
     if (!copied) return;
@@ -197,7 +200,7 @@ export function useDiagramMultiSelection({
   };
   const paste = (duplicate = false, duplicateKeys = selectionKeys()) =>
     attempt(() => {
-      if (readOnly || kind === "gantt") return;
+      if (readOnly || kind === "gantt" || kind === "mindmap") return;
       const copied = duplicate ? copyDiagramItems(kind, source, duplicateKeys) : clipboard.current;
       if (!copied) return;
       const selectedNode = (duplicate ? items.filter((item) => duplicateKeys.includes(item.key)) : selected).find(
@@ -221,7 +224,7 @@ export function useDiagramMultiSelection({
       .sort((a, b) => a.range.to - a.range.from - (b.range.to - b.range.from))[0];
   const change = (mode: "color" | "stereotype", value: string) =>
     attempt(() => {
-      if (readOnly || kind === "gantt") return;
+      if (readOnly || kind === "gantt" || kind === "mindmap") return;
       const result = changeDiagramItems(kind as BulkDiagramKind, source, keys, mode, value);
       if (!result.applied || !commit(result.source, `Set ${mode} on ${result.applied} elements`)) return;
       // Resolve positional IDs after style edits from the unchanged semantic ordering.
@@ -240,7 +243,7 @@ export function useDiagramMultiSelection({
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const state = current.current;
-      if (state.kind === "gantt") return;
+      if (state.kind === "gantt" || state.kind === "mindmap") return;
       const target = event.target;
       if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], .cm-editor'))
         return;
@@ -277,7 +280,7 @@ export function useDiagramMultiSelection({
   }, []);
   useLayoutEffect(() => {
     const workspace = root.current;
-    if (!workspace || kind === "gantt") return;
+    if (!workspace || kind === "gantt" || kind === "mindmap") return;
     const highlight = () => {
       workspace.querySelectorAll(".diagram-bulk-selected").forEach((element) => {
         element.classList.remove("diagram-bulk-selected");

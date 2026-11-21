@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DiagramKind } from "./model";
+import { diagramTagSuffix } from "./diagram-tags";
 import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
 describe("shared diagram diagnostics", () => {
@@ -10,6 +11,7 @@ describe("shared diagram diagnostics", () => {
     { kind: "class", source: "@startuml\nclass Order {\n@enduml", fix: true },
     { kind: "activity", source: "@startuml\nwhile (More?)\n:Work;\n@enduml", fix: true },
     { kind: "wbs", source: "*** Orphan", fix: true },
+    { kind: "mindmap", source: "*** Orphan", fix: true },
   ];
 
   for (const item of cases)
@@ -24,8 +26,8 @@ describe("shared diagram diagnostics", () => {
 });
 
 describe("syntax repairs", () => {
-  for (const kind of ["gantt", "wbs", "sequence", "usecase", "class", "component", "activity"] as const) {
-    const tag = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
+  for (const kind of ["gantt", "wbs", "mindmap", "sequence", "usecase", "class", "component", "activity"] as const) {
+    const tag = diagramTagSuffix(kind);
     it(`repairs both misspelled tags for ${kind} without changing tag arguments`, () => {
       const source = `@strat${tag} output\n@end${tag.slice(0, -1)}`;
       const fixes = quickFixesForDiagram(kind, source).filter((fix) => fix.label?.startsWith("Use @"));

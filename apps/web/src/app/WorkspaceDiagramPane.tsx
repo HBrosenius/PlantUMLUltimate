@@ -9,6 +9,7 @@ import {
   UseCaseDiagramPreview,
   ClassDiagramPreview,
   ActivityDiagramPreview,
+  MindmapDiagramPreview,
   WbsDiagramPreview,
 } from "./lazy-previews";
 import type { DocumentSnapshot, DocumentVersion, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
@@ -690,6 +691,16 @@ export function WorkspaceDiagramPane({
             onReorder={reorderActivityActionByDrag}
             onConnect={connectActivityActionsByDrag}
             onAttachNote={attachActivityNoteByDrag}
+          />
+        ) : workspace.diagramKind === "mindmap" ? (
+          <MindmapDiagramPreview
+            initialFit={initialDiagramFit}
+            svg={previewSvg}
+            zoom={workspace.zoom}
+            onZoomChange={(zoom) => update("zoom", zoom)}
+            renderStatus={status}
+            renderError={result?.error}
+            onRenderRetry={retryRender}
           />
         ) : (
           <WbsDiagramPreview
