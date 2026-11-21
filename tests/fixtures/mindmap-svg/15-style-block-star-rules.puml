@@ -1,0 +1,23 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  node {
+    BackgroundColor white
+  }
+  .myStyle * {
+    LineColor red
+  }
+  :depth(1) {
+    BackgroundColor yellow
+  }
+  * {
+    FontSize 12
+  }
+  - {
+    LineThickness 1
+  }
+}
+</style>
+* Root
+** A <<myStyle>>
+@endmindmap

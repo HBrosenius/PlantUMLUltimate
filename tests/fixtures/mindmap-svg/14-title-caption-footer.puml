@@ -1,0 +1,13 @@
+@startmindmap
+title My Title
+caption My Caption
+header
+Head text
+endheader
+center footer Foot text
+legend right
+Legend text
+endlegend
+* Root
+** A
+@endmindmap
