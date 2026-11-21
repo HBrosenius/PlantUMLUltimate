@@ -782,6 +782,12 @@ polygon.diagram-bulk-selected {
   pointer-events: none;
 }
 
+/* Footer notes stand on their own, not under a field, so they need space above. */
+.mindmap-node-inspector > .calculated-hint,
+.mindmap-settings-inspector > .calculated-hint {
+  margin-top: 10px;
+}
+
 .mindmap-node-inspector .inline-check {
   display: flex;
   align-items: center;
