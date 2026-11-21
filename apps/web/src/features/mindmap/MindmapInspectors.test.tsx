@@ -132,6 +132,33 @@ describe("MindmapSettingsInspector", () => {
     expect(options).toEqual(["", "left-to-right", "top-to-bottom", "right-to-left"]);
   });
 
+  it("offers the Markdown conversion only for a Markdown-form document", () => {
+    const onConvert = vi.fn();
+    const markdown = parseMindmap("@startmindmap\n# Root\n## Child\n@endmindmap");
+    const { unmount } = render(
+      <MindmapSettingsInspector
+        document={markdown}
+        initial={mindmapSettingsOf(markdown)}
+        onApply={vi.fn()}
+        onConvert={onConvert}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Convert to * markers" }));
+    expect(onConvert).toHaveBeenCalledOnce();
+    unmount();
+    render(
+      <MindmapSettingsInspector
+        document={fresh}
+        initial={mindmapSettingsOf(fresh)}
+        onApply={vi.fn()}
+        onConvert={onConvert}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Convert to * markers" })).toBeNull();
+  });
+
   it("keeps a direction that is already in the document selectable", () => {
     const btt = parseMindmap("@startmindmap\nbottom to top direction\n* Root\n@endmindmap");
     render(

@@ -1,5 +1,9 @@
-import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
-import { isMirroredDirection } from "./mindmap-render-order";
+import type { MindmapDocument } from "./model";
+import { parseMindmap } from "./parser";
+
+/** The directions in which the engine mirrors the picture: it draws every branch on one side. */
+export const isMirroredDirection = (document: Pick<MindmapDocument, "direction">) =>
+  document.direction?.value === "right-to-left" || document.direction?.value === "bottom-to-top";
 
 /**
  * In `right to left` and `bottom to top` documents the engine only draws a branch correctly when a
@@ -7,7 +11,8 @@ import { isMirroredDirection } from "./mindmap-render-order";
  * other way round, comes out as a garbled picture (about twice as many labels, and no error message).
  * In `left to right` the same mix is fine. The move operations re-mark a moved node to suit its new
  * neighbour but leave the children it brings along, so a branch dragged under a `+` node can end up
- * with `*` children.
+ * with `*` children. `insertMindmapNode`, `moveMindmapSubtree` and `setMindmapNodeSide` call this on
+ * their result, so the operation itself never produces the mix.
  *
  * This walks the result of such an edit and gives every node the marker family of its parent when
  * exactly one of the two is `+`. Only marker characters change (`**` and `++` have the same length).

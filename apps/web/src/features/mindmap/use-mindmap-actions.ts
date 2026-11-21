@@ -15,7 +15,6 @@ import {
 } from "@plantuml-studio/diagram-mindmap";
 import { applicationMindmapAdapter } from "../../diagram-adapters";
 import type { MindmapInsertPosition } from "./MindmapDialogs";
-import { settleMirroredMarkerFamilies } from "./mindmap-families";
 
 /** What the Settings inspector edits. An empty text removes the statement. */
 export interface MindmapSettings {
@@ -141,12 +140,7 @@ export function useMindmapActions({
   reportMessage,
 }: UseMindmapActionsOptions) {
   const applyOperation = useCallback(
-    (
-      operation: ReturnType<typeof applicationMindmapAdapter.applyVisualOperation>,
-      fallback?: string,
-      // The operations that rewrite markers also settle the marker families of a mirrored document.
-      settleMarkers = false,
-    ) => {
+    (operation: ReturnType<typeof applicationMindmapAdapter.applyVisualOperation>, fallback?: string) => {
       if (operation.unavailableReason) {
         reportMessage(operation.unavailableReason);
         return undefined;
@@ -156,7 +150,7 @@ export function useMindmapActions({
         if (fallback) reportMessage(fallback);
         return undefined;
       }
-      return settleMarkers ? settleMirroredMarkerFamilies(edited) : edited;
+      return edited;
     },
     [reportMessage, source],
   );
@@ -186,7 +180,6 @@ export function useMindmapActions({
           source,
         ),
         "The node cannot be added there",
-        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Add mindmap node ${value.label}`)) return;
@@ -238,8 +231,6 @@ export function useMindmapActions({
       if (!node) return;
       const updated = applyOperation(
         applicationMindmapAdapter.applyVisualOperation({ kind: "set-side", nodeId: node.id, side }, document, source),
-        undefined,
-        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Move mindmap branch ${node.label} to the ${side}`)) return;
@@ -295,7 +286,6 @@ export function useMindmapActions({
           source,
         ),
         "That mindmap branch cannot be moved there",
-        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Move mindmap branch ${node.label}`)) return;

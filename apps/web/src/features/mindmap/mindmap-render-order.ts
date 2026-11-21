@@ -1,4 +1,9 @@
-import { mindmapEmissionOrder, type MindmapDocument, type MindmapNode } from "@plantuml-studio/diagram-mindmap";
+import {
+  isMirroredDirection,
+  mindmapEmissionOrder,
+  type MindmapDocument,
+  type MindmapNode,
+} from "@plantuml-studio/diagram-mindmap";
 
 /** The depth-2 node that decides a node's side: the node itself or its ancestor at depth 2. */
 function sideOwner(nodes: ReadonlyMap<string, MindmapNode>, node: MindmapNode): MindmapNode | undefined {
@@ -7,9 +12,7 @@ function sideOwner(nodes: ReadonlyMap<string, MindmapNode>, node: MindmapNode): 
   return current?.depth === 2 ? current : undefined;
 }
 
-/** The directions in which the engine mirrors the picture: it draws every branch on one side. */
-export const isMirroredDirection = (document: Pick<MindmapDocument, "direction">) =>
-  document.direction?.value === "right-to-left" || document.direction?.value === "bottom-to-top";
+export { isMirroredDirection };
 
 /**
  * The order in which the engine writes a mindmap's node labels into the SVG, which is what the
