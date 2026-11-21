@@ -1,3 +1,4 @@
+import { diagramTagSuffix } from "./diagram-tags";
 import type { DiagramKind } from "./model";
 import type { Diagnostic } from "@codemirror/lint";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
@@ -13,7 +14,7 @@ export function manualErrorGuidance(
   if (diagnostic.severity !== "error" || diagnostic.actions?.length) return undefined;
   if (fixes.some((fix) => fix.from <= diagnostic.to && fix.to >= diagnostic.from)) return undefined;
   const message = diagnostic.message;
-  const suffix = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
+  const suffix = diagramTagSuffix(kind);
   const tags = `@start${suffix} and @end${suffix}`;
   const examples: Record<DiagramKind, string> = {
     class: 'class "Order details" as Order',
@@ -23,12 +24,13 @@ export function manualErrorGuidance(
     activity: ":Order details;",
     gantt: "[Order details] lasts 3 days",
     wbs: "* Order details",
+    mindmap: "* Order details",
   };
   // Block-closing repairs can insert text well after the diagnostic's header.
   if (/missing\s+\}|unclosed|unterminated/i.test(message) && fixes.some((fix) => /close|insert end/i.test(fix.message)))
     return undefined;
   if (/unmatched quote/i.test(message)) {
-    if (kind === "gantt" || kind === "wbs" || kind === "activity")
+    if (kind === "gantt" || kind === "wbs" || kind === "mindmap" || kind === "activity")
       return `Check the label syntax for this ${kind.toUpperCase()} diagram, for example: ${examples[kind]} Quotes are not needed around this label. Review the intended text before editing it manually.`;
     return `Check where the label begins and ends, then add or remove the matching double quote. Keep aliases after the closing quote, for example: ${examples[kind]}. The intended label boundary is ambiguous, so it needs a manual edit.`;
   }

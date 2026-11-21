@@ -34,6 +34,7 @@ function AddMenuView({
   onActivityTerminal,
   onActivityArrow,
   onWbsNode,
+  onMindmapNode,
 }: {
   diagramKind: DiagramKind;
   disabled?: boolean | undefined;
@@ -66,6 +67,7 @@ function AddMenuView({
   onActivityTerminal(): void;
   onActivityArrow(): void;
   onWbsNode(): void;
+  onMindmapNode(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -395,6 +397,17 @@ function AddMenuView({
                 <span>Note…</span>
               </button>
             </>
+          ) : diagramKind === "mindmap" ? (
+            <button
+              aria-keyshortcuts="Alt+N"
+              role={inline ? undefined : "menuitem"}
+              disabled={disabled}
+              title={disabled ? "Viewing only" : undefined}
+              onClick={() => run(onMindmapNode)}
+            >
+              <span>Mindmap node…</span>
+              <kbd aria-hidden="true">{optionShortcut("N")}</kbd>
+            </button>
           ) : (
             <button
               aria-keyshortcuts="Alt+N"

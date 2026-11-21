@@ -1,0 +1,42 @@
+{
+  "ltr-duplicates-both-sides": {
+    "source": "@startmindmap\n* Root\n** Pros\n** Cons\n-- Pros\n-- Cons\n** Pros\n@endmindmap",
+    "order": [0, 1, 2, 5, 3, 4]
+  },
+  "ltr-left-before-right": {
+    "source": "@startmindmap\n* Root\n-- Minus L\n** Star R\n-- Minus L2\n++ Plus R\n@endmindmap",
+    "order": [0, 2, 4, 1, 3]
+  },
+  "ltr-left-side-keyword": {
+    "source": "@startmindmap\n* Root\n** A\n*** Pros\nleft side\n** B\n*** Pros\n++ C\n+++ Pros\n@endmindmap",
+    "order": [0, 1, 2, 5, 6, 3, 4]
+  },
+  "ttb-mixed-duplicates": {
+    "source": "@startmindmap\ntop to bottom direction\n* Root\n** Pros\n-- Pros\n++ Pros\n** Cons\n@endmindmap",
+    "order": [0, 1, 3, 4, 2]
+  },
+  "rtl-mixed-duplicates": {
+    "source": "@startmindmap\nright to left direction\n* Root\n** Pros\n++ Pros\n** Cons\n++ Cons\n-- Pros\n@endmindmap",
+    "order": [0, 2, 4, 1, 3, 5]
+  },
+  "rtl-plus-star-deep": {
+    "source": "@startmindmap\nright to left direction\n* Root\n++ A\n+++ A1\n** B\n*** B1\n++ C\n@endmindmap",
+    "order": [0, 1, 2, 5, 3, 4]
+  },
+  "rtl-left-side-keyword": {
+    "source": "@startmindmap\nright to left direction\n* Root\n** S1\nleft side\n** S2\n++ P1\n** S3\n@endmindmap",
+    "order": [0, 3, 1, 2, 4]
+  },
+  "rtl-two-roots": {
+    "source": "@startmindmap\nright to left direction\n* R1\n** s\n++ p\n* R2\n** s\n++ p\n@endmindmap",
+    "order": [0, 2, 1, 3, 5, 4]
+  },
+  "btt-mixed-duplicates": {
+    "source": "@startmindmap\nbottom to top direction\n* Root\n** Pros\n++ Pros\n-- Pros\n@endmindmap",
+    "order": [0, 2, 1, 3]
+  },
+  "two-roots-duplicates": {
+    "source": "@startmindmap\n* Same\n** Same\n-- Same\n* Same\n++ Same\n@endmindmap",
+    "order": [0, 1, 2, 3, 4]
+  }
+}

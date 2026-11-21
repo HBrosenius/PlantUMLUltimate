@@ -29,6 +29,7 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     title: "Component diagram",
     description: "Describe software components, infrastructure, interfaces, and dependencies.",
   },
+  { kind: "mindmap", title: "Mindmap", description: "Brainstorm ideas around a central topic." },
 ];
 
 export function NewDocumentDialog({
@@ -71,9 +72,11 @@ export function NewDocumentDialog({
           ? `@startgantt\nProject starts ${projectStart}\n@endgantt`
           : kind === "wbs"
             ? "@startwbs\n* Project\n@endwbs"
-            : kind === "activity"
-              ? "@startuml\nstart\nstop\n@enduml"
-              : "@startuml\n@enduml"
+            : kind === "mindmap"
+              ? "@startmindmap\n* Topic\n@endmindmap"
+              : kind === "activity"
+                ? "@startuml\nstart\nstop\n@enduml"
+                : "@startuml\n@enduml"
         : kind === "wbs"
           ? "@startwbs\n* Project\n** Deliverable\n@endwbs"
           : starterSource(kind));
@@ -325,6 +328,22 @@ export function PlantUmlUltimateLogo() {
 
 function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
   const uid = useId();
+  if (kind === "mindmap")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <g fill="none" stroke="#64748b" strokeWidth="1.5">
+          <path d="M104 56H70M70 56V30H52M70 56V82H52M136 56H170M170 56V30H188M170 56V82H188" />
+        </g>
+        <g fill="#2563eb">
+          <rect x="104" y="44" width="32" height="24" rx="8" />
+          <rect x="14" y="22" width="38" height="16" rx="6" />
+          <rect x="14" y="74" width="38" height="16" rx="6" />
+          <rect x="188" y="22" width="38" height="16" rx="6" />
+          <rect x="188" y="74" width="38" height="16" rx="6" />
+        </g>
+      </svg>
+    );
   if (kind === "wbs")
     return (
       <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">

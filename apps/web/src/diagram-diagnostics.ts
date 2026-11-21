@@ -14,6 +14,7 @@ import { getUseCaseQuickFixes, useCaseDiagnostics as collectUseCaseDiagnostics }
 import { classDiagnostics, classQuickFixes } from "./class-language";
 import { activityDiagnostics, activityQuickFixes } from "./activity-language";
 import { wbsDiagnostics, wbsQuickFixes } from "./wbs-language";
+import { mindmapDiagnostics, mindmapQuickFixes } from "./mindmap-language";
 
 export interface DiagramQuickFix {
   choiceGroup?: string;
@@ -34,30 +35,53 @@ const languageDiagnostics = (kind: DiagramKind, source: string, parse = parseGan
     );
     return ganttDiagnostics(source, parsed).filter((item) => !preserved.has(`${item.from}:${item.to}`));
   }
-  return kind === "sequence"
-    ? sequenceDiagnostics(source)
-    : kind === "usecase"
-      ? collectUseCaseDiagnostics(source)
-      : kind === "class" || kind === "component"
-        ? classDiagnostics(source)
-        : kind === "activity"
-          ? activityDiagnostics(source)
-          : wbsDiagnostics(source);
+  switch (kind) {
+    case "sequence":
+      return sequenceDiagnostics(source);
+    case "usecase":
+      return collectUseCaseDiagnostics(source);
+    case "class":
+    case "component":
+      return classDiagnostics(source);
+    case "activity":
+      return activityDiagnostics(source);
+    case "wbs":
+      return wbsDiagnostics(source);
+    case "mindmap":
+      return mindmapDiagnostics(source);
+    default: {
+      const unreachable: never = kind;
+      throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
+    }
+  }
 };
 
+function quickFixesForKind(kind: DiagramKind, source: string, parse: typeof parseGantt): DiagramQuickFix[] {
+  switch (kind) {
+    case "gantt":
+      return ganttQuickFixes(source, parse(source));
+    case "sequence":
+      return sequenceQuickFixes(source);
+    case "usecase":
+      return getUseCaseQuickFixes(source);
+    case "class":
+    case "component":
+      return classQuickFixes(source);
+    case "activity":
+      return activityQuickFixes(source);
+    case "wbs":
+      return wbsQuickFixes(source);
+    case "mindmap":
+      return mindmapQuickFixes(source);
+    default: {
+      const unreachable: never = kind;
+      throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
+    }
+  }
+}
+
 const languageQuickFixes = (kind: DiagramKind, source: string, parse = parseGantt): DiagramQuickFix[] => {
-  const fixes =
-    kind === "gantt"
-      ? ganttQuickFixes(source, parse(source))
-      : kind === "sequence"
-        ? sequenceQuickFixes(source)
-        : kind === "usecase"
-          ? getUseCaseQuickFixes(source)
-          : kind === "class" || kind === "component"
-            ? classQuickFixes(source)
-            : kind === "activity"
-              ? activityQuickFixes(source)
-              : wbsQuickFixes(source);
+  const fixes = quickFixesForKind(kind, source, parse);
   const uncertainNotes = terminatorIssues(kind, source).filter((issue) => issue.replacement === undefined);
   return fixes.filter((fix) => {
     const closesBlocks = fix.replacement

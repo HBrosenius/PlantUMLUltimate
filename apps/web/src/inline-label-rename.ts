@@ -14,7 +14,9 @@ export function inlineLabelRenameRequest(
         ? ["actor", "usecase", "usecase-package"]
         : kind === "activity"
           ? ["activity-action", "activity-partition"]
-          : [];
+          : kind === "mindmap"
+            ? ["mindmap-node"]
+            : [];
   const occurrence = provider.occurrences.find(
     (item) =>
       item.key === id &&
@@ -22,8 +24,10 @@ export function inlineLabelRenameRequest(
       item.role === "declaration" &&
       (!("declaration" in item) || item.declaration !== "alias"),
   );
+  // A mindmap rename goes by node id, so duplicate labels (`Pros`, `Cons`) are safe to edit in place.
   if (
     occurrence &&
+    kind !== "mindmap" &&
     provider.occurrences.some(
       (item) =>
         item.role === "declaration" &&

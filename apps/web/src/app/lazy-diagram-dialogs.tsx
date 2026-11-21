@@ -8,6 +8,13 @@ export const AddWbsNodeDialog = lazyFeature<
   "the WBS node form",
 );
 
+export const MindmapPanels = lazyFeature<
+  ComponentProps<typeof import("../features/mindmap/MindmapPanels").MindmapPanels>
+>(
+  () => import("../features/mindmap/MindmapPanels").then((module) => ({ default: module.MindmapPanels })),
+  "the mindmap editor",
+);
+
 export const WbsSettingsInspector = lazyFeature<
   ComponentProps<typeof import("../features/wbs/WbsInspectors").WbsSettingsInspector>
 >(

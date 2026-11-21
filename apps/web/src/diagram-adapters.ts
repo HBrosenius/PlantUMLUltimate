@@ -1,4 +1,5 @@
 import { ganttAdapter } from "@plantuml-studio/diagram-gantt";
+import { mindmapAdapter } from "@plantuml-studio/diagram-mindmap";
 import { wbsAdapter } from "@plantuml-studio/diagram-wbs";
 import type { DiagramCapabilities } from "@plantuml-studio/language-core";
 import { DiagramAdapterRegistry } from "@plantuml-studio/language-plantuml";
@@ -6,13 +7,15 @@ import { DiagramAdapterRegistry } from "@plantuml-studio/language-plantuml";
 const registeredAdapters = {
   gantt: ganttAdapter,
   wbs: wbsAdapter,
+  mindmap: mindmapAdapter,
 } as const;
 
 export type ApplicationDiagramAdapterId = keyof typeof registeredAdapters;
 
 export const applicationDiagramAdapterRegistry = new DiagramAdapterRegistry()
   .register(registeredAdapters.gantt)
-  .register(registeredAdapters.wbs);
+  .register(registeredAdapters.wbs)
+  .register(registeredAdapters.mindmap);
 
 export function getApplicationDiagramAdapter<K extends ApplicationDiagramAdapterId>(
   id: K,
@@ -28,3 +31,4 @@ export function sourceSupportsDiagramCapability(source: string, capability: keyo
 
 export const applicationGanttAdapter = getApplicationDiagramAdapter("gantt");
 export const applicationWbsAdapter = getApplicationDiagramAdapter("wbs");
+export const applicationMindmapAdapter = getApplicationDiagramAdapter("mindmap");

@@ -18,7 +18,7 @@ export function isOuterStatement(text: string): boolean {
   )
     return true;
   if (
-    /^(?:note|hnote|rnote|skinparam|hide|show|title|caption|header|footer|legend|newpage|!|@start(?:uml|gantt|wbs))\b/i.test(
+    /^(?:note|hnote|rnote|skinparam|hide|show|title|caption|header|footer|legend|newpage|!|@start(?:uml|gantt|wbs|mindmap))\b/i.test(
       text,
     )
   )
