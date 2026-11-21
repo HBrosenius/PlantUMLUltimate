@@ -1,3 +1,4 @@
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import { buildPresentationData } from "./app/build-presentation-data";
 import { buildApplySemanticRename } from "./app/build-apply-semantic-rename";
 import { useOutlineModeEffects } from "./app/use-outline-mode-effects";
@@ -1071,7 +1072,9 @@ export function App() {
             ? activityDocument.unknown
             : workspace.diagramKind === "wbs"
               ? wbsDocument.unknown
-              : [];
+              : workspace.diagramKind === "mindmap"
+                ? parseMindmap(workspace.source).unknown
+                : [];
   const unsupportedCount = preservedSyntax.length;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
   // Tasks added to the selection with Shift or Ctrl/⌘-click, after the primary `selectedTaskId`.

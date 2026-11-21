@@ -333,6 +333,44 @@ repeat while (Customer confirms fix?) is (no) not (yes)
 stop
 @enduml`,
   },
+  {
+    id: "product-brainstorm",
+    kind: "mindmap",
+    title: "Product brainstorm",
+    description: "Ideas grouped around a central topic, with branches on one side.",
+    source: `@startmindmap
+* New product idea
+** Customers
+*** Who needs it?
+*** What do they use today?
+** Features
+*** Must have
+*** Nice to have
+** Risks
+*** Cost
+*** Timing
+@endmindmap`,
+  },
+  {
+    id: "study-plan",
+    kind: "mindmap",
+    title: "Study plan",
+    description: "A balanced mindmap with branches on both sides, colours and a boxless note.",
+    source: `@startmindmap
+* Exam preparation
+++[#lightgreen] Topics
++++ Theory
++++ Practice problems
+++ Schedule
++++_ Two hours each morning
+--[#lightblue] Materials
+--- Textbook
+--- Past papers
+-- Support
+--- Study group
+--- Ask the teacher
+@endmindmap`,
+  },
 ];
 
 /** Turns an example title into a tidy file name such as "product-launch-plan.pumlu". */

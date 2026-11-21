@@ -624,18 +624,20 @@
 }
 
 /* Keep preview controls in layout so wrapped tools cannot cover diagram hit targets. */
-:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) {
+:is(.class-preview, .usecase-preview, .wbs-preview, .mindmap-preview, .activity-preview, .sequence-preview) {
   display: flex;
   flex-direction: column;
 }
-:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) > .preview-tools {
+:is(.class-preview, .usecase-preview, .wbs-preview, .mindmap-preview, .activity-preview, .sequence-preview)
+  > .preview-tools {
   position: relative;
   inset: auto;
   flex: 0 0 auto;
   margin: 8px;
   max-width: none;
 }
-:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) > .preview-viewport {
+:is(.class-preview, .usecase-preview, .wbs-preview, .mindmap-preview, .activity-preview, .sequence-preview)
+  > .preview-viewport {
   flex: 1;
   min-height: 0;
   height: auto;

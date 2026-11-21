@@ -24,7 +24,8 @@ import {
 } from "@plantuml-studio/diagram-sequence";
 import type { DiagramKind } from "./model";
 
-export type BulkDiagramKind = Exclude<DiagramKind, "gantt">;
+/** Gantt and mindmap have no bulk operations yet (mindmap multi-select is a later slice). */
+export type BulkDiagramKind = Exclude<DiagramKind, "gantt" | "mindmap">;
 type Range = { from: number; to: number };
 export interface DiagramBulkItem {
   key: string;

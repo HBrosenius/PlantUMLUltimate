@@ -1,3 +1,4 @@
+import { isTreeKind } from "./diagram-tags";
 import { isOuterStatement, opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
@@ -32,7 +33,7 @@ interface TerminatorIssue {
 }
 
 export function terminatorIssues(kind: DiagramKind, source: string): TerminatorIssue[] {
-  if (kind === "wbs") return [];
+  if (isTreeKind(kind)) return [];
   const fixes: TerminatorIssue[] = [];
   const stack: Array<{
     end: string;

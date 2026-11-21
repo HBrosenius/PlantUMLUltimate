@@ -23,6 +23,7 @@
     "@plantuml-studio/diagram-activity": "*",
     "@plantuml-studio/diagram-class": "*",
     "@plantuml-studio/diagram-gantt": "*",
+    "@plantuml-studio/diagram-mindmap": "*",
     "@plantuml-studio/diagram-sequence": "*",
     "@plantuml-studio/diagram-usecase": "*",
     "@plantuml-studio/diagram-wbs": "*",

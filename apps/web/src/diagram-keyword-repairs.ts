@@ -46,6 +46,7 @@ const keywords: Record<DiagramKind, string[]> = {
   ],
   gantt: ["project", "printscale", "ganttscale", "projectscale", "language"],
   wbs: [],
+  mindmap: [],
 };
 
 function oneEdit(a: string, b: string): boolean {

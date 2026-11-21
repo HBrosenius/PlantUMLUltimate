@@ -101,6 +101,48 @@ describe("project codec lifecycle", () => {
   });
 });
 
+describe("Mindmap diagrams in a multi-diagram project", () => {
+  const mindmapSource = "@startmindmap\ntop to bottom direction\n* Root\nleft side\n** Idea\n-- Other\n@endmindmap\n";
+  const savedAt = "2026-09-13T10:00:00.000Z";
+
+  it("round-trips a Mindmap next to Gantt, class and sequence diagrams", async () => {
+    const input = await project();
+    const mindmap = await projectFromPlantUml(mindmapSource, "mindmap", "Ideas", savedAt);
+    input.diagrams.push({ ...mindmap.diagrams[0]!, id: id(20), name: "Ideas" });
+    const decoded = await decodeProject((await encodeProject(input)).bytes);
+    const stored = decoded.project.diagrams.at(-1)!;
+    expect(stored.name).toBe("Ideas");
+    expect(stored.document.current.diagramKind).toBe("mindmap");
+    expect(stored.document.current.source).toBe(mindmapSource);
+    expect(stored.wbsGantt).toBeUndefined();
+  });
+
+  it("rejects a WBS to Gantt link that points at, or sits on, a Mindmap", async () => {
+    const mindmap = await projectFromPlantUml(mindmapSource, "mindmap", "Ideas", savedAt);
+    const wbs = await projectFromPlantUml("@startwbs\n* Root\n@endwbs\n", "wbs", "Plan", savedAt);
+    const gantt = await projectFromPlantUml("@startgantt\n[A] lasts 1 day\n@endgantt\n", "gantt", "Plan", savedAt);
+    const base = { ...(await project()), elements: [], links: [] };
+    const link = (wbsDiagramId: string) => ({ wbsDiagramId, links: [], dependencies: [] });
+    const diagrams = {
+      mindmap: { ...mindmap.diagrams[0]!, id: id(21), name: "Ideas" },
+      wbs: { ...wbs.diagrams[0]!, id: id(22), name: "WBS" },
+      gantt: { ...gantt.diagrams[0]!, id: id(23), name: "Gantt" },
+    };
+    await expect(
+      encodeProject({ ...base, diagrams: [diagrams.mindmap, { ...diagrams.gantt, wbsGantt: link(id(21)) }] }),
+    ).rejects.toThrow("unknown WBS diagram");
+    await expect(
+      encodeProject({ ...base, diagrams: [diagrams.wbs, { ...diagrams.mindmap, wbsGantt: link(id(22)) }] }),
+    ).rejects.toThrow("not supported on a mindmap diagram");
+    await expect(
+      encodeProject({
+        ...base,
+        diagrams: [diagrams.wbs, { ...diagrams.gantt, wbsGantt: link(id(22)) }, diagrams.mindmap],
+      }),
+    ).resolves.toBeDefined();
+  });
+});
+
 describe("encodeProject passwords", () => {
   it("rejects an empty password instead of writing an unencrypted file", async () => {
     await expect(encodeProject(await project(), { password: "" })).rejects.toThrow("A password must not be empty");

@@ -1,3 +1,4 @@
+import { diagramTagSuffix } from "./diagram-tags";
 import { opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 
@@ -20,7 +21,7 @@ interface BoundaryIssue {
 }
 
 export function boundaryIssues(kind: DiagramKind, source: string): BoundaryIssue[] {
-  const suffix = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
+  const suffix = diagramTagSuffix(kind);
   const boundaries: Boundary[] = [];
   let offset = 0;
   let block = false;
@@ -30,7 +31,7 @@ export function boundaryIssues(kind: DiagramKind, source: string): BoundaryIssue
     const trimmed = text.trim();
     if (
       note &&
-      /^@end(?:uml|gantt|wbs)\b/i.test(trimmed) &&
+      /^@end(?:uml|gantt|wbs|mindmap)\b/i.test(trimmed) &&
       !/^\s*end\s+note\b/im.test(source.slice(offset + raw.length))
     )
       note = false;
@@ -43,7 +44,7 @@ export function boundaryIssues(kind: DiagramKind, source: string): BoundaryIssue
     } else if (opensNoteBlock(trimmed)) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
-      const match = text.match(/^(\s*)(@(start|end)(gantt|wbs|uml))\b/i);
+      const match = text.match(/^(\s*)(@(start|end)(gantt|wbs|mindmap|uml))\b/i);
       if (match)
         boundaries.push({
           from: offset + match[1]!.length,
