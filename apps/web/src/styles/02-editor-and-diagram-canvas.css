@@ -429,6 +429,11 @@
   accent-color: var(--accent);
   pointer-events: auto;
 }
+.timeline-visible-range {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 /* Zoom is in natural-size units: the SVG keeps its intrinsic size and the transform applies the zoom. */
 .diagram {
   transform-origin: top left;
