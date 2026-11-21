@@ -231,6 +231,7 @@ describe("ProjectNavigator", () => {
       "usecase",
       "activity",
       "wbs",
+      "mindmap",
     ]);
 
     fireEvent.change(type, { target: { value: "activity" } });

@@ -1,3 +1,4 @@
+import { diagramTagSuffix } from "./diagram-tags";
 import { opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
@@ -16,9 +17,18 @@ function distance(a: string, b: string): number {
 }
 
 export function syntaxRepairs(kind: DiagramKind, source: string, parse = parseGantt): DiagramQuickFix[] {
-  const suffix = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
+  const suffix = diagramTagSuffix(kind);
   const tags = [`@start${suffix}`, `@end${suffix}`];
-  const canonical = new Set(["@startgantt", "@endgantt", "@startwbs", "@endwbs", "@startuml", "@enduml"]);
+  const canonical = new Set([
+    "@startgantt",
+    "@endgantt",
+    "@startwbs",
+    "@endwbs",
+    "@startmindmap",
+    "@endmindmap",
+    "@startuml",
+    "@enduml",
+  ]);
   const fixes: DiagramQuickFix[] = [];
   const parsed = kind === "gantt" ? parse(source) : undefined;
   const originalErrors = parsed?.diagnostics.filter((item) => item.severity === "error").length ?? 0;
@@ -40,7 +50,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string, parse = parseGa
     const trimmed = line.trim();
     if (
       note &&
-      /^@end(?:uml|gantt|wbs)\b/i.test(trimmed) &&
+      /^@end(?:uml|gantt|wbs|mindmap)\b/i.test(trimmed) &&
       !/^\s*end\s+note\b/im.test(source.slice(offset + line.length))
     )
       note = false;
@@ -54,7 +64,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string, parse = parseGa
       note = true;
     } else if (!trimmed.startsWith("'")) {
       if (trimmed) hasContent = true;
-      const directive = line.match(/^(\s*)(@+[a-z]+|(?:start|end)(?:gantt|wbs|uml))\b/i);
+      const directive = line.match(/^(\s*)(@+[a-z]+|(?:start|end)(?:gantt|wbs|mindmap|uml))\b/i);
       if (directive) {
         const token = directive[2]!;
         const normalized = token.toLowerCase();

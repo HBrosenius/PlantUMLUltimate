@@ -33,7 +33,7 @@ const cacheKey = (documentId: string, source: string) => JSON.stringify([documen
 
 export type RendererLayoutEngine = "native" | "graphviz";
 export function rendererLayoutEngineForDiagramKind(kind: string): RendererLayoutEngine {
-  return ["gantt", "sequence", "wbs"].includes(kind) ? "native" : "graphviz";
+  return ["gantt", "sequence", "wbs", "mindmap"].includes(kind) ? "native" : "graphviz";
 }
 export function useRenderer(
   source: string,

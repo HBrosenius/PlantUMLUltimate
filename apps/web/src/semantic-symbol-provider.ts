@@ -44,6 +44,12 @@ import {
   type WbsDocument,
   type WbsSymbolOccurrence,
 } from "@plantuml-studio/diagram-wbs";
+import {
+  collectMindmapSymbolOccurrences,
+  parseMindmap,
+  updateMindmapNode,
+  type MindmapSymbolOccurrence,
+} from "@plantuml-studio/diagram-mindmap";
 import type { DiagramKind } from "./model";
 import { validateRenameValue } from "./rename-symbol-validation";
 
@@ -53,7 +59,8 @@ export type SemanticSymbolOccurrence =
   | UseCaseSymbolOccurrence
   | ClassSymbolOccurrence
   | ActivitySymbolOccurrence
-  | WbsSymbolOccurrence;
+  | WbsSymbolOccurrence
+  | MindmapSymbolOccurrence;
 
 export type SemanticRenameMode =
   | "task"
@@ -75,7 +82,8 @@ export type SemanticRenameMode =
   | "activity action"
   | "activity partition"
   | "WBS node"
-  | "WBS node alias";
+  | "WBS node alias"
+  | "Mindmap node";
 
 export interface SemanticRenameRequest {
   occurrence: SemanticSymbolOccurrence;
@@ -145,6 +153,12 @@ function collectOccurrences(context: ProviderContext): SemanticSymbolOccurrence[
       return collectActivitySymbolOccurrences(context.source, context.activity);
     case "wbs":
       return collectWbsSymbolOccurrences(context.source, context.wbs);
+    case "mindmap":
+      return collectMindmapSymbolOccurrences(context.source, parseMindmap(context.source));
+    default: {
+      const unreachable: never = context.diagramKind;
+      throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
+    }
   }
 }
 
@@ -202,6 +216,10 @@ function renameRequest(
   }
   if (occurrence.kind === "activity-action" || occurrence.kind === "activity-partition")
     return { occurrence, mode: occurrence.kind === "activity-action" ? "activity action" : "activity partition" };
+  if (occurrence.kind === "mindmap-node") {
+    const node = parseMindmap(context.source).nodes.find((item) => item.id === occurrence.key);
+    return node && !node.markdown ? { occurrence, mode: "Mindmap node" } : undefined;
+  }
   if (occurrence.kind !== "wbs-node") return undefined;
   const node = context.wbs.nodes.find((item) => item.id === occurrence.key);
   if (!node) return undefined;
@@ -383,6 +401,15 @@ function validateRename(
           .replace(/[^\w.-]+/g, "-"),
       forbidden: /["\r\n]/,
       forbiddenMessage: "Partition names cannot contain quotes or line breaks",
+    });
+  }
+  if (target.kind === "mindmap-node") {
+    if (!parseMindmap(context.source).nodes.some((candidate) => candidate.id === target.key))
+      return "Mindmap node not found";
+    return validateRenameValue(value, {
+      label: "Mindmap node name",
+      forbidden: /[\r\n]/,
+      forbiddenMessage: "Mindmap node names cannot contain line breaks",
     });
   }
   const node = context.wbs.nodes.find((candidate) => candidate.id === target.key);
@@ -580,6 +607,20 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
     });
     const nextKey = parseActivity(source).partitions.find((candidate) => candidate.label === trimmed)?.id;
     return { source, ...(nextKey ? { nextKey } : {}) };
+  }
+  if (target.kind === "mindmap-node") {
+    const item = parseMindmap(context.source).nodes.find((candidate) => candidate.id === target.key);
+    if (!item) return { error: "Mindmap node not found" };
+    const source = updateMindmapNode(context.source, item, {
+      label: trimmed,
+      ...(item.color ? { color: item.color } : {}),
+      ...(item.textColor ? { textColor: item.textColor } : {}),
+      ...(item.stereotype ? { stereotype: item.stereotype } : {}),
+      ...(item.link ? { link: item.link } : {}),
+      ...(item.icon ? { icon: item.icon } : {}),
+      ...(item.side !== "root" ? { side: item.side } : {}),
+    });
+    return source === context.source ? { error: "Rename made no changes" } : { source, nextKey: item.id };
   }
   const item = context.wbs.nodes.find((candidate) => candidate.id === target.key);
   if (!item) return { error: "WBS node not found" };

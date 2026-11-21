@@ -1,3 +1,4 @@
+import { diagramTagSuffix, isTreeKind } from "./diagram-tags";
 import type { DiagramKind } from "./model";
 import { diagnosticsForDiagram } from "./diagram-diagnostics";
 import { validateGeneratedSource } from "./generated-source-validation";
@@ -37,8 +38,9 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
   let opened = false,
     closed = false;
   const changes: FormatChange[] = [];
-  const opening = kind === "gantt" ? "@startgantt" : kind === "wbs" ? "@startwbs" : "@startuml";
-  const ending = kind === "gantt" ? "@endgantt" : kind === "wbs" ? "@endwbs" : "@enduml";
+  const suffix = diagramTagSuffix(kind);
+  const opening = `@start${suffix}`;
+  const ending = `@end${suffix}`;
   for (let index = 0; index < parts.length; index += 2) {
     const line = parts[index]!,
       text = line.trim();
@@ -103,7 +105,7 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
       } else if (braceDeclaration) {
         if (
           kind === "gantt" ||
-          kind === "wbs" ||
+          isTreeKind(kind) ||
           kind === "sequence" ||
           (withoutStrings.match(/[{}]/g)?.length ?? 0) !== 1
         )
@@ -114,6 +116,13 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
         return fail("Inline or unknown brace syntax is not formatted");
       } else if (kind === "wbs" && /^(?:\*+|[+-]+)\s+\S/.test(text)) {
         continue; // WBS prefixes and label whitespace remain exactly authored.
+      } else if (kind === "mindmap" && /^(?:\*+|[+-]+|#+)(?:\[#?\w+\]|_)*(?::|\s+)\S/.test(text)) {
+        continue; // Mindmap markers and indentation (significant in the Markdown form) remain exactly authored.
+      } else if (
+        kind === "mindmap" &&
+        /^(?:(?:left|right) side|(?:left to right|top to bottom|right to left|bottom to top) direction)$/i.test(text)
+      ) {
+        // Side and direction lines: indentation only.
       } else if (
         kind === "gantt" &&
         (ganttTaskStatement.test(text) ||
@@ -134,7 +143,7 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
         // Simple display directives; multiline skinparam/style blocks are not handled.
       } else if (
         kind !== "gantt" &&
-        kind !== "wbs" &&
+        !isTreeKind(kind) &&
         /^(?:participant|actor|boundary|control|entity|database|collections|queue|component|interface|usecase|class|abstract class|enum|annotation|rectangle|node|artifact)\s+(?:"[^"]+"|[\w.]+)(?:\s+as\s+[\w.]+)?(?:\s+<<[^>]+>>)?(?:\s+#[\w]+)?$/.test(
           text,
         )
@@ -144,7 +153,7 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
         // Class members are single-line text; visibility, types and spacing are preserved.
       } else if (
         kind !== "gantt" &&
-        kind !== "wbs" &&
+        !isTreeKind(kind) &&
         /^(?:[\w.]+|"[^"]+"|\[[^\]]+\]|\([^)]*\))(?:\s+"[^"]*")?\s+(?:<\||\|>|[<>*o])?[-.]{1,3}(?:<\||\|>|[<>*o])?(?:\s+"[^"]*")?\s+(?:[\w.]+|"[^"]+"|\[[^\]]+\]|\([^)]*\))(?:\s*:\s*.*)?$/.test(
           text,
         )

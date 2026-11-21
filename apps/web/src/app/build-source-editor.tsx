@@ -6,6 +6,8 @@ import { findUseCaseObjectAt } from "@plantuml-studio/diagram-usecase";
 import { findClassObjectAt } from "@plantuml-studio/diagram-class";
 import { findActivityObjectAt } from "@plantuml-studio/diagram-activity";
 import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
+import { findMindmapNodeAt } from "@plantuml-studio/diagram-mindmap";
+import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { CollaborationParticipant } from "../collaboration";
 import type { ActivityDocument } from "../../../../packages/diagram-activity/src/model";
 import type { DiagramAnalysis } from "../diagram-diagnostics";
@@ -60,6 +62,7 @@ export interface buildSourceEditorInputs {
   selectSequenceStructure: (id: string | undefined, reveal?: boolean) => void;
   selectUseCaseFromSource: (highlightedId: string | undefined, fallbackObjectId?: string) => void;
   selectWbsFromSource: (highlightedId: string | undefined, fallbackNodeId?: string) => void;
+  mindmap: MindmapEditor;
   selectionRequest: { from: number; to: number } | undefined;
   sequenceDocument: SequenceDocument;
   setProblemPreview: Dispatch<SetStateAction<SourceProblemPreview | undefined>>;
@@ -139,6 +142,7 @@ export function buildSourceEditor({
   selectSequenceStructure,
   selectUseCaseFromSource,
   selectWbsFromSource,
+  mindmap,
   selectionRequest,
   sequenceDocument,
   setProblemPreview,
@@ -211,7 +215,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "class" ||
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
-        workspace.diagramKind === "wbs"
+        workspace.diagramKind === "wbs" ||
+        workspace.diagramKind === "mindmap"
           ? requestSymbolRename
           : undefined
       }
@@ -222,7 +227,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "class" ||
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
-        workspace.diagramKind === "wbs"
+        workspace.diagramKind === "wbs" ||
+        workspace.diagramKind === "mindmap"
           ? (position, x, y) => {
               if (!symbolAt(position)) return false;
               setSymbolMenu({ position, x, y });
@@ -282,6 +288,13 @@ export function buildSourceEditor({
           setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
           setSourceSymbolPosition(occurrence ? position : undefined);
           selectActivityFromSource(occurrence?.key, findActivityObjectAt(activityDocument, position)?.id);
+        } else if (workspace.diagramKind === "mindmap") {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          // A source transaction reports its cursor before React has parsed the new source, so the
+          // position would be looked up in the previous document. Leave the selection alone then.
+          if (!sourceChanged) mindmap.selectFromSource(findMindmapNodeAt(mindmap.document, position)?.id);
         } else {
           const occurrence = symbolAt(position);
           setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);

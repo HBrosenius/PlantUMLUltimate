@@ -39,6 +39,7 @@ const actions = () => ({
   onActivityStructure: vi.fn(),
   onActivityTerminal: vi.fn(),
   onActivityArrow: vi.fn(),
+  onMindmapNode: vi.fn(),
   onWbsNode: vi.fn(),
 });
 
