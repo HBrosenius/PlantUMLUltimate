@@ -11,6 +11,8 @@ import componentExamples from "../../../tests/fixtures/official-plantuml/compone
 import activityExamples from "../../../tests/fixtures/official-plantuml/activity.json";
 import ganttExamples from "../../../tests/fixtures/official-plantuml/gantt.json";
 import wbsExamples from "../../../tests/fixtures/official-plantuml/wbs.json";
+import mindmapExamples from "../../../tests/fixtures/official-plantuml/mindmap.json";
+import { diagramTagSuffix } from "./diagram-tags";
 import sequenceExamples from "../../../tests/fixtures/official-plantuml/sequence.json";
 import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
@@ -22,11 +24,13 @@ const bodies: Record<DiagramKind, string> = {
   activity: "",
   gantt: "[Work] lasts 2 days",
   wbs: "* Root\n** Child",
+  mindmap: "* Root\n** Child",
 };
 const statements: Array<[DiagramKind, string]> = [
-  ...Object.keys(bodies).map(
-    (kind) => [kind as DiagramKind, "skinparam backgroundColor white"] as [DiagramKind, string],
-  ),
+  // Mindmap has no repairable keywords, and the pinned renderer audit (liveAudit) predates it.
+  ...Object.keys(bodies)
+    .filter((kind) => kind !== "mindmap")
+    .map((kind) => [kind as DiagramKind, "skinparam backgroundColor white"] as [DiagramKind, string]),
   ["class", "class Customer"],
   ["class", "interface Customer"],
   ["class", "enum Status"],
@@ -70,7 +74,7 @@ function mutations(word: string): string[] {
 export function keywordAuditInventory() {
   return statements.flatMap(([kind, statement], example) => {
     const word = statement.match(/^[a-z]+/i)![0];
-    const suffix = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
+    const suffix = diagramTagSuffix(kind);
     const original = `@start${suffix}\n${statement}\n${bodies[kind]}\n@end${suffix}`;
     return mutations(word).map((mutant) => {
       const source = `@start${suffix}\n${mutant}${statement.slice(word.length)}\n${bodies[kind]}\n@end${suffix}`;
@@ -133,6 +137,7 @@ describe("official keyword compatibility", () => {
     ["activity", activityExamples],
     ["gantt", ganttExamples],
     ["wbs", wbsExamples],
+    ["mindmap", mindmapExamples],
     ["sequence", sequenceExamples],
   ] as const) {
     it(`preserves all ${corpus.examples.length} official ${kind} examples`, () => {

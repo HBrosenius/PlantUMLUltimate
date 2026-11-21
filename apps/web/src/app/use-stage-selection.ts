@@ -308,6 +308,9 @@ export function useStageSelection({
       case "wbs":
         selectWbsFromSource(symbolAt(position)?.key, findWbsNodeAt(wbsDocument, position)?.id);
         break;
+      case "mindmap":
+        // Source-only: there is no visual selection to restore.
+        break;
     }
     // Re-resolution is driven only by the selection being lost.
     // eslint-disable-next-line react-hooks/exhaustive-deps

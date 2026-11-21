@@ -5,7 +5,7 @@ import { importedDiagramKind } from "./import-source";
 import type { DiagramKind } from "./model";
 
 export const PERSONAL_STARTERS_KEY = "plantuml-studio.personal-starters.v1";
-const kinds: DiagramKind[] = ["gantt", "wbs", "sequence", "class", "component", "activity", "usecase"];
+const kinds: DiagramKind[] = ["gantt", "wbs", "mindmap", "sequence", "class", "component", "activity", "usecase"];
 export interface PersonalStarter {
   id: string;
   title: string;
@@ -22,7 +22,15 @@ export const defaultStarterChoices: StarterChoices = { keepResources: true, keep
 
 export function validateStarterSource(kind: DiagramKind, source: string) {
   const detected = importedDiagramKind(source);
-  if ((kind === "gantt" || kind === "wbs" || detected === "gantt" || detected === "wbs") && kind !== detected)
+  if (
+    (kind === "gantt" ||
+      kind === "wbs" ||
+      kind === "mindmap" ||
+      detected === "gantt" ||
+      detected === "wbs" ||
+      detected === "mindmap") &&
+    kind !== detected
+  )
     throw new Error("The starter type does not match its PlantUML source.");
   const explicitKind = detectDiagramKind(source);
   if (explicitKind && explicitKind !== kind) throw new Error("The starter type does not match its PlantUML source.");

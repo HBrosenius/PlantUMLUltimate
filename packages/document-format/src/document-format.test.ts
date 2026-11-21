@@ -95,6 +95,15 @@ describe("validateDocument", () => {
     expect(validateDocument(value).current.diagramKind).toBe("component");
   });
 
+  it("accepts Mindmap diagrams in current state and history, and rejects unknown kinds", () => {
+    const value = validDocument();
+    value.current.diagramKind = "mindmap";
+    value.versions[0]!.diagramKind = "mindmap";
+    expect(validateDocument(value).current.diagramKind).toBe("mindmap");
+    value.current.diagramKind = "mindmaps" as never;
+    expectCode(() => validateDocument(value), "invalid-file");
+  });
+
   it("accepts the complete v1 schema and preserves sequence ties ordered by ID", () => {
     const value = validDocument();
     value.versions.push({
@@ -299,6 +308,13 @@ describe("project conversion", () => {
     const document = await portableDocumentFromPlantUml("@startuml\n@enduml\n", "class", "2026-09-11T10:00:00.000Z");
     expect(document.current.diagramKind).toBe("class");
     expect(document.contents[0]?.kind).toBe("full");
+  });
+
+  it("creates an embeddable Mindmap document from PlantUML", async () => {
+    const source = "@startmindmap\n* Root\nleft side\n** Idea\n@endmindmap\n";
+    const document = await portableDocumentFromPlantUml(source, "mindmap", "2026-09-11T10:00:00.000Z");
+    expect(document.current.diagramKind).toBe("mindmap");
+    expect(document.current.source).toBe(source);
   });
 
   it("preserves legacy diagram, element, and link identities", () => {

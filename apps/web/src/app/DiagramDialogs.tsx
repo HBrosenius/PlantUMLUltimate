@@ -17,6 +17,7 @@ import { ProjectInspector } from "../ProjectInspector";
 import { parseProjectSettings, type ProjectSettings } from "../project-settings";
 import {
   AddWbsNodeDialog,
+  MindmapPanels,
   WbsSettingsInspector,
   WbsNodeInspector,
   WbsRelinkDialog,
@@ -52,6 +53,7 @@ import type {
 } from "../../../../packages/diagram-usecase/src/operations";
 import type { WbsNodeInput, WbsNode, WbsRelationship, WbsDocument } from "../../../../packages/diagram-wbs/src/model";
 import type { WbsInsertPosition } from "../features/wbs/WbsDialogs";
+import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { AppDialog } from "../use-app-dialog";
 import type { ActiveCollaboration } from "../use-collaboration-lifecycle";
 import type { Command } from "@plantuml-studio/editor-core";
@@ -147,6 +149,7 @@ export interface DiagramDialogsProps {
   )[];
   linkedGantt: DocumentSnapshot | undefined;
   linkedWbs: DocumentSnapshot | undefined;
+  mindmap: MindmapEditor;
   linkedWorkPreview: LinkedWorkPreview | undefined;
   mapWbsProjectEdit: (node: WbsNode, source: string) => void;
   narrow: boolean;
@@ -286,6 +289,7 @@ export function DiagramDialogs({
   linkedDiagramActions,
   linkedGantt,
   linkedWbs,
+  mindmap,
   linkedWorkPreview,
   mapWbsProjectEdit,
   narrow,
@@ -462,6 +466,9 @@ export function DiagramDialogs({
           onChooseExample={(example, name) => createDocument(example.kind, example, name)}
           onClose={closeNewDocumentDialog}
         />
+      )}
+      {workspace.diagramKind === "mindmap" && (
+        <MindmapPanels mindmap={mindmap} dialog={dialog} closeDialog={closeDialog} multiple={diagramMulti.multiple} />
       )}
       {dialog?.kind === "add-wbs-node" && (
         <AddWbsNodeDialog

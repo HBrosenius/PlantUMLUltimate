@@ -15,51 +15,55 @@ import { plantUmlActivityHighlightStyle, plantUmlActivityMode } from "./plantuml
 import { activityCompletions } from "./activity-language";
 import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode";
 import { wbsCompletions } from "./wbs-language";
+import { plantUmlMindmapHighlightStyle, plantUmlMindmapMode } from "./plantuml-mindmap-mode";
+import { mindmapCompletions } from "./mindmap-language";
 import type { DiagramKind } from "./model";
 import { withManualErrorGuidance } from "./manual-error-guidance";
 import { analyzeDiagram } from "./diagram-diagnostics";
+
+/** Exhaustive: a new kind fails to compile here instead of silently getting another kind's editor support. */
+function languageSupport(kind: DiagramKind) {
+  switch (kind) {
+    case "gantt":
+      return { mode: plantUmlGanttMode, highlights: plantUmlGanttHighlightStyle, completions: ganttCompletions };
+    case "sequence":
+      return {
+        mode: plantUmlSequenceMode,
+        highlights: plantUmlSequenceHighlightStyle,
+        completions: sequenceCompletions,
+      };
+    case "usecase":
+      return { mode: plantUmlUseCaseMode, highlights: plantUmlUseCaseHighlightStyle, completions: useCaseCompletions };
+    case "class":
+    case "component":
+      return { mode: plantUmlClassMode, highlights: plantUmlClassHighlightStyle, completions: classCompletions };
+    case "activity":
+      return {
+        mode: plantUmlActivityMode,
+        highlights: plantUmlActivityHighlightStyle,
+        completions: activityCompletions,
+      };
+    case "wbs":
+      return { mode: plantUmlWbsMode, highlights: plantUmlWbsHighlightStyle, completions: wbsCompletions };
+    case "mindmap":
+      return {
+        mode: plantUmlMindmapMode,
+        highlights: plantUmlMindmapHighlightStyle,
+        completions: mindmapCompletions,
+      };
+    default: {
+      const unreachable: never = kind;
+      throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
+    }
+  }
+}
 
 export function languageExtensions(
   kind: DiagramKind,
   onPreviewFixes?: (diagnostic: Diagnostic) => void,
   readAnalysis = analyzeDiagram,
 ): Extension {
-  const mode =
-    kind === "gantt"
-      ? plantUmlGanttMode
-      : kind === "sequence"
-        ? plantUmlSequenceMode
-        : kind === "usecase"
-          ? plantUmlUseCaseMode
-          : kind === "class" || kind === "component"
-            ? plantUmlClassMode
-            : kind === "activity"
-              ? plantUmlActivityMode
-              : plantUmlWbsMode;
-  const highlights =
-    kind === "gantt"
-      ? plantUmlGanttHighlightStyle
-      : kind === "sequence"
-        ? plantUmlSequenceHighlightStyle
-        : kind === "usecase"
-          ? plantUmlUseCaseHighlightStyle
-          : kind === "class" || kind === "component"
-            ? plantUmlClassHighlightStyle
-            : kind === "activity"
-              ? plantUmlActivityHighlightStyle
-              : plantUmlWbsHighlightStyle;
-  const completions =
-    kind === "gantt"
-      ? ganttCompletions
-      : kind === "sequence"
-        ? sequenceCompletions
-        : kind === "usecase"
-          ? useCaseCompletions
-          : kind === "class" || kind === "component"
-            ? classCompletions
-            : kind === "activity"
-              ? activityCompletions
-              : wbsCompletions;
+  const { mode, highlights, completions } = languageSupport(kind);
   return [
     StreamLanguage.define(mode),
     syntaxHighlighting(highlights),

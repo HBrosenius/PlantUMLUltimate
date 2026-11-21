@@ -15,6 +15,7 @@ export type AppDialog =
   | { kind: "add-milestone" }
   | { kind: "delivery-scenario" }
   | { kind: "add-wbs-node" }
+  | { kind: "add-mindmap-node"; position?: "child" | "sibling" }
   | { kind: "add-activity-action" }
   | { kind: "add-activity-partition" }
   | { kind: "add-activity-note" }

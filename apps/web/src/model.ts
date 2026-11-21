@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram" | "stage";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs";
+export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs" | "mindmap";
 
 export interface RenderRequest {
   requestId: number;
@@ -142,3 +142,18 @@ export const DEFAULT_WBS_SOURCE = `@startwbs
 *** Frontend implementation
 *** Quality assurance
 @endwbs`;
+
+export const DEFAULT_MINDMAP_SOURCE = `@startmindmap
+* Product launch
+** Plan
+*** Goals
+*** Budget
+** Build
+*** Prototype
+*** Test
+-- Marketing
+--- Announcement
+--- Social media
+-- Sales
+--- Pricing
+@endmindmap`;
