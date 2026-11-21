@@ -747,3 +747,43 @@ polygon.diagram-bulk-selected {
   margin: 0;
   padding: 16px 0;
 }
+
+.mindmap-diagram svg text[data-mindmap-node-id] {
+  cursor: pointer;
+  pointer-events: all;
+  user-select: none;
+  touch-action: none;
+}
+
+.mindmap-diagram svg .mindmap-node-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2px;
+  cursor: pointer;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.mindmap-diagram svg text[data-mindmap-node-id]:focus,
+.mindmap-diagram svg text.mindmap-selected-node {
+  paint-order: stroke;
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.mindmap-preview .preview-hint {
+  position: absolute;
+  inset: auto 1rem 0.75rem 1rem;
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mindmap-node-inspector .inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

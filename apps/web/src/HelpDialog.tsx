@@ -85,7 +85,7 @@ const topics: Topic[] = [
     title: "Mindmap diagrams",
     group: "mindmap",
     paragraphs: [
-      "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Mindmaps are edited as text, so type in the editor and the preview follows.",
+      "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Click a node to edit its label, colours, style class, box, side, link and icon in the inspector, or add children and siblings with Insert → Mindmap node. You can also type in the editor and the preview follows.",
       "A mindmap written with # headers or indented * bullets (Markdown form) stays source-only. Use the Convert to * markers quick fix on its info message to switch it to the standard form.",
     ],
     example:
@@ -171,6 +171,7 @@ function shortcuts(): Shortcut[] {
   add("gantt", "Ctrl+↑ / ↓", "Reorder focused task (Control on every platform)");
   add("gantt", "Shift while dragging", "Snap movement to weeks");
   add("wbs", optionShortcut("N"), "Add WBS node…");
+  add("mindmap", optionShortcut("N"), "Add mindmap node…");
   add("sequence", optionShortcut("P"), "Add participant…");
   add("sequence", optionShortcut("M"), "Add message…");
   return rows;

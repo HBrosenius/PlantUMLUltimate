@@ -65,6 +65,7 @@ export function useOutlineModeEffects({
       "data-class-object-id",
       "data-activity-object-id",
       "data-wbs-node-id",
+      "data-mindmap-node-id",
       "data-wbs-relationship-id",
     ];
     const mark = () => {
