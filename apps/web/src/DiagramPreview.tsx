@@ -48,6 +48,7 @@ import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
 import { trackWindowPointerDrag, type WindowPointerDragHandlers } from "./pointer-drag";
+import { formatTimelineDate, timelineDateRangeOnScreen, timelineScreenColumns } from "./timeline-visible-range";
 
 interface Props {
   sharedDates?: Map<string, ResolvedTaskDates>;
@@ -246,6 +247,13 @@ export function DiagramPreview({
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
   const [hoveredBaseline, setHoveredBaseline] = useState<{ label: string; dates: string; x: number; y: number }>();
   const [scrollPercent, setScrollPercent] = useState(0);
+  const [visibleDates, setVisibleDates] = useState<{ from: string; to: string }>();
+  const updateVisibleDates = useCallback(() => {
+    const viewport = viewportRef.current;
+    const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
+    const next = viewport ? timelineDateRangeOnScreen(svg, viewport.getBoundingClientRect()) : undefined;
+    setVisibleDates((current) => (current?.from === next?.from && current?.to === next?.to ? current : next));
+  }, []);
   const cancelTaskHoverClose = () => {
     if (hoverCloseTimerRef.current !== undefined) {
       window.clearTimeout(hoverCloseTimerRef.current);
@@ -598,6 +606,18 @@ export function DiagramPreview({
     forecastSelectedTaskId,
     calendar,
   ]);
+  // Refresh the Timeline slider's date range after a render, zoom or pane resize, not only on scroll.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updateVisibleDates);
+    const viewport = viewportRef.current;
+    const observer =
+      viewport && typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => updateVisibleDates()) : undefined;
+    if (viewport) observer?.observe(viewport);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [decoratedSvg, zoom, updateVisibleDates, viewportRef]);
   const visibleTimelineDates = useMemo(() => {
     // Timeline visibility is only displayed in the baseline comparison report.
     if (!baselineSource || progressForecast?.enabled || !decoratedSvg || typeof DOMParser === "undefined")
@@ -1294,8 +1314,9 @@ export function DiagramPreview({
                 onClick={() => revealTask(selectedTaskId)}
                 disabled={!selectedTaskId}
                 aria-label="Jump to selected task"
+                title="Scroll the selected task into view; source stays unchanged"
               >
-                Selected
+                Show selected
               </button>
             </span>
             <button
@@ -1311,8 +1332,9 @@ export function DiagramPreview({
               aria-label={
                 progressForecast?.enabled ? `Set forecast date to today in ${forecastTimeZone}` : "Jump to today"
               }
+              title={progressForecast?.enabled ? "Set the forecast date to today" : "Scroll today into view"}
             >
-              Today
+              Go to today
             </button>
           </div>
           <div
@@ -1535,6 +1557,7 @@ export function DiagramPreview({
               ? 0
               : (element.scrollLeft / (element.scrollWidth - element.clientWidth)) * 100,
           );
+          updateVisibleDates();
         }}
       >
         {decoratedSvg ? (
@@ -2055,6 +2078,11 @@ export function DiagramPreview({
           min="0"
           max="100"
           value={scrollPercent}
+          {...(visibleDates
+            ? {
+                "aria-valuetext": `Showing ${formatTimelineDate(visibleDates.from)} to ${formatTimelineDate(visibleDates.to)}`,
+              }
+            : {})}
           onKeyDown={(event) => {
             if (event.key !== "Home" && event.key !== "End") return;
             event.preventDefault();
@@ -2068,6 +2096,11 @@ export function DiagramPreview({
                 (Number(event.target.value) / 100) * Math.max(0, viewport.scrollWidth - viewport.clientWidth);
           }}
         />
+        {visibleDates && (
+          <span className="timeline-visible-range" aria-hidden="true">
+            {formatTimelineDate(visibleDates.from)} – {formatTimelineDate(visibleDates.to)}
+          </span>
+        )}
       </div>
       {connection && (
         <svg className="connection-overlay" aria-hidden="true">
@@ -2567,18 +2600,6 @@ function safelyCapturePointer(element: Element, pointerId: number) {
   } catch {
     // Window-level pointer listeners keep the interaction alive when capture is unavailable or was already lost.
   }
-}
-
-function timelineScreenColumns(svg: SVGSVGElement | null): Array<{ date: string; center: number }> {
-  if (!svg) return [];
-  return [...svg.querySelectorAll<SVGGraphicsElement>('[data-timeline-header="top"][data-timeline-date]')].flatMap(
-    (element) => {
-      const date = element.getAttribute("data-timeline-date");
-      const rect = element.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      return date && Number.isFinite(center) ? [{ date, center }] : [];
-    },
-  );
 }
 
 function addIsoDays(value: string, days: number): string | undefined {

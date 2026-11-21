@@ -3,6 +3,7 @@ import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { analyzeCriticalPath } from "./schedule-analysis";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { resizeTaskFeedback, svgScreenScale, taskHoverDetails } from "./DiagramPreview";
+import { formatTimelineDate, timelineDateRangeOnScreen } from "./timeline-visible-range";
 import { trackWindowPointerDrag } from "./pointer-drag";
 
 const task: GanttTask = {
@@ -156,5 +157,44 @@ describe("trackWindowPointerDrag", () => {
     expect(handlers.cancel).toHaveBeenCalledTimes(1);
     expect(handlers.move).not.toHaveBeenCalled();
     expect(handlers.end).not.toHaveBeenCalled();
+  });
+});
+
+describe("timelineDateRangeOnScreen", () => {
+  // A stand-in SVG: the helper only reads the date attribute and screen box of each top header.
+  function svgWith(headers: Array<[date: string, left: number]>) {
+    const elements = headers.map(([date, left]) => ({
+      getAttribute: (name: string) => (name === "data-timeline-date" ? date : null),
+      getBoundingClientRect: () => ({ left, width: 20 }),
+    }));
+    return { querySelectorAll: () => elements } as unknown as SVGSVGElement;
+  }
+
+  it("returns the first and last header dates whose centre is on screen", () => {
+    const svg = svgWith([
+      ["2026-11-18", 140],
+      ["2026-11-16", 0],
+      ["2026-11-17", 70],
+      ["2026-11-19", 300],
+    ]);
+    expect(timelineDateRangeOnScreen(svg, { left: 5, right: 200 })).toEqual({ from: "2026-11-16", to: "2026-11-18" });
+  });
+
+  it("returns nothing without a timeline on screen", () => {
+    expect(timelineDateRangeOnScreen(svgWith([["2026-11-16", 500]]), { left: 0, right: 200 })).toBeUndefined();
+    expect(timelineDateRangeOnScreen(null, { left: 0, right: 200 })).toBeUndefined();
+  });
+});
+
+describe("formatTimelineDate", () => {
+  it("shows a short calendar date and keeps unparseable values", () => {
+    expect(formatTimelineDate("2026-11-16")).toBe(
+      new Date(Date.UTC(2026, 10, 16)).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+    );
+    expect(formatTimelineDate("week 47")).toBe("week 47");
   });
 });
