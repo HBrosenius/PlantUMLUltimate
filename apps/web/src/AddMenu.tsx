@@ -395,6 +395,8 @@ function AddMenuView({
                 <span>Note…</span>
               </button>
             </>
+          ) : diagramKind === "mindmap" ? (
+            <span className="ribbon-unavailable">Edit mindmaps in the source: * for the root, ** for children.</span>
           ) : (
             <button
               aria-keyshortcuts="Alt+N"

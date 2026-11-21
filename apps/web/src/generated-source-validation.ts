@@ -4,6 +4,7 @@ import { parseUseCase } from "@plantuml-studio/diagram-usecase";
 import { parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { parseActivity } from "@plantuml-studio/diagram-activity";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import type { DiagramKind } from "./model";
 import { diagnosticsForDiagram } from "./diagram-diagnostics";
 
@@ -16,6 +17,7 @@ export interface GeneratedSourceValidation {
 const markers: Record<DiagramKind, [string, string]> = {
   gantt: ["@startgantt", "@endgantt"],
   wbs: ["@startwbs", "@endwbs"],
+  mindmap: ["@startmindmap", "@endmindmap"],
   sequence: ["@startuml", "@enduml"],
   usecase: ["@startuml", "@enduml"],
   class: ["@startuml", "@enduml"],
@@ -39,7 +41,9 @@ function preservedSyntax(kind: DiagramKind, source: string): string[] {
             ? parseActivity(source).unknown
             : kind === "wbs"
               ? parseWbs(source).unknown
-              : [];
+              : kind === "mindmap"
+                ? parseMindmap(source).unknown
+                : [];
   return unknown.map((item) => item.text);
 }
 

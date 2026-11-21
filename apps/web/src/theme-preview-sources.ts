@@ -32,4 +32,5 @@ export const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
     "\n",
   ),
   wbs: ["@startwbs", "* Project", "** Discovery", "** Delivery", "@endwbs"].join("\n"),
+  mindmap: ["@startmindmap", "* Project", "** Discovery", "-- Delivery", "@endmindmap"].join("\n"),
 };

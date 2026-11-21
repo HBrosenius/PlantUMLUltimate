@@ -4,6 +4,7 @@ import { parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import { diagnosticsForDiagram } from "./diagram-diagnostics";
 import { detectDiagramKind } from "./diagram-kind";
@@ -18,12 +19,13 @@ const parserDiagnostics = (kind: DiagramKind, source: string): Array<{ severity:
   if (kind === "usecase") return parseUseCase(source).diagnostics;
   if (kind === "class" || kind === "component") return parseClassDiagram(source).diagnostics;
   if (kind === "activity") return parseActivity(source).diagnostics;
+  if (kind === "mindmap") return parseMindmap(source).diagnostics;
   return parseWbs(source).diagnostics;
 };
 
 describe("starter examples", () => {
   it("offers at least one example for every diagram kind with unique ids", () => {
-    const kinds: DiagramKind[] = ["wbs", "gantt", "activity", "sequence", "usecase", "class", "component"];
+    const kinds: DiagramKind[] = ["wbs", "gantt", "activity", "sequence", "usecase", "class", "component", "mindmap"];
     for (const kind of kinds) expect(STARTER_EXAMPLES.some((example) => example.kind === kind)).toBe(true);
     expect(new Set(STARTER_EXAMPLES.map((example) => example.id)).size).toBe(STARTER_EXAMPLES.length);
   });

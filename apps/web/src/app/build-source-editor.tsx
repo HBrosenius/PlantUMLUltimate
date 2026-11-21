@@ -211,7 +211,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "class" ||
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
-        workspace.diagramKind === "wbs"
+        workspace.diagramKind === "wbs" ||
+        workspace.diagramKind === "mindmap"
           ? requestSymbolRename
           : undefined
       }
@@ -222,7 +223,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "class" ||
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
-        workspace.diagramKind === "wbs"
+        workspace.diagramKind === "wbs" ||
+        workspace.diagramKind === "mindmap"
           ? (position, x, y) => {
               if (!symbolAt(position)) return false;
               setSymbolMenu({ position, x, y });

@@ -431,4 +431,5 @@ export const DIAGRAM_NOUN: Record<DiagramKind, string> = {
   component: "Component",
   activity: "Activity",
   wbs: "WBS",
+  mindmap: "Mindmap",
 };

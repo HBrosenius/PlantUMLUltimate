@@ -25,6 +25,7 @@ const DIAGRAM_KINDS = new Set<PortableDiagramKind>([
   "component",
   "activity",
   "wbs",
+  "mindmap",
 ]);
 const VERSION_REASONS = new Set<PortableVersionReason>([
   "opened",
@@ -457,6 +458,8 @@ export function validateProject(value: unknown): PortableProject {
       )
     )
       invalid(`diagrams[${index}].wbsGantt references an unknown WBS diagram`);
+    if (diagram.wbsGantt && diagram.document.current.diagramKind === "mindmap")
+      invalid(`diagrams[${index}].wbsGantt is not supported on a mindmap diagram`);
   }
   if (expandedBytes > DOCUMENT_LIMITS.maxProjectExpandedBytes) limit("project history exceeds aggregate limit");
   if (!Array.isArray(project.elements)) invalid("project.elements must be an array");

@@ -85,6 +85,23 @@ describe("shared Documents", () => {
     left.destroy();
     right.destroy();
   });
+  it("keeps the diagram kind of a Mindmap through the shared document and back", async () => {
+    const mindmap = await projectFromPlantUml("@startmindmap\n* Root\n** Idea\n@endmindmap", "mindmap", "Ideas");
+    const initial = sharedDocumentFromProject(mindmap);
+    expect(initial.diagrams[0]).toMatchObject({ kind: "mindmap", name: "Ideas" });
+    const edited = structuredClone(initial);
+    edited.diagrams[0]!.source = edited.diagrams[0]!.source.replace("Idea", "Plan");
+    const { left, right, a, b } = peers(initial);
+    a.apply(edited, initial);
+    Y.applyUpdate(right, Y.encodeStateAsUpdate(left));
+    expect(b.snapshot!.diagrams[0]).toMatchObject({ kind: "mindmap", source: edited.diagrams[0]!.source });
+    const project = await snapshotEmbeddedProject(liveProjectFromSharedDocument(edited, mindmap), new Map(), []);
+    const reopened = await decodeProject((await encodeProject(project)).bytes);
+    expect(reopened.project.diagrams[0]!.document.current.diagramKind).toBe("mindmap");
+    expect(reopened.project.diagrams[0]!.document.current.source).toContain("** Plan");
+    left.destroy();
+    right.destroy();
+  });
   it("saves and reopens shared sources, settings and WBS–Gantt links as one portable file", async () => {
     const original = await fixture();
     const shared = sharedDocumentFromProject(original);

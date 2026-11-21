@@ -62,6 +62,8 @@ export function presentationTargets(doc: PresentationDocument): PresentationAnch
       };
     });
   }
+  // Mindmap nodes are not review anchors yet (they have no bulk items); a mindmap review keeps its view notes only.
+  if (doc.kind === "mindmap") return [];
   return diagramBulkItems(doc.kind, doc.source).map((item) => ({
     key: item.key,
     label: item.label,

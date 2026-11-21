@@ -38,6 +38,7 @@ export const diagramOutlineTypeLabels: Record<SemanticSymbolOccurrence["kind"], 
   "activity-action": "Action",
   "activity-partition": "Partition",
   "wbs-node": "WBS node",
+  "mindmap-node": "Mindmap node",
 };
 
 export function buildDiagramOutlineEntries(
@@ -113,6 +114,7 @@ export function outlineTargetSelector(entry: DiagramOutlineEntry): string | unde
       "activity-action": "data-activity-object-id",
       "activity-partition": "data-activity-object-id",
       "wbs-node": "data-wbs-node-id",
+      "mindmap-node": "data-mindmap-node-id",
     };
     attribute = attributes[target.occurrence.kind];
     key = target.occurrence.key;

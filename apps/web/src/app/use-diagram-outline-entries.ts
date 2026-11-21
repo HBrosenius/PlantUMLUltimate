@@ -1,3 +1,4 @@
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import { useMemo } from "react";
 import { type DiagramOutlineEntry, buildDiagramOutlineEntries, outlineLine } from "../diagram-outline";
 import type { ActivityDocument } from "../../../../packages/diagram-activity/src/model";
@@ -279,6 +280,8 @@ export function useDiagramOutlineEntries({
     const contexts = new Map<string, { label: string; parentId?: string | undefined }>();
     if (workspace.diagramKind === "wbs") {
       for (const node of wbsDocument.nodes) contexts.set(node.id, node);
+    } else if (workspace.diagramKind === "mindmap") {
+      for (const node of parseMindmap(workspace.source).nodes) contexts.set(node.id, node);
     } else if (workspace.diagramKind === "usecase") {
       for (const item of useCaseDocument.packages) contexts.set(item.id, item);
       for (const item of useCaseDocument.elements)

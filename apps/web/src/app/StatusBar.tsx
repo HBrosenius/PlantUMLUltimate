@@ -102,7 +102,9 @@ export function StatusBar({
                   ? "Activity"
                   : workspace.diagramKind === "wbs"
                     ? "WBS"
-                    : "Gantt"}
+                    : workspace.diagramKind === "mindmap"
+                      ? "Mindmap"
+                      : "Gantt"}
         </span>
         <details className="render-details" open={renderSizeLimit(result?.error) ? true : undefined}>
           <summary>
