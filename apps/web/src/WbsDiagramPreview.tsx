@@ -7,6 +7,20 @@ import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNaviga
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { wbsProgressInk } from "./wbs-progress";
+import {
+  useTreeNodeHitTargets,
+  type TreeNodeHitTarget,
+  type TreeNodeHitTargetOptions,
+} from "./tree-preview/use-tree-node-hit-targets";
+
+const WBS_HIT_TARGET_OPTIONS: TreeNodeHitTargetOptions = {
+  attribute: "data-wbs-node-id",
+  hitClass: "wbs-node-hit",
+  selectedClass: "wbs-selected-node",
+  staleSelector:
+    ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-progress",
+  ariaLabel: (node) => `Select WBS node ${node.label}`,
+};
 
 function useStableMap<T>(value: ReadonlyMap<string, T>) {
   const previous = useRef(value);
@@ -93,6 +107,7 @@ export function WbsDiagramPreview({
     nodes: new Map<string, SVGCircleElement>(),
     relationships: new Map<string, SVGCircleElement[]>(),
   });
+  const hitTargets = useRef(new Map<string, TreeNodeHitTarget>());
   const suppressDragClick = useRef(false);
   const displayed = geometryDocument ?? document;
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
@@ -265,66 +280,28 @@ export function WbsDiagramPreview({
     },
     [displayed.nodes, nodeElementAt],
   );
+  useTreeNodeHitTargets(root, displayed.nodes, WBS_HIT_TARGET_OPTIONS, hitTargets, [
+    stableWarnings,
+    displayed,
+    stableLinked,
+    stableCompletion,
+    svg,
+  ]);
   useLayoutEffect(() => {
     const host = root.current;
     if (!host) return;
-    host
-      .querySelectorAll(
-        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-progress",
-      )
-      .forEach((item) => item.remove());
     selectionControls.current.nodes.clear();
     selectionControls.current.relationships.clear();
-    const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
-    const claimed = new Set<SVGTextElement>();
     const renderedNodes = new Map<string, SVGTextElement>();
-    // PlantUML renders a multiline `*: line one\nline two;` label as one <text> per line, so a
-    // node whose label contains "\n" is matched against a run of consecutive, unclaimed <text>
-    // elements whose trimmed contents equal the label's lines in order.
-    const findLabelTexts = (label: string): SVGTextElement[] | undefined => {
-      const lines = label.split("\n");
-      if (lines.length === 1) {
-        const text = texts.find((candidate) => !claimed.has(candidate) && candidate.textContent?.trim() === label);
-        return text ? [text] : undefined;
-      }
-      for (let start = 0; start + lines.length <= texts.length; start += 1) {
-        const run = texts.slice(start, start + lines.length);
-        if (run.some((candidate) => claimed.has(candidate))) continue;
-        if (run.every((candidate, index) => candidate.textContent?.trim() === lines[index])) return run;
-      }
-      return undefined;
-    };
     for (const node of displayed.nodes) {
-      const matched = findLabelTexts(node.label);
-      if (!matched || matched.length === 0) continue;
-      const text = matched[0]!;
-      matched.forEach((candidate) => {
-        claimed.add(candidate);
-        candidate.dataset.wbsNodeId = node.id;
-        candidate.classList.remove("wbs-selected-node");
-      });
+      const target = hitTargets.current.get(node.id);
+      if (!target) continue;
+      const { text, texts: matched, bounds } = target;
       renderedNodes.set(node.id, text);
-      text.setAttribute("tabindex", "0");
-      text.setAttribute("role", "button");
       const completion = stableLinked.has(node.id) ? stableCompletion.get(node.id) : undefined;
-      text.setAttribute("aria-label", `Select WBS node ${node.label}`);
       if (stableLinked.has(node.id)) {
         appendDiagramLinkIcon(matched.at(-1)!);
       }
-      const boxes = matched.map((candidate) => candidate.getBBox());
-      const bounds = boxes.slice(1).reduce(
-        (union, box) => {
-          const x = Math.min(union.x, box.x);
-          const y = Math.min(union.y, box.y);
-          return {
-            x,
-            y,
-            width: Math.max(union.x + union.width, box.x + box.width) - x,
-            height: Math.max(union.y + union.height, box.y + box.height) - y,
-          };
-        },
-        { x: boxes[0]!.x, y: boxes[0]!.y, width: boxes[0]!.width, height: boxes[0]!.height },
-      );
       if (completion !== undefined) {
         const centerX = bounds.x + bounds.width / 2;
         const centerY = bounds.y + bounds.height / 2;
@@ -372,16 +349,6 @@ export function WbsDiagramPreview({
           shape.after(group);
         }
       }
-      const hit = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      hit.setAttribute("x", String(bounds.x - 12));
-      hit.setAttribute("y", String(bounds.y - 8));
-      hit.setAttribute("width", String(bounds.width + 24));
-      hit.setAttribute("height", String(bounds.height + 16));
-      hit.setAttribute("rx", "7");
-      hit.setAttribute("class", "wbs-node-hit");
-      hit.setAttribute("aria-hidden", "true");
-      hit.dataset.wbsNodeId = node.id;
-      text.parentNode?.insertBefore(hit, text);
       {
         const handle = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "circle");
         handle.setAttribute("cx", String(bounds.x + bounds.width + 18));

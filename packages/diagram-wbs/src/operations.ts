@@ -1,30 +1,17 @@
-import type { WbsDocument, WbsNode, WbsNodeInput, WbsSide } from "./model";
+import {
+  deleteTreeNode,
+  insertTreeNode,
+  insertionPoint as treeInsertionPoint,
+  lineEnd,
+  moveTreeSubtree,
+  plantUmlColor,
+  reorderTreeNode,
+  updateTreeNode,
+} from "@plantuml-studio/diagram-tree";
+import { WBS_DIALECT } from "./dialect";
+import type { WbsDocument, WbsNode, WbsNodeInput } from "./model";
 
-const lineEnd = (source: string, to: number) => (source[to] === "\n" ? to + 1 : to);
-// New lines follow the document's own line endings so a CRLF file stays CRLF.
-const eol = (source: string) => (source.includes("\r\n") ? "\r\n" : "\n");
-const markerFor = (depth: number, side: WbsSide) =>
-  (side === "left" ? "-" : side === "right" ? "+" : "*").repeat(depth);
-const plantUmlColor = (value: string) => (value.startsWith("#") ? value : `#${value}`);
-const MAX_SOURCE_LENGTH = 100_000;
-const statement = (marker: string, value: WbsNodeInput, alias?: string) => {
-  const iconPrefix = value.icon?.trim() ? `<${value.icon.trim()}> ` : "";
-  const styledLabel = value.textColor?.trim()
-    ? `<color:${plantUmlColor(value.textColor.trim())}>${value.label.trim()}</color>`
-    : value.label.trim();
-  const label = `${iconPrefix}${styledLabel}`;
-  const linked = value.link?.trim() ? `[[${value.link.trim()} ${label}]]` : label;
-  const stereotype = value.stereotype?.trim() ? ` <<${value.stereotype.trim()}>>` : "";
-  const prefix = `${marker}${alias ? `(${alias})` : ""}${value.color?.trim() ? `[${plantUmlColor(value.color.trim())}]` : ""}`;
-  // A label containing newlines can't fit PlantUML's single-line `marker label` form, so it is
-  // written using the `marker: text;` multiline form instead, closing with a trailing `;`.
-  return linked.includes("\n") ? `${prefix}: ${linked};${stereotype}` : `${prefix} ${linked}${stereotype}`;
-};
-const insertionPoint = (source: string) => {
-  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("WBS source exceeds the 100,000 character limit");
-  const match = /(?:^|\n)\s*@endwbs\b/i.exec(source);
-  return match ? match.index + (match[0].startsWith("\n") ? 1 : 0) : source.length;
-};
+const insertionPoint = (source: string) => treeInsertionPoint(WBS_DIALECT, source);
 
 export function insertWbsNode(
   source: string,
@@ -33,29 +20,11 @@ export function insertWbsNode(
   parent?: WbsNode,
   after?: WbsNode,
 ): string {
-  const depth = parent ? parent.depth + 1 : after ? after.depth : 1;
-  // Every non-root node picks its own side independently: it only steers where that node sits
-  // relative to its own parent, so it doesn't need to match any ancestor's family. When no side
-  // is requested, default to the reference node's exact marker character (cosmetic only).
-  const side = depth === 1 ? "root" : (value.side ?? parent?.side ?? after?.side ?? "right");
-  const inheritedMarker = value.side ? undefined : (parent?.marker[0] ?? after?.marker[0]);
-  const marker = depth === 1 ? "*" : inheritedMarker ? inheritedMarker.repeat(depth) : markerFor(depth, side);
-  const at = after
-    ? lineEnd(source, after.subtreeRange.to)
-    : parent
-      ? lineEnd(source, parent.subtreeRange.to)
-      : insertionPoint(source);
-  const newline = eol(source);
-  const prefix = at > 0 && source[at - 1] !== "\n" ? newline : "";
-  return `${source.slice(0, at)}${prefix}${statement(marker, value)}${newline}${source.slice(at)}`;
+  return insertTreeNode(WBS_DIALECT, source, document, value, parent, after);
 }
 
 export function updateWbsNode(source: string, node: WbsNode, value: WbsNodeInput): string {
-  // A node's side only steers its position relative to its own parent, so changing it only ever
-  // rewrites this node's own marker — descendants keep whichever side they were each given.
-  const side = node.depth === 1 ? "root" : (value.side ?? node.side);
-  const marker = (side === node.side ? node.marker : markerFor(node.depth, side)) + (node.boxless ? "_" : "");
-  return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${source.slice(node.sourceRange.to)}`;
+  return updateTreeNode(source, node, value, node.alias);
 }
 
 export function renameWbsNodeAlias(source: string, document: WbsDocument, node: WbsNode, alias: string): string {
@@ -179,19 +148,15 @@ export function deleteWbsNode(source: string, document: WbsDocument, node: WbsNo
       )
       .flatMap((candidate) => (candidate.alias ? [candidate.alias] : [])),
   );
-  const ranges = [
-    { from: node.subtreeRange.from, to: removedNodeTo },
-    ...document.relationships
-      .filter((relationship) => aliases.has(relationship.from) || aliases.has(relationship.to))
-      .map((relationship) => ({
-        from: relationship.sourceRange.from,
-        to: lineEnd(source, relationship.sourceRange.to),
-      }))
-      .filter((range) => range.to <= node.subtreeRange.from || range.from >= removedNodeTo),
-  ].sort((left, right) => right.from - left.from);
-  let updated = source;
-  for (const range of ranges) updated = `${updated.slice(0, range.from)}${updated.slice(range.to)}`;
-  return updated;
+  // Relationships that touch the removed subtree go with it.
+  const relationshipRanges = document.relationships
+    .filter((relationship) => aliases.has(relationship.from) || aliases.has(relationship.to))
+    .map((relationship) => ({
+      from: relationship.sourceRange.from,
+      to: lineEnd(source, relationship.sourceRange.to),
+    }))
+    .filter((range) => range.to <= node.subtreeRange.from || range.from >= removedNodeTo);
+  return deleteTreeNode(source, node, relationshipRanges);
 }
 
 export function moveWbsSubtree(
@@ -202,58 +167,9 @@ export function moveWbsSubtree(
   before?: WbsNode,
   side?: "left" | "right",
 ): string {
-  if (
-    parent &&
-    (parent.id === node.id ||
-      (parent.sourceRange.from > node.sourceRange.from && parent.sourceRange.from <= node.subtreeRange.to))
-  )
-    return source;
-  const block = source.slice(node.subtreeRange.from, lineEnd(source, node.subtreeRange.to)).replace(/\n$/, "");
-  const newDepth = parent ? parent.depth + 1 : (before?.depth ?? 1);
-  const inheritedFamily =
-    newDepth === 1
-      ? "*"
-      : side === "left"
-        ? "-"
-        : side === "right"
-          ? "+"
-          : (parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*");
-  const depthDelta = newDepth - node.depth;
-  // Only node lines are re-marked: a multi-line `:` ... `;` label can hold lines that start with - or +.
-  const nodeStarts = new Set(
-    document.nodes
-      .filter(
-        (item) => item.sourceRange.from >= node.subtreeRange.from && item.sourceRange.from <= node.subtreeRange.to,
-      )
-      .map((item) => source.lastIndexOf("\n", item.sourceRange.from - 1) + 1),
-  );
-  // Only the moved node's own line adopts its new parent's family — each descendant keeps its
-  // own side (relative to its own parent, which didn't change) and just gets re-sized for depth.
-  let lineStart = node.subtreeRange.from;
-  const transformed = block
-    .split("\n")
-    .map((line, index) => {
-      const start = lineStart;
-      lineStart += line.length + 1;
-      if (!nodeStarts.has(start)) return line;
-      const match = line.match(/^(\s*)([*+-]+)([^\n]*)$/);
-      if (!match?.[2]) return line;
-      const depth = Math.max(1, match[2].length + depthDelta);
-      const family = index === 0 ? inheritedFamily : match[2][0]!;
-      return `${match[1]}${depth === 1 ? "*" : family.repeat(depth)}${match[3]}`;
-    })
-    .join("\n");
-  const removedTo = lineEnd(source, node.subtreeRange.to);
-  const without = `${source.slice(0, node.subtreeRange.from)}${source.slice(removedTo)}`;
-  const originalAt =
-    before?.sourceRange.from ?? (parent ? lineEnd(source, parent.subtreeRange.to) : insertionPoint(source));
-  const removedLength = removedTo - node.subtreeRange.from;
-  const at = originalAt > node.subtreeRange.from ? originalAt - removedLength : originalAt;
-  const newline = block.endsWith("\r") ? "\n" : eol(source);
-  return `${without.slice(0, at)}${transformed}${newline}${without.slice(at)}`;
+  return moveTreeSubtree(WBS_DIALECT, source, document, node, parent, before, side);
 }
 
 export function reorderWbsNode(source: string, document: WbsDocument, node: WbsNode, before?: WbsNode): string {
-  const parent = node.parentId ? document.nodes.find((item) => item.id === node.parentId) : undefined;
-  return moveWbsSubtree(source, document, node, parent, before);
+  return reorderTreeNode(WBS_DIALECT, source, document, node, before);
 }

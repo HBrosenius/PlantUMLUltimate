@@ -87,4 +87,14 @@ describe("WBS parser", () => {
     expect(document.nodes[3]).toMatchObject({ label: "Ship", alias: "ship" });
     expect(document.nodes[4]).toMatchObject({ label: "Build", color: "#Orange" });
   });
+
+  it("does not turn <style> body lines that start with *, + or - into nodes", () => {
+    const body = ["wbsDiagram {", "  * {", "    FontSize 12", "  }", "* {", "+ {", "- {", "}"];
+    const document = parseWbs(
+      ["@startwbs", "<style>", ...body, "</style>", "* Root", "** Child", "@endwbs"].join("\n"),
+    );
+    expect(document.diagnostics).toEqual([]);
+    expect(document.nodes.map((node) => node.label)).toEqual(["Root", "Child"]);
+    expect(document.nodes[0]).toMatchObject({ id: "wbs-0", depth: 1 });
+  });
 });

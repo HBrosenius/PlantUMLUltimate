@@ -5,6 +5,7 @@ import type {
   LanguageCompletion,
   VisualOperation,
 } from "@plantuml-studio/language-core";
+import { replacementEdit } from "@plantuml-studio/diagram-tree";
 import { detectPlantUmlDiagramType } from "@plantuml-studio/language-plantuml";
 import type { WbsDocument, WbsNodeInput } from "./model";
 import { parseWbs } from "./parser";
@@ -43,18 +44,6 @@ export type WbsVisualOperation = VisualOperation &
       }
     | { kind: "delete-relationship"; relationshipId: string }
   );
-
-const replacementEdit = (source: string, next: string) => {
-  let from = 0;
-  while (from < source.length && from < next.length && source[from] === next[from]) from += 1;
-  let sourceTo = source.length;
-  let nextTo = next.length;
-  while (sourceTo > from && nextTo > from && source[sourceTo - 1] === next[nextTo - 1]) {
-    sourceTo -= 1;
-    nextTo -= 1;
-  }
-  return { range: { from, to: sourceTo }, text: next.slice(from, nextTo) };
-};
 
 const completions = (request: CompletionRequest, _model: WbsDocument): LanguageCompletion[] => {
   const line = request.source.slice(0, request.position).split(/\r?\n/).at(-1) ?? "";
