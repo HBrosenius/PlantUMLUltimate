@@ -31,6 +31,13 @@ export const insertionPoint = (dialect: TreeDialect, source: string) => {
   return match ? match.index + (match[0].startsWith("\n") ? 1 : 0) : source.length;
 };
 
+/** The result of an operation that adds a line, with where the new node's line starts. */
+export interface TreeEditResult {
+  source: string;
+  /** Offset of the new node's line in `source`. Undefined when nothing changed. */
+  nodeStart?: number;
+}
+
 export function insertTreeNode(
   dialect: TreeDialect,
   source: string,
@@ -39,6 +46,17 @@ export function insertTreeNode(
   parent?: TreeNode,
   after?: TreeNode,
 ): string {
+  return insertTreeNodeAt(dialect, source, document, value, parent, after).source;
+}
+
+export function insertTreeNodeAt(
+  dialect: TreeDialect,
+  source: string,
+  document: Pick<TreeDocument, "nodes">,
+  value: TreeNodeInput,
+  parent?: TreeNode,
+  after?: TreeNode,
+): TreeEditResult {
   const depth = parent ? parent.depth + 1 : after ? after.depth : 1;
   // Every non-root node picks its own side independently: it only steers where that node sits
   // relative to its own parent, so it doesn't need to match any ancestor's family. When no side
@@ -53,7 +71,10 @@ export function insertTreeNode(
       : insertionPoint(dialect, source);
   const newline = eol(source);
   const prefix = at > 0 && source[at - 1] !== "\n" ? newline : "";
-  return `${source.slice(0, at)}${prefix}${statement(marker, value)}${newline}${source.slice(at)}`;
+  return {
+    source: `${source.slice(0, at)}${prefix}${statement(marker, value)}${newline}${source.slice(at)}`,
+    nodeStart: at + prefix.length,
+  };
 }
 
 /** `alias` is written back after the marker for dialects that have aliases; others omit it. */
@@ -88,12 +109,24 @@ export function moveTreeSubtree(
   before?: TreeNode,
   side?: "left" | "right",
 ): string {
+  return moveTreeSubtreeAt(dialect, source, document, node, parent, before, side).source;
+}
+
+export function moveTreeSubtreeAt(
+  dialect: TreeDialect,
+  source: string,
+  document: Pick<TreeDocument, "nodes">,
+  node: TreeNode,
+  parent?: TreeNode,
+  before?: TreeNode,
+  side?: "left" | "right",
+): TreeEditResult {
   if (
     parent &&
     (parent.id === node.id ||
       (parent.sourceRange.from > node.sourceRange.from && parent.sourceRange.from <= node.subtreeRange.to))
   )
-    return source;
+    return { source };
   const block = source.slice(node.subtreeRange.from, lineEnd(source, node.subtreeRange.to)).replace(/\n$/, "");
   const newDepth = parent ? parent.depth + 1 : (before?.depth ?? 1);
   const inheritedFamily =
@@ -136,7 +169,7 @@ export function moveTreeSubtree(
   const removedLength = removedTo - node.subtreeRange.from;
   const at = originalAt > node.subtreeRange.from ? originalAt - removedLength : originalAt;
   const newline = block.endsWith("\r") ? "\n" : eol(source);
-  return `${without.slice(0, at)}${transformed}${newline}${without.slice(at)}`;
+  return { source: `${without.slice(0, at)}${transformed}${newline}${without.slice(at)}`, nodeStart: at };
 }
 
 export function reorderTreeNode(
