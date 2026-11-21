@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseTree } from "./parse-tree";
+import type { TreeDialect } from "./model";
 import { TEST_DIALECT, WBS_LIKE_DIALECT } from "./test-dialect";
 
 describe("parseTree", () => {
@@ -80,6 +81,86 @@ describe("parseTree", () => {
       "line one\n- minus\n+ plus\n* star\n# hash",
       "Next",
     ]);
+  });
+
+  describe("dialect options for sides, markers, directions and furniture", () => {
+    const FULL: TreeDialect = {
+      ...TEST_DIALECT,
+      markers: { hash: true, indentedList: true },
+      sideKeyword: "side",
+      directionKeywords: ["top to bottom direction"],
+      furniture: true,
+      boxlessFollowsColor: true,
+    };
+    const wrap = (body: string) => `@starttree\n${body}\n@endtree`;
+
+    it("leaves a dialect without the options exactly as it was", () => {
+      const source = wrap(
+        "title T\nleft side\ntop to bottom direction\n# Hash\n  * Item\n* Root\n+ Alt\n++ Plus\n*** Deep",
+      );
+      const plain = parseTree(source, TEST_DIALECT);
+      expect(plain.controls).toEqual({ sideSwitches: [] });
+      expect(plain.unknown.map((item) => item.text)).toEqual(["left side", "top to bottom direction", "# Hash"]);
+      // Without sideKeyword a `+` marker even marks a depth-1 node as right, and depth 3 keeps its own marker.
+      expect(plain.nodes.map((node) => [node.depth, node.side, node.markdown])).toEqual([
+        [1, "root", undefined],
+        [1, "root", undefined],
+        [1, "right", undefined],
+        [2, "right", undefined],
+        [3, "right", undefined],
+      ]);
+    });
+
+    it("records controls and switches, and sides follow the switch in document order", () => {
+      const document = parseTree(
+        wrap("top to bottom direction\ntitle T\n* R\n** a\nleft side\n** b\n*** c\n++ d\nright side\n** e"),
+        FULL,
+      );
+      expect(document.controls.direction?.value).toBe("top to bottom direction");
+      expect(document.controls.title).toMatchObject({ text: "T", block: false });
+      expect(document.controls.sideSwitches.map((item) => item.side)).toEqual(["left", "right"]);
+      expect(document.nodes.map((node) => [node.label, node.side])).toEqual([
+        ["R", "root"],
+        ["a", "right"],
+        ["b", "left"],
+        ["c", "left"],
+        ["d", "right"],
+        ["e", "right"],
+      ]);
+      expect(document.unknown).toEqual([]);
+    });
+
+    it("reads Markdown headers and indented bullets and reports what the engine rejects", () => {
+      const ok = parseTree(wrap("* Root\n  * a\n    * b\n  * c"), FULL);
+      expect(ok.nodes.map((node) => [node.label, node.depth, node.markdown])).toEqual([
+        ["Root", 1, undefined],
+        ["a", 2, "list"],
+        ["b", 3, "list"],
+        ["c", 2, "list"],
+      ]);
+      expect(parseTree(wrap("* Root\n    * a\n  * b"), FULL).diagnostics.map((item) => item.code)).toContain(
+        "bad-indentation",
+      );
+      expect(parseTree(wrap("# Root\n  * a"), FULL).diagnostics.map((item) => item.code)).toContain("markdown-mixed");
+      expect(parseTree(wrap("* Root\n - a"), FULL).diagnostics.map((item) => item.code)).toContain("dash-list");
+    });
+
+    it("reads a boxless coloured node written with the underscore after the colour", () => {
+      const document = parseTree(wrap("* Root\n**[#red]_ Label\n**_[#red] Other"), FULL);
+      expect(document.nodes.map(({ label, boxless, color }) => ({ label, boxless, color }))).toEqual([
+        { label: "Root", boxless: undefined, color: undefined },
+        { label: "Label", boxless: true, color: "#red" },
+        { label: "Other", boxless: true, color: "#red" },
+      ]);
+    });
+
+    it("keeps block bodies and an unclosed block out of the nodes", () => {
+      const document = parseTree(wrap("legend right\n* not a node\nendlegend\n* Root"), FULL);
+      expect(document.nodes.map((node) => node.label)).toEqual(["Root"]);
+      expect(document.controls.legend).toMatchObject({ text: "* not a node", placement: "right", block: true });
+      const unclosed = parseTree(wrap("header\n* swallowed"), FULL);
+      expect(unclosed.diagnostics.map((item) => item.code)).toEqual(["unclosed-block"]);
+    });
   });
 
   it("recognises the boxless marker and keeps the underscore out of the label", () => {
