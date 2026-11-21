@@ -1,0 +1,11 @@
+@startmindmap
+<style>
+mindmapDiagram {
+  .myStyle * {
+    LineColor red
+  }
+}
+</style>
+* Root
+** A <<myStyle>>
+@endmindmap

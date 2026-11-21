@@ -1,0 +1,10 @@
+@startmindmap
++ Root
+++ R1
++++ R1a
+++++ R1a1
+-- L1
+--- L1a
+---- L1a1
+--- L1b
+@endmindmap

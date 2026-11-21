@@ -1,0 +1,6 @@
+@startmindmap
+* Root
+** A (a)
+** B (b)
+a -> b
+@endmindmap

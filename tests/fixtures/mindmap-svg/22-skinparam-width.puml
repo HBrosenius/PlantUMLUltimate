@@ -1,0 +1,12 @@
+@startmindmap
+skinparam backgroundColor lightyellow
+<style>
+mindmapDiagram {
+  node {
+    MaximumWidth 100
+  }
+}
+</style>
+* Root with a very long label that should wrap because of the maximum width
+** Child
+@endmindmap

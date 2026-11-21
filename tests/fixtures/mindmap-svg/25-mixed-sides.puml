@@ -1,0 +1,11 @@
+@startmindmap
+* Root
+** Star R
+++ Plus R
+-- Minus L
+** Star again
+left side
+** Star L
+-- Minus after left side
+++ Plus after left side
+@endmindmap
