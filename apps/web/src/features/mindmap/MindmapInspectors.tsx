@@ -243,11 +243,14 @@ export function MindmapSettingsInspector({
   document,
   initial,
   onApply,
+  onConvert,
   onClose,
 }: {
   document: MindmapDocument;
   initial: MindmapSettings;
   onApply(value: MindmapSettings): void;
+  /** Rewrites a Markdown-form document to `*` markers. */
+  onConvert?(): void;
   onClose(): void;
 }) {
   const [direction, setDirection] = useState<MindmapDirection | "">(initial.direction ?? "");
@@ -269,6 +272,17 @@ export function MindmapSettingsInspector({
           ×
         </button>
       </header>
+      {onConvert && document.nodes.some((node) => node.markdown) && (
+        <section className="mindmap-markdown-notice" aria-label="Markdown form">
+          <p role="status" className="calculated-hint">
+            Part of this mindmap is written in Markdown form, which is edited as text. Convert it to * markers to edit
+            every node here.
+          </p>
+          <button type="button" onClick={onConvert}>
+            Convert to * markers
+          </button>
+        </section>
+      )}
       <label>
         Direction
         <select value={direction} onChange={(event) => setDirection(event.target.value as MindmapDirection | "")}>

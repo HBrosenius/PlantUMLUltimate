@@ -8,6 +8,7 @@ import {
 } from "@plantuml-studio/diagram-tree";
 import type { TextRange } from "@plantuml-studio/language-core";
 import { MINDMAP_DIALECT } from "./dialect";
+import { settleMirroredMarkerFamilies } from "./families";
 import type { MindmapControl, MindmapDirection, MindmapDocument, MindmapNode, MindmapNodeInput } from "./model";
 import { markerDirection, mindmapSideAt, parseMindmap } from "./parser";
 
@@ -125,7 +126,9 @@ export function insertMindmapNode(
   const side = depth === 2 ? (value.side ?? (after?.depth === 2 ? sideOf(after) : undefined)) : undefined;
   const { side: _requested, ...input } = value;
   const result = insertTreeNodeAt(MINDMAP_DIALECT, source, document, withLineEndings(source, input), parent, after);
-  return result.nodeStart === undefined ? result.source : settleNode(result.source, result.nodeStart, side);
+  return settleMirroredMarkerFamilies(
+    result.nodeStart === undefined ? result.source : settleNode(result.source, result.nodeStart, side),
+  );
 }
 
 export function updateMindmapNode(source: string, node: MindmapNode, value: MindmapNodeInput): string {
@@ -183,7 +186,9 @@ export function moveMindmapSubtree(
   // The generic move keeps the family of the new parent; the side is settled afterwards, so a node that
   // is already where it should be keeps its own markers.
   const result = moveTreeSubtreeAt(MINDMAP_DIALECT, source, document, node, parent, before);
-  return result.nodeStart === undefined ? result.source : settleNode(result.source, result.nodeStart, wanted);
+  return settleMirroredMarkerFamilies(
+    result.nodeStart === undefined ? result.source : settleNode(result.source, result.nodeStart, wanted),
+  );
 }
 
 export function reorderMindmapNode(
@@ -233,7 +238,7 @@ export function setMindmapNodeSide(
   side: "left" | "right",
 ): string {
   if (mindmapSideBlocker(source, document, node)) return source;
-  return applySide(source, document, node, side);
+  return settleMirroredMarkerFamilies(applySide(source, document, node, side));
 }
 
 const directionOf = (document: MindmapDocument, node: MindmapNode) => markerDirection(document.sideSwitches, node);

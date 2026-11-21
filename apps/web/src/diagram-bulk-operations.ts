@@ -18,14 +18,22 @@ import {
   updateWbsRelationshipColor,
 } from "@plantuml-studio/diagram-wbs";
 import {
+  deleteMindmapNode,
+  parseMindmap,
+  setMindmapNodeBoxless,
+  updateMindmapNode,
+  mindmapEditBlocker,
+  type MindmapNode,
+} from "@plantuml-studio/diagram-mindmap";
+import {
   parseSequence,
   sequenceParticipantOccurrences,
   updateSequenceMessage,
 } from "@plantuml-studio/diagram-sequence";
 import type { DiagramKind } from "./model";
 
-/** Gantt and mindmap have no bulk operations yet (mindmap multi-select is a later slice). */
-export type BulkDiagramKind = Exclude<DiagramKind, "gantt" | "mindmap">;
+/** Gantt has its own task selection and no bulk operations here. */
+export type BulkDiagramKind = Exclude<DiagramKind, "gantt">;
 type Range = { from: number; to: number };
 export interface DiagramBulkItem {
   key: string;
@@ -36,6 +44,9 @@ export interface DiagramBulkItem {
   copyRange: Range;
   color: boolean;
   stereotype: boolean;
+  /** Mindmap nodes only: the node can be drawn without a box, and deleted with its subtree. */
+  boxless?: boolean;
+  deletable?: boolean;
   changeColor?: (color: string) => string;
 }
 const key = (attribute: string, id: string) => `${attribute}:${id}`;
@@ -178,6 +189,16 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
         .sort((a, b) => a.copyRange.to - a.copyRange.from - (b.copyRange.to - b.copyRange.from))[0];
       if (enclosing) item.copyRange = enclosing.copyRange;
     }
+  } else if (kind === "mindmap") {
+    const doc = parseMindmap(source);
+    for (const node of doc.nodes) {
+      // A node written in Markdown form can only be edited as text.
+      const editable = !mindmapEditBlocker(doc, node);
+      add("data-mindmap-node-id", node, !node.markdown, !node.markdown, node.subtreeRange);
+      const item = items[items.length - 1]!;
+      item.boxless = !node.markdown;
+      item.deletable = editable;
+    }
   } else {
     const doc = parseWbs(source);
     doc.nodes.forEach((item) =>
@@ -252,6 +273,22 @@ export function changeDiagramItems(
     throw new Error("Enter a stereotype without brackets or line breaks.");
   const color = value && !value.startsWith("#") ? `#${value}` : value;
   const selected = diagramBulkItems(kind, source).filter((item) => keys.includes(item.key) && item[mode]);
+  if (kind === "mindmap")
+    return changeMindmapNodes(
+      source,
+      selected.map((item) => item.id),
+      keys.length,
+      (node, current) =>
+        updateMindmapNode(current, node, {
+          label: node.label,
+          ...(node.textColor ? { textColor: node.textColor } : {}),
+          ...(node.link ? { link: node.link } : {}),
+          ...(node.icon ? { icon: node.icon } : {}),
+          ...(mode === "color"
+            ? { ...(color ? { color } : {}), ...(node.stereotype ? { stereotype: node.stereotype } : {}) }
+            : { ...(node.color ? { color: node.color } : {}), ...(value ? { stereotype: value } : {}) }),
+        }),
+    );
   if (kind === "usecase") {
     let materialized = source;
     for (const selectedItem of selected) {
@@ -291,6 +328,63 @@ export function changeDiagramItems(
     };
   });
   return { source: replaceRanges(source, edits), applied: selected.length, skipped: keys.length - selected.length };
+}
+
+// Style edits keep every node on its own line, so the ids stay valid while the nodes are edited in turn.
+function changeMindmapNodes(
+  source: string,
+  ids: readonly string[],
+  requested: number,
+  edit: (node: MindmapNode, current: string) => string,
+): { source: string; applied: number; skipped: number } {
+  let current = source;
+  let applied = 0;
+  for (const id of ids) {
+    const node = parseMindmap(current).nodes.find((item) => item.id === id);
+    if (!node) continue;
+    current = edit(node, current);
+    applied++;
+  }
+  return { source: current, applied, skipped: requested - applied };
+}
+
+/** Draws every selected mindmap node without a box, or with one again. Markdown-form nodes are skipped. */
+export function setMindmapItemsBoxless(
+  source: string,
+  keys: readonly string[],
+  boxless: boolean,
+): { source: string; applied: number; skipped: number } {
+  const ids = diagramBulkItems("mindmap", source)
+    .filter((item) => keys.includes(item.key) && item.boxless)
+    .map((item) => item.id);
+  return changeMindmapNodes(source, ids, keys.length, (node, current) => setMindmapNodeBoxless(current, node, boxless));
+}
+
+/**
+ * Deletes the selected mindmap nodes with their subtrees in one edit. A node whose ancestor is also
+ * selected goes with that ancestor. At least one root has to stay, and Markdown-form nodes are blocked.
+ */
+export function deleteMindmapItems(
+  source: string,
+  keys: readonly string[],
+): { source: string; applied: number; removed: number } {
+  const document = parseMindmap(source);
+  const chosen = diagramBulkItems("mindmap", source).filter((item) => keys.includes(item.key));
+  if (chosen.some((item) => !item.deletable)) throw new Error("Convert to * markers to edit visually");
+  const selected = new Set(chosen.map((item) => item.id));
+  const ancestorSelected = (node: MindmapNode): boolean => {
+    const parent = document.nodes.find((item) => item.id === node.parentId);
+    return !!parent && (selected.has(parent.id) || ancestorSelected(parent));
+  };
+  const top = document.nodes.filter((node) => selected.has(node.id) && !ancestorSelected(node));
+  if (top.filter((node) => node.depth === 1).length >= document.roots.length)
+    throw new Error("A mindmap needs at least one root. Keep a root, or delete the diagram instead.");
+  let result = source;
+  // Later nodes first, so the earlier nodes keep their ids and ranges.
+  for (const node of [...top].sort((a, b) => b.sourceRange.from - a.sourceRange.from))
+    result = deleteMindmapNode(result, parseMindmap(result).nodes.find((item) => item.id === node.id) ?? node);
+  const removed = document.nodes.length - parseMindmap(result).nodes.length;
+  return { source: result, applied: top.length, removed };
 }
 
 export interface DiagramClipboard {

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Mindmap guide · PlantUML Ultimate training</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="training.css" />
+  </head>
+  <body>
+    <header><a href="/">PlantUML Ultimate</a><a href="/">Open editor ↗</a></header>
+    <main>
+      <p class="eyebrow">WRITTEN LESSON</p>
+      <h1>Mindmaps: from a topic<br />to a tidy map.</h1>
+      <p class="lead">
+        A text walkthrough for mindmap diagrams. There is no video for this lesson yet, so each step names the control
+        to use and the source it writes. Back to the <a href="./">course index</a>.
+      </p>
+
+      <h2>1. Create a mindmap</h2>
+      <p>
+        Choose <strong>New diagram tab</strong>, pick <strong>Mindmap</strong> and select a starter. A mindmap has one
+        or more roots written with <code>*</code>; each extra <code>*</code> goes one level deeper.
+      </p>
+      <pre><code>@startmindmap
+* Product launch
+** Plan
+*** Budget
+** Build
+@endmindmap</code></pre>
+
+      <h2>2. Edit in the preview</h2>
+      <p>
+        Click a node to open the inspector: label, colour, text colour, style class, box, side, link and icon. Use
+        <strong>Insert → Mindmap node</strong> for a child or a sibling. Drag a node above or below another to reorder
+        it, onto the middle of one to nest it, or beside the root to move it to the other side. Every edit is one undo
+        step.
+      </p>
+
+      <h2>3. Both sides of the root</h2>
+      <p>
+        <code>++</code> places a first-level branch on the right and <code>--</code> on the left. A
+        <code>left side</code> line moves every following <code>**</code> branch to the left until a
+        <code>right side</code> line. Add <code>_</code> after the markers, as in <code>**_ Notes</code>, for a node
+        without a box. Direction lines such as <code>top to bottom direction</code> turn the whole map.
+      </p>
+
+      <h2>4. Edit several nodes at once</h2>
+      <p>
+        Shift-click or Ctrl/⌘-click nodes to select them (Ctrl/⌘+A selects all while the map has focus). The
+        <strong>Selected elements</strong> inspector sets a colour or a style class on all of them, removes or adds their
+        boxes, or deletes them with their branches after you confirm. A node selected together with its parent goes with
+        that parent, and at least one root always stays. Each bulk action is a single undo step.
+      </p>
+
+      <h2>5. Style blocks</h2>
+      <p>
+        In the source editor, type <code>&lt;style</code> and pick a snippet: a plain block, a style class
+        (<code>.green</code>, applied with <code>&lt;&lt;green&gt;&gt;</code> on a node), a depth rule
+        (<code>:depth(1)</code>) or a maximum width for long labels.
+      </p>
+      <pre><code>&lt;style&gt;
+mindmapDiagram {
+  .green {
+    BackgroundColor lightgreen
+  }
+}
+&lt;/style&gt;</code></pre>
+      <aside>
+        <strong>Avoid a <code>* {}</code> rule</strong>
+        <p>
+          The PlantUML engine reads a <code>* {</code> line in a style block as a node and stops with an error. The
+          editor flags it with a warning and a quick fix that writes <code>node {</code> instead.
+        </p>
+      </aside>
+
+      <h2>6. Markdown-form mindmaps</h2>
+      <p>
+        PlantUML also accepts <code>#</code> headers and indented <code>*</code> bullets. Mindmaps written that way stay
+        source-only. Use the <strong>Convert to * markers</strong> quick fix on the info message (Ctrl/⌘+.), or the
+        button in the node or Mindmap settings inspector, to switch to the standard form and edit visually.
+      </p>
+
+      <h2>Practice</h2>
+      <p>
+        Try these in order: build the map above, move <em>Budget</em> under <em>Build</em> by dragging, select two nodes
+        with Shift-click and give them a colour, then paste a <code># Root</code> / <code>## Child</code> source and
+        convert it.
+      </p>
+      <footer>Mindmap support needs a current build; older builds cannot open projects that contain a mindmap.</footer>
+    </main>
+  </body>
+</html>

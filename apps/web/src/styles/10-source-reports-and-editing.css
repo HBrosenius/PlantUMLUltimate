@@ -322,6 +322,13 @@ polygon.diagram-bulk-selected {
   stroke-width: 2px !important;
 }
 
+.mindmap-diagram svg text.diagram-bulk-selected {
+  paint-order: stroke;
+  stroke: var(--accent, #3979d6);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
 .source-fix-full-preview {
   margin-top: 6px;
 }

@@ -40,6 +40,7 @@ export function MindmapPanels({
           document={document}
           initial={mindmap.settings}
           onApply={mindmap.applySettings}
+          onConvert={mindmap.convertToOrgMode}
           onClose={mindmap.closeSettings}
         />
       )}
