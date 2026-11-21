@@ -749,7 +749,7 @@ polygon.diagram-bulk-selected {
 }
 
 .mindmap-diagram svg text[data-mindmap-node-id] {
-  cursor: pointer;
+  cursor: grab;
   pointer-events: all;
   user-select: none;
   touch-action: none;
@@ -759,9 +759,60 @@ polygon.diagram-bulk-selected {
   fill: transparent;
   stroke: transparent;
   stroke-width: 2px;
-  cursor: pointer;
+  cursor: grab;
   pointer-events: all;
   touch-action: none;
+}
+
+.mindmap-diagram svg .mindmap-node-hit.mindmap-drop-target,
+.mindmap-diagram svg text.mindmap-drop-target {
+  fill: color-mix(in srgb, var(--accent, #2563eb) 15%, transparent);
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-dasharray: 5 3;
+}
+
+.mindmap-drag-preview {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 2px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  background: var(--panel, #fff);
+  color: var(--text, #172033);
+  box-shadow: 0 12px 30px rgb(15 23 42 / 24%);
+  pointer-events: none;
+  transform: rotate(1deg);
+}
+
+.mindmap-drag-preview span {
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+}
+
+.mindmap-placement-preview {
+  position: fixed;
+  z-index: 999;
+  border-radius: 999px;
+  background: var(--accent, #2563eb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+  pointer-events: none;
+}
+
+.mindmap-placement-inside {
+  border: 2px dashed var(--accent, #2563eb);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 18%, var(--panel, #fff));
+}
+
+.mindmap-placement-side {
+  border: 2px dashed var(--accent, #2563eb);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
 }
 
 .mindmap-diagram svg text[data-mindmap-node-id]:focus,

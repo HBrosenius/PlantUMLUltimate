@@ -85,7 +85,8 @@ const topics: Topic[] = [
     title: "Mindmap diagrams",
     group: "mindmap",
     paragraphs: [
-      "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Click a node to edit its label, colours, style class, box, side, link and icon in the inspector, or add children and siblings with Insert → Mindmap node. You can also type in the editor and the preview follows.",
+      "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Click a node to edit its label, colours, style class, box, side, link and icon in the inspector, or add children and siblings with Insert → Mindmap node. Drag a node above or below another to reorder it, onto the middle of one to nest it, or beside the root to move it to the other side. You can also type in the editor and the preview follows.",
+      "With a node focused, the arrow keys move around the picture (Up and Down between siblings, Left and Right into a child and back out; on the left side, and in right to left maps, they follow the picture; in top to bottom maps the axes turn). Alt with an arrow moves the node itself: reorder it, move a first-level branch to the other side, or indent and outdent it. Enter selects, Enter again edits the label, F2 renames in place, Shift+Enter adds a sibling, Alt+Enter or Insert adds a child, and Delete removes the branch.",
       "A mindmap written with # headers or indented * bullets (Markdown form) stays source-only. Use the Convert to * markers quick fix on its info message to switch it to the standard form.",
     ],
     example:
@@ -172,6 +173,13 @@ function shortcuts(): Shortcut[] {
   add("gantt", "Shift while dragging", "Snap movement to weeks");
   add("wbs", optionShortcut("N"), "Add WBS node…");
   add("mindmap", optionShortcut("N"), "Add mindmap node…");
+  add("mindmap", "Arrow keys", "Move between nodes, following the picture");
+  add("mindmap", `${apple ? "⌥" : "Alt+"}arrow keys`, "Move the focused node: reorder, change side, indent, outdent");
+  add("mindmap", "Enter / Enter again", "Select the focused node / edit its label");
+  add("mindmap", "F2", "Rename the focused node in place");
+  add("mindmap", "Shift+Enter", "Add a sibling after the focused node");
+  add("mindmap", `${apple ? "⌥" : "Alt+"}Enter or Insert`, "Add a child to the focused node");
+  add("mindmap", "Delete", "Delete the focused node and its branch");
   add("sequence", optionShortcut("P"), "Add participant…");
   add("sequence", optionShortcut("M"), "Add message…");
   return rows;
