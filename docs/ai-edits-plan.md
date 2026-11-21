@@ -65,6 +65,11 @@ until A0's numbers are in.
   in the browser and no setup for users, but you pay for every request and need
   sign-in, per-user quotas and abuse limits.
   Recommendation: (a) now, (b) as slice A5 only if you want AI without setup.
+  **Decided 2026-11-22: (a) first.** Known limit: a Claude Pro or Max
+  subscription does not include API access and cannot be used to sign in from
+  this app, so (a) needs a Claude Console API key with prepaid credits. Most
+  non-developer users will not have one, so revisit (b) before the feature is
+  shown outside the team.
 - **Q2 — Default model.** Claude Opus 5.5 (`claude-opus-5-5`, $4 / $20 per
   million input/output tokens) gives the best patch quality. Claude Sonnet 5.5
   (`claude-sonnet-5-5`, $2 / $10) is cheaper and faster. With the user's own
