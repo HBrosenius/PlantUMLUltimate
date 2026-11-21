@@ -47,7 +47,7 @@ same depth of visual editing that WBS has today.
 | Boxless                                     | `**_ Label`, `--_ Label`                                                                  | Same `_` handling as WBS. Must survive update, move and side change.                                                                                                                                                                                                                           |
 | Multi-line label                            | `**:line one`<br>`line two;`                                                              | Same joining rule as WBS. Inner lines that start with `-`, `+`, `*` or `#` are label text, not nodes.                                                                                                                                                                                          |
 | Several roots                               | two `*` lines at depth 1                                                                  | Already supported by the WBS stack logic.                                                                                                                                                                                                                                                      |
-| Title and footer elements                   | `title`, `caption`, `header … endheader`, `[center] footer`, `legend [pos] … endlegend`   | Kept in the source and recognised by the parser. Edited in the Settings inspector (title and caption only in the first release).                                                                                                                                                               |
+| Title and footer elements                   | `title`, `caption`, `header … endheader`, `[center] footer`, `legend [pos] … endlegend`   | Kept in the source and recognised by the parser. Edited in the Settings inspector: title, caption, header, footer and legend (Q6).                                                                                                                                                             |
 | Direction                                   | `left to right direction` (default), `top to bottom direction`, `right to left direction` | Recognised and edited in the Settings inspector. `bottom to top direction` is not implemented upstream. Flag it with a warning and do not offer it.                                                                                                                                            |
 | `<style>` block                             | `<style> mindmapDiagram { … } </style>`                                                   | Kept as an opaque block, as WBS does through `CONTROL`. The parser must skip everything between `<style>` and `</style>`, because selectors such as `.myStyle *` and `:depth(1)` must not be parsed as nodes. **This is a new requirement.** WBS only skips the tag lines today (see risk R2). |
 | Creole, icons and `<color:…>` inside labels | `<&flag> Label`, `**bold**`                                                               | The label text is kept as written. The existing `icon` and `textColor` extraction is reused.                                                                                                                                                                                                   |
@@ -105,8 +105,8 @@ Why:
   `{ idPrefix, start, end, markers, allowAliases, allowArrows, sideKeyword, skipStyleBlocks, directionKeywords, label }`.
 - `src/parse-tree.ts`: the body of `parseWbsUncached` and `nodeDetails`,
   parameterised by `TreeDialect`. It returns nodes, roots, `unknown`,
-  `diagnostics` and `controls` (title, caption, direction and `left side`
-  ranges).
+  `diagnostics` and `controls` (title, caption, header, footer, legend,
+  direction and `left side` ranges).
 - `src/tree-operations.ts`: `insertTreeNode`, `updateTreeNode`,
   `deleteTreeNode`, `moveTreeSubtree` and `reorderTreeNode`, taken from
   `operations.ts` with the CRLF, `nodeStarts` and `_` fixes unchanged.
@@ -131,14 +131,16 @@ Why:
 
 - `src/model.ts`: `MindmapNode` (= `TreeNode`), `MindmapDocument` (nodes,
   roots, `unknown`, `diagnostics`, `direction`, `title`, `caption`,
+  `header`, `footer`, `legend`,
   `leftSideSwitches`), `MindmapNodeInput` and `MindmapDirection`.
 - `src/parser.ts`: `parseMindmap` (with the same one-entry cache) and
   `findMindmapNodeAt`. It adds `left side` handling, `#` markers, Markdown list
   detection, `<style>` block skipping and direction recognition.
 - `src/operations.ts`: `insertMindmapNode`, `updateMindmapNode`,
   `deleteMindmapNode`, `moveMindmapSubtree`, `reorderMindmapNode`,
-  `setMindmapNodeSide` (see 3b), `setMindmapDirection`, `setMindmapTitle` and
-  `convertMindmapToOrgMode`.
+  `setMindmapNodeSide` (see 3b), `setMindmapDirection`, `setMindmapTitle`,
+  `setMindmapCaption`, `setMindmapHeader`, `setMindmapFooter`,
+  `setMindmapLegend` and `convertMindmapToOrgMode`.
 - `src/adapter.ts`: `mindmapAdapter: DiagramAdapter<MindmapDocument, MindmapVisualOperation>`
   with `id: "mindmap"`, `detect` using `detectPlantUmlDiagramType(source) === "mindmap"`,
   and `capabilities: { visualSelection: true, visualMove: true, visualResize: false, visualDependencies: false }`.
@@ -229,7 +231,8 @@ New feature folder `apps/web/src/features/mindmap/`:
   Gantt and relationship actions.
 - `MindmapInspectors.tsx`: `MindmapNodeInspector` (label, colour, text colour,
   style class, boxless toggle, side for depth-2 nodes, icon and link) and
-  `MindmapSettingsInspector` (direction, title and caption).
+  `MindmapSettingsInspector` (direction, title, caption, header, footer and
+  legend).
 - `MindmapDialogs.tsx`: `AddMindmapNodeDialog`.
 - `use-mindmap-controller.test.tsx`.
 
@@ -280,6 +283,7 @@ hit-testing approach.
 | `move-subtree` / `reorder-node`                                      | `moveTreeSubtree`                  | Same CRLF and `nodeStarts` rules. See 3b for the side rules.                                                                                                                                                                    |
 | `set-side` (depth-2 only)                                            | `setMindmapNodeSide`               | See 3b.                                                                                                                                                                                                                         |
 | `set-direction`, `set-title`, `set-caption`                          | Line edits after `@startmindmap`   | Add, replace or remove one control line.                                                                                                                                                                                        |
+| `set-header`, `set-footer`, `set-legend`                             | Block edits after `@startmindmap`  | Add, replace or remove one `header…endheader`, `footer` or `legend…endlegend` block, keeping its position keyword.                                                                                                              |
 | `convert-to-orgmode`                                                 | `convertMindmapToOrgMode`          | Quick fix for documents in Markdown form.                                                                                                                                                                                       |
 
 ### 3b. Sides
@@ -525,14 +529,16 @@ commit first. After e2e runs, restore the rewritten `docs/audits` PNGs.
 
 - **Q1 (decided 2026-10-30).** Extract the shared `packages/diagram-tree`
   package (S1) before mindmap work starts. Do not copy the WBS code.
-- **Q2.** Should Markdown-form mindmaps (`#` headers and list form) be source
-  only with a conversion quick fix, as proposed, or fully editable while
-  keeping their form?
-- **Q3.** Should mindmaps join the mobile work list (today Gantt and WBS only)
-  in the first release, or later?
+- **Q2 (decided 2026-11-21).** Markdown-form mindmaps (`#` headers and the
+  indented list form) are source-only in the first release, with the
+  `convert-to-orgmode` quick fix as the path to visual editing. The S0 spike
+  showed the Markdown form is fragile in the engine (relative indentation only,
+  errors when headers and lists are mixed, `-` lists rejected).
+- **Q3 (decided 2026-11-21).** Not in the first release. Mindmaps keep the
+  normal preview on mobile; revisit the work list afterwards.
 - **Q4 (decided).** Older builds may fail to open projects that contain
   mindmaps. No format version bump.
 - **Q5.** Should there be a WBS↔Mindmap conversion (same marker syntax, so the
   source almost carries over)? Not in scope here, but cheap after S3.
-- **Q6.** In the first release, should the Settings inspector also edit
-  `header`, `footer` and `legend`, or only title, caption and direction?
+- **Q6 (decided 2026-11-21).** The first release's Settings inspector edits
+  direction, title, caption, header, footer and legend.
