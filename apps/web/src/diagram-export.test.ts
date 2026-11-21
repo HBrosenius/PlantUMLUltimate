@@ -22,6 +22,12 @@ describe("diagram export text", () => {
     expect(plantUmlMarkdown("x ````` y")).toBe("``````plantuml\nx ````` y\n``````");
   });
 
+  it("exports a mindmap source like any other diagram source", () => {
+    const source = "@startmindmap\n* Root\n** Idea\n-- Left\n@endmindmap\n";
+    expect(plantUmlMarkdown(source)).toBe("```plantuml\n@startmindmap\n* Root\n** Idea\n-- Left\n@endmindmap\n```");
+    expect(confluencePlantUmlMarkup(source)).toBe(`{plantuml}\n${source}{plantuml}`);
+  });
+
   it("wraps source in the Confluence PlantUML macro", () => {
     expect(confluencePlantUmlMarkup("@startuml\nA -> B\n@enduml\n")).toBe(
       "{plantuml}\n@startuml\nA -> B\n@enduml\n{plantuml}",

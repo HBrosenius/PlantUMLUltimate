@@ -184,6 +184,9 @@ export function buildStageDock({
         ];
       case "wbs":
         return [item("node", "Node", () => openDialog({ kind: "add-wbs-node" }))];
+      case "mindmap":
+        // Source-only until visual editing exists: nothing to add from the stage.
+        return [];
       default:
         return [];
     }

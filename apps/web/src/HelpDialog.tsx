@@ -17,6 +17,7 @@ const names: Record<DiagramKind, string> = {
   gantt: "Gantt",
   sequence: "Sequence",
   wbs: "WBS",
+  mindmap: "Mindmap",
   usecase: "Use Case",
   class: "Class",
   component: "Component",
@@ -79,6 +80,16 @@ const topics: Topic[] = [
       "Use repeated * markers to define hierarchy, and + or - markers for right and left branches. Select a rendered node to edit its label, branch side, color and stereotype.",
       "Drag a node onto another node to move its complete subtree. Use Plan → Linked diagrams to create or connect a Gantt plan. Add WBS node creates another work package.",
     ],
+  },
+  {
+    title: "Mindmap diagrams",
+    group: "mindmap",
+    paragraphs: [
+      "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Mindmaps are edited as text, so type in the editor and the preview follows.",
+      "A mindmap written with # headers or indented * bullets (Markdown form) stays source-only. Use the Convert to * markers quick fix on its info message to switch it to the standard form.",
+    ],
+    example:
+      "* Product launch\n** Plan\n*** Budget\n** Build\n--[#lightblue] Marketing\n-- Sales\n++_ Notes\nleft to right direction",
   },
   {
     title: "Sequence diagrams",
