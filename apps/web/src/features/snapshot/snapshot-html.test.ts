@@ -117,9 +117,9 @@ describe("buildSnapshotHtml", () => {
     expect(csp).toContain("default-src 'none'");
     expect(csp).not.toMatch(/connect-src|font-src|unsafe-eval|https?:|\*/);
     expect(csp).toContain("img-src data:");
-    const scripts = html.match(/<script>/g) ?? [];
+    const scripts = html.match(/<script\b[^>]*>/gi) ?? [];
     expect(scripts).toHaveLength(1);
-    const body = /<script>([\s\S]*?)<\/script>/.exec(html)![1]!;
+    const body = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/i.exec(html)![1]!;
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
     expect(csp).toContain(`'sha256-${btoa(String.fromCharCode(...new Uint8Array(digest)))}'`);
   });
@@ -133,11 +133,11 @@ describe("buildSnapshotHtml", () => {
       versionLabel: `<b>v</b>`,
     });
     expect(html).not.toContain("<img src=x");
-    expect(html).not.toContain("<script>alert");
+    expect(html).not.toMatch(/<script\b[^>]*>\s*alert/i);
     expect(html).not.toContain("<b>v</b>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt; &amp; &quot;q&quot;");
     expect(html).toContain("Version: &lt;b&gt;v&lt;/b&gt;");
-    expect(html.match(/<script>/g)).toHaveLength(1);
+    expect(html.match(/<script\b[^>]*>/gi)).toHaveLength(1);
   });
 
   it("re-sanitises the embedded svg", async () => {
