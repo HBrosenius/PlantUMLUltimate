@@ -1,6 +1,6 @@
 # B3: Shareable read-only snapshots — plan
 
-Status: draft for discussion. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
+Status: decided 2026-11-22 (see [section 6](#6-decisions)); S1 is next. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
 
 ## 0. What this is for
 
@@ -41,11 +41,9 @@ Today there are three partial ways, and none of them fits:
   - SVG output is sanitised again before embedding: no `<script>` and no event attributes from diagram text.
   - No fonts or images from the network, and no tracking.
 
-## 3. Walkthroughs (second half of B3)
+## 3. Walkthroughs (dropped)
 
-A step-through for Sequence diagrams: each step highlights one message (or a group or fragment) and shows a caption. Captions are written as a PlantUML comment block in the source (for example `' step: …` before a message), so they survive round trips and other tools ignore them.
-
-This is a separate feature with its own authoring UI. **I suggest leaving it out of this plan's slices** and deciding after the snapshot file ships. The snapshot format leaves room for it: a diagram can later carry a list of steps.
+The next-steps list paired snapshots with a step-through for Sequence diagrams with captions. It was dropped on 2026-11-22: it needs its own authoring UI and caption syntax, and snapshots carry the value on their own.
 
 ## 4. Slices
 
@@ -65,10 +63,13 @@ S1 can start before S0 is finished. S3 and S4 don't depend on each other.
 - Hosted short links (option C), accounts, and access control.
 - Comments on snapshots. The collaboration room covers live review.
 - Exporting a whole project (several `.pumlu` files). The snapshot covers one document.
+- Sequence walkthroughs (section 3).
 
-## 6. Open questions
+## 6. Decisions
 
-1. **Which first:** the snapshot file (A, recommended), or the in-app viewer with small links (B)?
-2. **Source in the file:** off by default (recommended), on by default, or never?
-3. **Scope of the first PR:** the active diagram only (S1), or the whole document from the start (S0–S2)?
-4. **Walkthroughs:** a separate plan later (recommended), or part of this one?
+Decided on 2026-11-22:
+
+1. **The snapshot file comes first (option A).** The in-app viewer with small links (S5) waits until S1–S3 have been used. Hosted links (option C) are out.
+2. **Source is opt-in.** It is off by default, and a checkbox includes the portable document so the file can be opened in the app again (S4).
+3. **The first PR is S1, the active diagram only.** It settles the file format, the safety rules and the version stamp before S0 takes on rendering the other diagrams.
+4. **Walkthroughs are dropped**, not deferred.
