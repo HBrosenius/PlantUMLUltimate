@@ -4,6 +4,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { ThemeGallery } from "./ThemeGallery";
 import { PlantUmlUltimateLogo } from "./NewDocumentDialog";
 import type { Theme } from "./model";
+import { AiAssistantSettings } from "./features/ai-edits/AiAssistantSettings";
 
 export interface AppSettings {
   startupMode?: "restore" | "chooser" | undefined;
@@ -143,7 +144,7 @@ export function SettingsDialog({
         )}
         {mode === "settings" && (
           <nav className="settings-categories" aria-label="Settings categories">
-            {["Appearance", "Editor & navigation", "New diagrams", "Gantt"].map((name) => (
+            {["Appearance", "Editor & navigation", "New diagrams", "Gantt", "AI assistant"].map((name) => (
               <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>
                 {name}
               </button>
@@ -398,6 +399,15 @@ export function SettingsDialog({
               Both options restore your diagrams. The chooser lets you add a new diagram without replacing recovered
               work.
             </p>
+          </section>
+        )}
+        {mode === "settings" && (
+          <section
+            hidden={category !== "AI assistant"}
+            className="document-settings-section ai-assistant-settings"
+            aria-labelledby="settings-ai-heading"
+          >
+            <AiAssistantSettings />
           </section>
         )}
         <footer>

@@ -64,6 +64,7 @@ export interface RibbonChromeProps {
   openUseCaseSettingsFromToolbar: () => void;
   openVersionHistory: () => Promise<void>;
   openWbsSettingsFromToolbar: () => void;
+  openMindmapSettingsFromToolbar: () => void;
   parseResult: DiagramParseResult<GanttDocument>;
   project: VirtualProject | undefined;
   projectInspectorOpen: boolean;
@@ -159,6 +160,7 @@ export function RibbonChrome({
   openUseCaseSettingsFromToolbar,
   openVersionHistory,
   openWbsSettingsFromToolbar,
+  openMindmapSettingsFromToolbar,
   parseResult,
   project,
   projectInspectorOpen,
@@ -222,6 +224,7 @@ export function RibbonChrome({
     onActivityTerminal: () => openDialog({ kind: "add-activity-terminal" }),
     onActivityArrow: () => openDialog({ kind: "add-activity-arrow" }),
     onWbsNode: () => openDialog({ kind: "add-wbs-node" }),
+    onMindmapNode: () => openDialog({ kind: "add-mindmap-node" }),
   });
   const undoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.undoDescriptions);
   const redoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.redoDescriptions);
@@ -567,6 +570,16 @@ export function RibbonChrome({
                       title={commandReadOnly ? "Viewing only" : undefined}
                       data-inspector-trigger
                       onClick={openActivitySettingsFromToolbar}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {workspace.diagramKind === "mindmap" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openMindmapSettingsFromToolbar}
                     >
                       Diagram settings
                     </button>

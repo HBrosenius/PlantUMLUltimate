@@ -2,15 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   changeDiagramItems,
   copyDiagramItems,
+  deleteMindmapItems,
   diagramBulkItems,
   pasteDiagramItems,
+  setMindmapItemsBoxless,
   type BulkDiagramKind,
 } from "./diagram-bulk-operations";
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import { parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
 import { parseActivity } from "@plantuml-studio/diagram-activity";
+const NL = "\n";
 const fixtures: Array<[BulkDiagramKind, string]> = [
   [
     "class",
@@ -167,5 +171,74 @@ describe("shared diagram bulk operations", () => {
     const result = changeDiagramItems("sequence", source, [message.key], "color", "Orange");
     expect(result.source).toContain("[dashed,#Orange]");
     expect(result.source).toContain("Keep #Red text");
+  });
+});
+
+describe("mindmap bulk operations", () => {
+  const wrap = (body: string) => `@startmindmap${NL}${body}${NL}@endmindmap`;
+  const source = wrap(["* Root", "** One", "*** One A", "** Two", "** Three"].join(NL));
+  const keyOf = (src: string, label: string) =>
+    diagramBulkItems("mindmap", src).find((item) => item.label === label)!.key;
+
+  it("lists every node with colour, style class, boxless and delete support", () => {
+    const items = diagramBulkItems("mindmap", source);
+    expect(items.map((item) => item.label)).toEqual(["Root", "One", "One A", "Two", "Three"]);
+    expect(items.every((item) => item.color && item.stereotype && item.boxless && item.deletable)).toBe(true);
+    expect(items[0]!.attribute).toBe("data-mindmap-node-id");
+  });
+
+  it("colours and styles several nodes in one edit without touching the others", () => {
+    const keys = [keyOf(source, "One"), keyOf(source, "Three")];
+    const coloured = changeDiagramItems("mindmap", source, keys, "color", "Orange");
+    expect(coloured.applied).toBe(2);
+    expect(coloured.source).toBe(
+      wrap(["* Root", "**[#Orange] One", "*** One A", "** Two", "**[#Orange] Three"].join(NL)),
+    );
+    const styled = changeDiagramItems("mindmap", coloured.source, keys, "stereotype", "key");
+    expect(styled.source).toContain("**[#Orange] One <<key>>");
+    expect(changeDiagramItems("mindmap", styled.source, keys, "color", "").source).toContain("** One <<key>>");
+    expect(changeDiagramItems("mindmap", styled.source, keys, "stereotype", "").source).toBe(coloured.source);
+  });
+
+  it("toggles boxless on the selection and keeps colours and the line count", () => {
+    const keys = [keyOf(source, "One"), keyOf(source, "Two")];
+    const coloured = changeDiagramItems("mindmap", source, [keys[0]!], "color", "red").source;
+    const result = setMindmapItemsBoxless(coloured, keys, true);
+    expect(result.applied).toBe(2);
+    expect(result.source).toContain("**[#red]_ One");
+    expect(result.source).toContain("**_ Two");
+    expect(setMindmapItemsBoxless(result.source, keys, false).source).toBe(coloured);
+  });
+
+  it("skips Markdown-form nodes", () => {
+    const markdown = wrap(["# Root", "## One", "## Two"].join(NL));
+    const items = diagramBulkItems("mindmap", markdown);
+    expect(items.some((item) => item.color || item.boxless || item.deletable)).toBe(false);
+    const keys = items.map((item) => item.key);
+    expect(changeDiagramItems("mindmap", markdown, keys, "color", "red")).toMatchObject({
+      applied: 0,
+      source: markdown,
+    });
+    expect(() => deleteMindmapItems(markdown, keys)).toThrow(/Convert to \* markers/);
+  });
+
+  it("deletes several nodes in one edit and lets a selected parent take its child", () => {
+    const keys = [keyOf(source, "One"), keyOf(source, "One A"), keyOf(source, "Three")];
+    const result = deleteMindmapItems(source, keys);
+    expect(result).toMatchObject({ applied: 2, removed: 3 });
+    expect(result.source).toBe(wrap(["* Root", "** Two"].join(NL)));
+    expect(parseMindmap(result.source).diagnostics).toEqual([]);
+  });
+
+  it("blocks deleting every root but allows deleting one of several", () => {
+    expect(() => deleteMindmapItems(source, [keyOf(source, "Root")])).toThrow(/at least one root/);
+    const two = wrap(["* First", "** A", "* Second", "** B"].join(NL));
+    expect(() =>
+      deleteMindmapItems(
+        two,
+        diagramBulkItems("mindmap", two).map((item) => item.key),
+      ),
+    ).toThrow(/at least one root/);
+    expect(deleteMindmapItems(two, [keyOf(two, "First")]).source).toBe(wrap(["* Second", "** B"].join(NL)));
   });
 });

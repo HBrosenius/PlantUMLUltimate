@@ -40,6 +40,7 @@ import type { SchedulePreview } from "../SchedulePreviewDialog";
 import type { AddItem, DockAction, StageSelection } from "../stage/stage-selection";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
 import { diagramFocusSelector } from "./diagram-focus";
+import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 
 export interface WorkspaceMainProps {
   activeDocument: DocumentSnapshot;
@@ -105,6 +106,7 @@ export interface WorkspaceMainProps {
   moveClassEntityByDrag: (id: string, packageId?: string) => void;
   moveGanttTask: (taskId: string, days: number) => void;
   moveUseCaseElementByDrag: (elementId: string, packageId: string) => void;
+  mindmap: MindmapEditor;
   moveWbsNode: (nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right") => void;
   openClassMemberMenu: (target: Element, x: number, y: number) => boolean;
   openDateActionMenu: (date: string) => void;
@@ -348,6 +350,7 @@ export function WorkspaceMain({
   moveClassEntityByDrag,
   moveGanttTask,
   moveUseCaseElementByDrag,
+  mindmap,
   moveWbsNode,
   openClassMemberMenu,
   openDateActionMenu,
@@ -704,6 +707,7 @@ export function WorkspaceMain({
           moveClassEntityByDrag={moveClassEntityByDrag}
           moveGanttTask={moveGanttTask}
           moveUseCaseElementByDrag={moveUseCaseElementByDrag}
+          mindmap={mindmap}
           moveWbsNode={moveWbsNode}
           openDateActionMenu={openDateActionMenu}
           openMember={openMember}

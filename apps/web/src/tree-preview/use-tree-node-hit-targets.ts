@@ -34,6 +34,19 @@ export interface TreeNodeHitTargetOptions {
   staleSelector: string;
   /** Accessible name of a node's text. */
   ariaLabel(node: TreeHitNode): string;
+  /**
+   * The order in which nodes claim rendered texts. Defaults to the order given. A dialect whose engine
+   * draws nodes in another order than the source (mindmap) returns its draw order here, so duplicate
+   * labels go to the node the engine drew.
+   */
+  order?(nodes: readonly TreeHitNode[]): readonly TreeHitNode[];
+  /** Which `<text>` elements can be node labels. Defaults to every text of the SVG. */
+  textSelector?: string;
+  /**
+   * Also match a label that the engine draws as several `<text>` runs (Creole, colours) or that
+   * contains markup, by comparing whitespace-free, normalised text. Off by default (WBS).
+   */
+  matchRuns?: boolean;
 }
 
 /**
@@ -42,7 +55,10 @@ export interface TreeNodeHitTargetOptions {
  * multi-line `*: line one\nline two;` label as one `<text>` per line, so a label containing "\n" is
  * matched against a run of consecutive, unclaimed elements whose trimmed contents equal its lines.
  */
-export function createTreeLabelMatcher<T extends { textContent: string | null }>(texts: readonly T[]) {
+export function createTreeLabelMatcher<T extends { textContent: string | null }>(
+  texts: readonly T[],
+  options: { matchRuns?: boolean } = {},
+) {
   const claimed = new Set<T>();
   return (label: string): T[] | undefined => {
     const lines = label.split("\n");
@@ -60,9 +76,64 @@ export function createTreeLabelMatcher<T extends { textContent: string | null }>
         }
       }
     }
+    if (!found && options.matchRuns) found = matchRuns(texts, claimed, label);
     found?.forEach((candidate) => claimed.add(candidate));
     return found;
   };
+}
+
+const stripped = (text: string) => text.replace(/\s+/g, "");
+
+/**
+ * The label as the engine draws it, without whitespace: Creole markers, colour and size tags, icons,
+ * links (`[[url Label]]` draws `Label`) and `<U+00E9>` code points are resolved or removed. Only used
+ * to find a label that has no exact match, so it may be lenient.
+ */
+export function normalizeTreeLabel(label: string): string {
+  return stripped(
+    label
+      .replace(/<U\+([0-9a-f]{4,6})>/gi, (match, hex: string) => {
+        const code = Number.parseInt(hex, 16);
+        return code <= 0x10ffff ? String.fromCodePoint(code) : match;
+      })
+      .replace(/<[&$][^>\s]*>/g, "")
+      .replace(/<\/?(?:b|i|u|s|w|del|strike|plain|sub|sup|color|size|back|font)(?::[^>]*)?>/gi, "")
+      // A bare link draws its URL; keep its `//` safe from the italic marker removal below.
+      .replace(
+        /\[\[([^\s\]]+)(?:\s+([^\]]*))?\]\]/g,
+        (_match, url: string, text?: string) => text ?? url.replace(/\/\//g, ""),
+      )
+      .replace(/(?:\/\/|\*\*|--|__|~~|""|\^\^|,,)/g, "")
+      .replace(//g, "//"),
+  );
+}
+
+/**
+ * A run of consecutive unclaimed texts whose joined contents equal the normalised label. This finds
+ * `//italic// and --strike--`, which is drawn as `italic`, `and`, `strike`, and a multi-line label
+ * with markup inside its lines.
+ */
+function matchRuns<T extends { textContent: string | null }>(
+  texts: readonly T[],
+  claimed: ReadonlySet<T>,
+  label: string,
+): T[] | undefined {
+  const wanted = normalizeTreeLabel(label);
+  if (!wanted) return undefined;
+  for (let start = 0; start < texts.length; start += 1) {
+    let joined = "";
+    for (let end = start; end < texts.length; end += 1) {
+      const text = texts[end]!;
+      if (claimed.has(text)) break;
+      joined += stripped(text.textContent ?? "");
+      if (joined.length >= wanted.length) {
+        if (joined === wanted) return texts.slice(start, end + 1);
+        break;
+      }
+      if (!wanted.startsWith(joined)) break;
+    }
+  }
+  return undefined;
 }
 
 const unionOf = (boxes: TreeNodeHitBounds[]): TreeNodeHitBounds =>
@@ -91,8 +162,10 @@ export function bindTreeNodeHitTargets(
 ): Map<string, TreeNodeHitTarget> {
   host.querySelectorAll(options.staleSelector).forEach((item) => item.remove());
   const targets = new Map<string, TreeNodeHitTarget>();
-  const match = createTreeLabelMatcher([...host.querySelectorAll<SVGTextElement>("svg text")]);
-  for (const node of nodes) {
+  const match = createTreeLabelMatcher([...host.querySelectorAll<SVGTextElement>(options.textSelector ?? "svg text")], {
+    matchRuns: options.matchRuns ?? false,
+  });
+  for (const node of options.order ? options.order(nodes) : nodes) {
     const texts = match(node.label);
     if (!texts || texts.length === 0) continue;
     const text = texts[0]!;

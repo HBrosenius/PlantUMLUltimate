@@ -40,6 +40,7 @@ import type { RenderResult, RenderStatus, ViewMode } from "../model";
 import type { GanttScheduleMode } from "../features/gantt/use-gantt-controller";
 import type { SchedulePreview } from "../SchedulePreviewDialog";
 import type { Dispatch, SetStateAction } from "react";
+import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
 
 export interface WorkspaceDiagramPaneProps {
@@ -108,6 +109,7 @@ export interface WorkspaceDiagramPaneProps {
   moveClassEntityByDrag: (id: string, packageId?: string) => void;
   moveGanttTask: (taskId: string, days: number) => void;
   moveUseCaseElementByDrag: (elementId: string, packageId: string) => void;
+  mindmap: MindmapEditor;
   moveWbsNode: (nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right") => void;
   openDateActionMenu: (date: string) => void;
   openMember: (documentId: string) => void;
@@ -311,6 +313,7 @@ export function WorkspaceDiagramPane({
   moveClassEntityByDrag,
   moveGanttTask,
   moveUseCaseElementByDrag,
+  mindmap,
   moveWbsNode,
   openDateActionMenu,
   openMember,
@@ -694,13 +697,32 @@ export function WorkspaceDiagramPane({
           />
         ) : workspace.diagramKind === "mindmap" ? (
           <MindmapDiagramPreview
+            editingEnabled={result?.source === workspace.source}
             initialFit={initialDiagramFit}
             svg={previewSvg}
+            document={mindmap.document}
+            selectedId={diagramMulti.multiple ? undefined : mindmap.selectedNodeId}
             zoom={workspace.zoom}
             onZoomChange={(zoom) => update("zoom", zoom)}
             renderStatus={status}
             renderError={result?.error}
             onRenderRetry={retryRender}
+            onSelect={(id) => {
+              mindmap.selectNode(id);
+              const node = mindmap.document.nodes.find((item) => item.id === id);
+              if (node) setSelectionRequest({ ...node.sourceRange });
+            }}
+            onInlineRename={commandReadOnly ? undefined : startInlineRename}
+            onMove={mindmap.moveNode}
+            onAddChild={(id) => mindmap.openAddNode("child", id)}
+            onAddSibling={(id) => mindmap.openAddNode("sibling", id)}
+            onDelete={(id) => mindmap.removeNode(mindmap.document.nodes.find((item) => item.id === id))}
+            onEditLabel={() =>
+              window.setTimeout(
+                () => globalThis.document.querySelector<HTMLElement>(".mindmap-node-inspector textarea")?.focus(),
+                0,
+              )
+            }
           />
         ) : (
           <WbsDiagramPreview
