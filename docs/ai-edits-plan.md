@@ -210,6 +210,8 @@ A proposal reaches the review panel only if all of these pass:
 - **A5 — Worker proxy** (only if Q1b). A `/api/ai/messages` route on the
   integration Worker with sign-in, per-user daily quotas and request-size
   limits. Medium.
+- **A6 — More providers: OpenAI (ChatGPT) and xAI (Grok).** Requested
+  2026-11-22. See section 5. Medium.
 - **Later.** Other diagram kinds as their semantic review matures; "explain
   this dependency" and "repair this diagnostic" commands; local inference; the
   same bounded edit contract exposed to agents.
@@ -233,3 +235,43 @@ A proposal reaches the review panel only if all of these pass:
   reviewed proposal, and the full proposal diff is always visible.
 - **R6 — Flaky e2e.** Real API calls would make CI slow and nondeterministic.
   Mitigation: all e2e mocks the API; only A0's eval calls it, by hand.
+
+## 5. More providers (A6)
+
+Users must be able to pick OpenAI (ChatGPT) or xAI (Grok) as well as
+Anthropic. Facts checked on 2026-11-22:
+
+- **Browser access.** A CORS preflight from a page origin succeeds on
+  `api.openai.com/v1/responses` and on `api.x.ai/v1/responses` and
+  `/chat/completions` (`Access-Control-Allow-Origin: *`), so both work with a
+  user's own key in the browser, like Anthropic.
+- **OpenAI.** The official `openai` npm SDK, created with
+  `dangerouslyAllowBrowser: true`, on the Responses API (the SDK's primary API).
+  Structured output through `text.format` with `type: "json_schema"` and
+  `strict: true`; streaming supported; prompt caching is automatic. Models on
+  the models page: `gpt-6.2-astra` (most capable), `gpt-6.2-sol` (everyday,
+  recommended default here), `gpt-6-luna` (cheapest).
+- **xAI.** Base URL `https://api.x.ai/v1`. The docs show the same `openai` SDK
+  pointed at it with `baseURL`, for both the Responses and Chat Completions
+  APIs, and structured outputs with JSON schema. Models: `grok-4.7` (most
+  capable, recommended default); `grok-4.3` as a cheaper option.
+
+Design:
+
+- **One provider interface.** Each provider turns the same request (system
+  prompt, user message, schema) into its API call and returns the same result:
+  `revisedSource`, `summary`, `questions`, token use, and a stop reason mapped
+  to the app's own (finished, refused, too long, cancelled). Everything after
+  that (checks, review, apply) does not change.
+- **Settings.** Pick a provider, then its model. Each provider has its own key
+  (session-only by default, optional "remember on this device"), its own
+  console link and its own consent text naming who receives the text. A
+  "Custom model id" field covers models released after the app.
+- **What will be sent** names the provider and endpoint.
+- **Eval.** `--provider anthropic|openai|xai`, with `ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY` or `XAI_API_KEY`, so the same tasks compare providers.
+- **Tests.** Each provider's adapter is unit-tested against canned API
+  responses and errors, and e2e mocks each endpoint. Keys stay out of
+  documents, backups and storage as before.
+- **Prices change often.** Cost estimates come from a small table per model
+  that is easy to update; unknown models show tokens without a cost.
