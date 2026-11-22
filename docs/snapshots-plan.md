@@ -1,6 +1,6 @@
 # B3: Shareable read-only snapshots — plan
 
-Status: decided 2026-11-22 (see [section 6](#6-decisions)); S1 is next. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
+Status: decided 2026-11-22 (see [section 6](#6-decisions)); S1, S0 and S2 are built. S3 is next. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
 
 ## 0. What this is for
 

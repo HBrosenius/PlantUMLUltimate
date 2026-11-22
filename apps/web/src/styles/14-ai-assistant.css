@@ -70,3 +70,38 @@
 .modal-backdrop:has(.ai-edit-dialog) {
   padding-top: 16px;
 }
+.snapshot-dialog fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+.snapshot-dialog legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.snapshot-dialog fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.snapshot-progress progress {
+  width: 100%;
+}
+.snapshot-progress p,
+.snapshot-error {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.snapshot-error {
+  color: var(--danger, #b3261e);
+}
+.snapshot-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
