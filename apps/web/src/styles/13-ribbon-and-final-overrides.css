@@ -298,15 +298,13 @@
 .settings-categories {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   position: sticky;
   top: 0;
-  padding: 8px 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
   background: var(--panel);
   z-index: 2;
-}
-.settings-categories button[aria-pressed="true"] {
-  border-color: var(--accent);
 }
 
 .new-document-dialog .diagram-kind-options button {
