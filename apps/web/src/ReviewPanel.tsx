@@ -32,8 +32,9 @@ export function ReviewPanel({
   onSelectedGroupsChange(next: Set<string>): void;
   activeGroupId: string | undefined;
   visibleGroupIds: ReadonlySet<string>;
-  onShowInDiagram(groupId: string): void;
-  onShowInSource(groupId: string): void;
+  /** When both are omitted the per-group show buttons are not rendered (the AI dialog shows its own previews). */
+  onShowInDiagram?: ((groupId: string) => void) | undefined;
+  onShowInSource?: ((groupId: string) => void) | undefined;
   /** Groups that touch lines outside the user's selection. They are labelled; callers leave them unchecked. */
   outsideGroupIds?: ReadonlySet<string> | undefined;
   heading?: string;
@@ -93,24 +94,26 @@ export function ReviewPanel({
                   <span>{group.detail}</span>
                   {diagramKind === "gantt" && <GanttReviewDetails group={group} before={before} />}
                 </span>
-                <span className="semantic-review-inspect">
-                  <button
-                    type="button"
-                    disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
-                    aria-label={diagramAction.ariaLabel}
-                    aria-pressed={visibleInDiagram}
-                    onClick={() => onShowInDiagram(group.id)}
-                  >
-                    {diagramAction.label}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Show ${group.title} in source`}
-                    onClick={() => onShowInSource(group.id)}
-                  >
-                    Show in source
-                  </button>
-                </span>
+                {(onShowInDiagram || onShowInSource) && (
+                  <span className="semantic-review-inspect">
+                    <button
+                      type="button"
+                      disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
+                      aria-label={diagramAction.ariaLabel}
+                      aria-pressed={visibleInDiagram}
+                      onClick={() => onShowInDiagram?.(group.id)}
+                    >
+                      {diagramAction.label}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Show ${group.title} in source`}
+                      onClick={() => onShowInSource?.(group.id)}
+                    >
+                      Show in source
+                    </button>
+                  </span>
+                )}
               </div>
             );
           })
