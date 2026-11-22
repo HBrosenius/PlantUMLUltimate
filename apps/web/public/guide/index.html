@@ -55,9 +55,9 @@
           <li>Use Save for a portable document, or File → Export for a diagram image.</li>
         </ol>
         <p>
-          The editor supports Sequence, Class, Component, Use Case, Activity, Gantt and WBS diagrams. Use sequence
+          The editor supports Sequence, Class, Component, Use Case, Activity, Gantt, WBS and Mindmap diagrams. Use sequence
           diagrams for interactions, class and component diagrams for structure, and activity diagrams for workflows.
-          Gantt charts describe schedules; WBS diagrams break a project into deliverables.
+          Gantt charts describe schedules; WBS diagrams break a project into deliverables; mindmaps map out ideas around a central topic.
         </p>
       </section>
       <section id="examples">
@@ -103,6 +103,21 @@ Project starts 2026-11-02
 ** Implementation
 ** Testing
 @endwbs</code></pre>
+        </article>
+        <article>
+          <h3>Mindmap: brainstorm a launch</h3>
+          <p>
+            A mindmap grows from a root. Add another asterisk for each level, use <code>--</code> for a branch on the
+            left, and put <code>_</code> after the markers for a node without a box.
+          </p>
+          <pre><code>@startmindmap
+* Launch
+** Plan
+*** Budget
+** Build
+-- Marketing
+-- Sales
+@endmindmap</code></pre>
         </article>
         <p>
           For additional syntax, see the <a href="https://plantuml.com/">official PlantUML documentation</a>. For

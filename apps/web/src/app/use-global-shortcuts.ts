@@ -131,6 +131,11 @@ export function useGlobalShortcuts({
                   : event.code === "KeyN"
                     ? "n"
                     : "";
+        if (workspace.diagramKind === "mindmap" && creation === "n") {
+          event.preventDefault();
+          openDialog({ kind: "add-mindmap-node" });
+          return;
+        }
         if (workspace.diagramKind === "wbs" && creation === "n") {
           event.preventDefault();
           openDialog({ kind: "add-wbs-node" });

@@ -64,6 +64,7 @@ import {
 } from "./wbs-gantt";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
+import { useMindmapEditor, useMindmapSelection } from "./features/mindmap/use-mindmap-editor";
 import { parseActivitySettings } from "./activity-settings";
 import type { ActivityDialogKind } from "./features/activity/ActivityDialogs";
 import { useActivityActions } from "./features/activity/use-activity-actions";
@@ -575,6 +576,7 @@ export function App() {
     selectRelationship: selectWbsRelationship,
     selectFromSource: selectWbsFromSource,
   } = useWbsController(workspace.diagramKind, wbsDocument);
+  const mindmapSelection = useMindmapSelection(workspace.diagramKind, workspace.source);
   useEffect(() => {
     if (!pendingProjectWbsSelection || tabs.activeId !== pendingProjectWbsSelection.tabId) return;
     if (
@@ -939,6 +941,7 @@ export function App() {
   }, [hydrated, openDialog, tabs]);
   useEffect(() => {
     if (workspace.diagramKind !== "wbs") closeDialog("add-wbs-node");
+    if (workspace.diagramKind !== "mindmap") closeDialog("add-mindmap-node");
   }, [closeDialog, workspace.diagramKind]);
   const {
     selectedObjectId: selectedActivityObjectId,
@@ -1282,15 +1285,18 @@ export function App() {
   }, [symbolMenu]);
 
   const clearDiagramMultiSelection = useRef<() => void>(() => {});
+  const dismissMindmapInspectors = mindmapSelection.dismissInspectors;
   const dismissPropertyInspectors = useCallback(() => {
     dismissInspectorSelection();
     dismissSequenceInspector();
     dismissUseCaseInspector();
     dismissClassInspector();
     dismissActivityInspector();
+    dismissMindmapInspectors();
     setFocusNoteTaskId(undefined);
   }, [
     dismissActivityInspector,
+    dismissMindmapInspectors,
     dismissClassInspector,
     dismissInspectorSelection,
     dismissSequenceInspector,
@@ -1342,6 +1348,8 @@ export function App() {
     classSettingsOpen || undefined,
     activitySettingsOpen || undefined,
     wbsSettingsOpen || undefined,
+    mindmapSelection.selectedNodeId,
+    mindmapSelection.settingsOpen || undefined,
     legendInspectorOpen || undefined,
   ];
   const propertySelection = propertySelections.some((value) => value !== undefined)
@@ -1914,6 +1922,13 @@ export function App() {
     clearSelectedRelationship: clearSelectedWbsRelationship,
     reportMessage: setInteractionMessage,
   });
+  const mindmap = useMindmapEditor(mindmapSelection, {
+    source: workspace.source,
+    commitSource,
+    setInteractionMessage,
+    openDialog,
+    closeDialog,
+  });
 
   const confirmUseCaseDelete = useCallback((message: string) => window.confirm(message), []);
   const closeUseCaseDialog = useCallback(
@@ -2222,6 +2237,7 @@ export function App() {
     openUseCaseSettingsFromToolbar,
     openVersionHistory,
     openWbsSettings,
+    openMindmapSettings: mindmapSelection.openSettings,
     project,
     redo,
     renameCommandPosition,
@@ -2331,6 +2347,8 @@ export function App() {
     selectedActivityObjectId ||
     selectedWbsNodeId ||
     selectedWbsRelationshipId ||
+    mindmapSelection.selectedNodeId ||
+    mindmapSelection.settingsOpen ||
     sequenceSettingsOpen ||
     useCaseSettingsOpen ||
     classSettingsOpen ||
@@ -2464,6 +2482,7 @@ export function App() {
       else if (item.attribute === "data-class-object-id") selectClassObject(item.id);
       else if (item.attribute === "data-activity-object-id") selectActivityObject(item.id);
       else if (item.attribute === "data-wbs-node-id") selectWbsNode(item.id);
+      else if (item.attribute === "data-mindmap-node-id") mindmapSelection.selectNode(item.id);
       else selectWbsRelationship(item.id);
     },
   });
@@ -2644,6 +2663,7 @@ export function App() {
     selectSequenceStructure,
     selectUseCaseFromSource,
     selectWbsFromSource,
+    mindmap,
     selectionRequest,
     sequenceDocument,
     setProblemPreview,
@@ -2677,7 +2697,8 @@ export function App() {
     useCaseSettingsOpen ||
     classSettingsOpen ||
     activitySettingsOpen ||
-    wbsSettingsOpen;
+    wbsSettingsOpen ||
+    mindmapSelection.settingsOpen;
   const stageHidesInspector = stageActive && !stageInspectorOpen && !stageUtilityPanelOpen && !diagramMulti.multiple;
   const { stageDockActions, stageAddItems } = buildStageDock({
     addClassMember,
@@ -2821,6 +2842,7 @@ export function App() {
           openUseCaseSettingsFromToolbar={openUseCaseSettingsFromToolbar}
           openVersionHistory={openVersionHistory}
           openWbsSettingsFromToolbar={openWbsSettingsFromToolbar}
+          openMindmapSettingsFromToolbar={mindmapSelection.openSettingsFromToolbar}
           parseResult={parseResult}
           project={project}
           projectInspectorOpen={projectInspectorOpen}
@@ -2936,6 +2958,7 @@ export function App() {
           moveClassEntityByDrag={moveClassEntityByDrag}
           moveGanttTask={moveGanttTask}
           moveUseCaseElementByDrag={moveUseCaseElementByDrag}
+          mindmap={mindmap}
           moveWbsNode={moveWbsNode}
           openClassMemberMenu={openClassMemberMenu}
           openDateActionMenu={openDateActionMenu}
@@ -3104,6 +3127,7 @@ export function App() {
           addUseCasePackage={addUseCasePackage}
           addUseCaseRelationship={addUseCaseRelationship}
           addWbsNode={addWbsNode}
+          mindmap={mindmap}
           applyProjectSettings={applyProjectSettings}
           applyWbsNode={applyWbsNode}
           applyWbsRelationshipColor={applyWbsRelationshipColor}
@@ -3462,6 +3486,7 @@ export function App() {
           duplicateTaskOccurrence={duplicateTaskOccurrence}
           inlineRename={inlineRename}
           linkedWbs={linkedWbs}
+          mindmap={mindmap}
           menuGanttTask={menuGanttTask}
           menuLinkedGantt={menuLinkedGantt}
           menuLinkedWbs={menuLinkedWbs}

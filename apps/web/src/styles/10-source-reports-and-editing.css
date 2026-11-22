@@ -322,6 +322,13 @@ polygon.diagram-bulk-selected {
   stroke-width: 2px !important;
 }
 
+.mindmap-diagram svg text.diagram-bulk-selected {
+  paint-order: stroke;
+  stroke: var(--accent, #3979d6);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
 .source-fix-full-preview {
   margin-top: 6px;
 }
@@ -746,4 +753,101 @@ polygon.diagram-bulk-selected {
 .reports-options .inspector-section {
   margin: 0;
   padding: 16px 0;
+}
+
+.mindmap-diagram svg text[data-mindmap-node-id] {
+  cursor: grab;
+  pointer-events: all;
+  user-select: none;
+  touch-action: none;
+}
+
+.mindmap-diagram svg .mindmap-node-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2px;
+  cursor: grab;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.mindmap-diagram svg .mindmap-node-hit.mindmap-drop-target,
+.mindmap-diagram svg text.mindmap-drop-target {
+  fill: color-mix(in srgb, var(--accent, #2563eb) 15%, transparent);
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-dasharray: 5 3;
+}
+
+.mindmap-drag-preview {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 2px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  background: var(--panel, #fff);
+  color: var(--text, #172033);
+  box-shadow: 0 12px 30px rgb(15 23 42 / 24%);
+  pointer-events: none;
+  transform: rotate(1deg);
+}
+
+.mindmap-drag-preview span {
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+}
+
+.mindmap-placement-preview {
+  position: fixed;
+  z-index: 999;
+  border-radius: 999px;
+  background: var(--accent, #2563eb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+  pointer-events: none;
+}
+
+.mindmap-placement-inside {
+  border: 2px dashed var(--accent, #2563eb);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 18%, var(--panel, #fff));
+}
+
+.mindmap-placement-side {
+  border: 2px dashed var(--accent, #2563eb);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+}
+
+.mindmap-diagram svg text[data-mindmap-node-id]:focus,
+.mindmap-diagram svg text.mindmap-selected-node {
+  paint-order: stroke;
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.mindmap-preview .preview-hint {
+  position: absolute;
+  inset: auto 1rem 0.75rem 1rem;
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Footer notes stand on their own, not under a field, so they need space above. */
+.mindmap-node-inspector > .calculated-hint,
+.mindmap-settings-inspector > .calculated-hint {
+  margin-top: 10px;
+}
+
+.mindmap-node-inspector .inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

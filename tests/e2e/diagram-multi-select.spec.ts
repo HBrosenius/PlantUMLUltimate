@@ -1,5 +1,6 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./coverage";
-import { prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
+import { prepareEditor, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 
 const fixtures = [
   {
@@ -137,6 +138,110 @@ for (const fixture of fixtures) {
     await expect.poll(async () => (await editor.innerText()).match(/One/g)?.length ?? 0).toBe(1);
   });
 }
+
+test("mindmap: multi-select, bulk colour, style class, boxless and delete as single undo steps", async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(browserName === "webkit" ? 180_000 : 90_000);
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await chooser.getByRole("button", { name: "Mindmap", exact: true }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  const wrap = (body: string[]) => ["@startmindmap", ...body, "@endmindmap"].join("\n");
+  await setSource(page, wrap(["* Root", "** One", "*** One A", "** Two", "** Three"]));
+  await expect(page.locator(".mindmap-diagram svg")).toBeVisible({ timeout: 45_000 });
+  await waitForDiagramRender(page);
+  const editor = page.locator(".cm-content");
+  const label = (text: string) => page.locator("text[data-mindmap-node-id]", { hasText: text }).first();
+  // Playwright's WebKit reports the box of an SVG node in a scaled diagram without the scale,
+  // so aim with the browser's own rectangle.
+  const click = async (text: string, shift = false) => {
+    await waitForDiagramRender(page);
+    const point = await label(text).evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+    if (shift) await page.keyboard.down("Shift");
+    try {
+      await page.mouse.click(point.x, point.y);
+    } finally {
+      if (shift) await page.keyboard.up("Shift");
+    }
+  };
+  const activate = async (button: ReturnType<Page["getByRole"]>) => {
+    if (browserName === "webkit") await button.press("Enter");
+    else await button.click();
+  };
+  const inspector = page.getByRole("complementary", { name: "Selected elements inspector" });
+  const undo = () => activate(page.getByRole("button", { name: "Undo", exact: true }));
+  const selectOneAndTwo = async () => {
+    await click("One");
+    await click("Two", true);
+    await expect(inspector.getByText("2 elements selected")).toBeVisible();
+  };
+
+  await selectOneAndTwo();
+  // Mindmap selections have no clipboard.
+  await expect(inspector.getByRole("button", { name: "Copy", exact: true })).toHaveCount(0);
+  await inspector.getByLabel("Color", { exact: true }).fill("Orange");
+  await activate(inspector.getByRole("button", { name: "Set color", exact: true }));
+  await expect(page.locator(".statusbar")).toContainText("Updated 2 elements");
+  await expect.poll(() => readEditorSource(page)).toContain("**[#Orange] One\n*** One A\n**[#Orange] Two\n** Three");
+  await undo();
+  await expect.poll(() => readEditorSource(page)).not.toContain("#Orange");
+
+  await selectOneAndTwo();
+  await inspector.getByLabel("Style class", { exact: true }).fill("key");
+  await activate(inspector.getByRole("button", { name: "Set style class", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toContain("** One <<key>>\n*** One A\n** Two <<key>>");
+  await activate(inspector.getByRole("button", { name: "Remove boxes", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toContain("**_ One <<key>>");
+  await expect.poll(() => readEditorSource(page)).toContain("**_ Two <<key>>");
+  await expect(inspector.getByText("2 elements selected")).toBeVisible();
+  await activate(inspector.getByRole("button", { name: "Add boxes", exact: true }));
+  await expect.poll(() => readEditorSource(page)).not.toContain("**_");
+  // Each bulk action is one undo step: three actions, three undos back to the start.
+  await undo();
+  await undo();
+  await undo();
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "** One", "*** One A", "** Two", "** Three"]));
+
+  // A parent and its child are deleted once, and a declined confirmation changes nothing.
+  await click("One");
+  await click("One A", true);
+  await click("Three", true);
+  await expect(inspector.getByText("3 elements selected")).toBeVisible();
+  page.once("dialog", (dialog) => void dialog.dismiss());
+  await activate(inspector.getByRole("button", { name: "Delete selected", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toContain("** One");
+  page.once("dialog", (dialog) => {
+    expect(dialog.message()).toContain("2 selected nodes and 1 descendant");
+    void dialog.accept();
+  });
+  await activate(inspector.getByRole("button", { name: "Delete selected", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "** Two"]));
+  await expect(inspector).toHaveCount(0);
+  await undo();
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "** One", "*** One A", "** Two", "** Three"]));
+
+  // The only root cannot be deleted, with or without its children selected.
+  await click("Root");
+  await click("Two", true);
+  let asked = false;
+  const onDialog = (dialog: { dismiss(): Promise<void> }) => {
+    asked = true;
+    void dialog.dismiss();
+  };
+  page.once("dialog", onDialog);
+  await activate(inspector.getByRole("button", { name: "Delete selected", exact: true }));
+  await expect(page.locator(".statusbar")).toContainText("at least one root");
+  // The delete is refused before any confirmation is asked for.
+  expect(asked).toBe(false);
+  page.off("dialog", onDialog);
+  await expect(editor).toContainText("** Three");
+});
 
 test("modifier keyboard selection toggles and text fields retain native clipboard shortcuts", async ({ page }) => {
   await prepareEditor(page);

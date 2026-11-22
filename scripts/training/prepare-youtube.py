@@ -90,5 +90,6 @@ review_note = ('These videos are unlisted on YouTube. Anyone with a video link c
 <p><a href="https://www.youtube.com/watch?v=f-0B0l88-K4">Watch the introduction on YouTube ↗</a></p>
 <p><a class="button" href="practice.zip" download>Download practice sources and transcripts</a></p>
 <p class="meta">Source snapshots are plain PlantUML. Follow the videos for connected documents and browser-local workflows. Exercise time is separate from video runtime.</p>
+<h2>Written guides</h2><p><a href="mindmap.html">Mindmaps: create, edit several nodes, style blocks and Markdown conversion</a></p>
 <h2>Short feature demos</h2><p>Quick walkthroughs recorded with the current menus.</p>''' + ''.join(demo_cards) + '''<h2>Full training course</h2><section aria-label="Course lessons">''' + ''.join(cards) + '''</section><footer>Lesson 18 (Jira) is excluded from this edition. Narrated with MimikaStudio / Kokoro / Emma.</footer></main></body></html>''')
 print(f'Prepared {len(rows)} lessons; {sum(bool(r["youtubeId"]) for r in rows)} YouTube IDs recorded. Nothing uploaded or published.')

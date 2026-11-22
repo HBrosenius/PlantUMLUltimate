@@ -222,3 +222,30 @@ test("adds, renames, saves and reopens a mindmap inside a multi-diagram document
     .toBe("@startmindmap\n* Workshop goals\n** Agenda\n-- Risks\n@endmindmap");
   await expect(page.locator(".mindmap-diagram svg")).toContainText("Workshop goals", { timeout: 45_000 });
 });
+
+test("the style snippets render, and a * { } style rule gets a warning and a fix", async ({ page }) => {
+  test.setTimeout(90_000);
+  await prepareEditor(page);
+  await createMindmap(page);
+  const style = (rule: string) => `<style>\nmindmapDiagram {\n  ${rule}\n}\n</style>`;
+  const snippets = [
+    style("node {\n    BackgroundColor lightyellow\n  }"),
+    style(".green {\n    BackgroundColor lightgreen\n  }"),
+    style(":depth(1) {\n    BackgroundColor lightblue\n  }"),
+    style("node {\n    MaximumWidth 150\n  }"),
+  ];
+  for (const snippet of snippets) {
+    await setSource(page, `@startmindmap\n${snippet}\n* Root\n** Child <<green>>\n@endmindmap`);
+    await expect(page.locator(".mindmap-diagram svg")).toContainText("Child", { timeout: 45_000 });
+    await expect(page.locator(".mindmap-diagram svg")).not.toContainText("Syntax Error");
+    await expect(page.locator(".cm-lintRange-warning")).toHaveCount(0);
+  }
+
+  const broken =
+    "@startmindmap\n<style>\nmindmapDiagram {\n  * {\n    FontSize 12\n  }\n}\n</style>\n* Root\n@endmindmap";
+  await fillSource(page, broken);
+  await applyFix(page, /Replace the \* \{\} rule with node/);
+  await expect.poll(() => readEditorSource(page)).toBe(broken.replace("  * {", "  node {"));
+  await expect(page.locator(".cm-lintRange-warning")).toHaveCount(0);
+  await expect(page.locator(".mindmap-diagram svg")).toContainText("Root", { timeout: 45_000 });
+});

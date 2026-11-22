@@ -6,7 +6,7 @@ import { diagramTagSuffix, isTreeKind } from "./diagram-tags";
 import { importedDiagramKind } from "./import-source";
 import { buildDiagramOutlineEntries } from "./diagram-outline";
 import { manualErrorGuidance } from "./manual-error-guidance";
-import { mindmapCompletions, mindmapQuickFixes } from "./mindmap-language";
+import { MINDMAP_STYLE_SNIPPETS, mindmapCompletions, mindmapDiagnostics, mindmapQuickFixes } from "./mindmap-language";
 import { DEFAULT_MINDMAP_SOURCE, type DiagramKind } from "./model";
 import { createSemanticSymbolProvider } from "./semantic-symbol-provider";
 import { formatSource } from "./source-format";
@@ -143,6 +143,56 @@ describe("mindmap diagnostics dispatch", () => {
     expect(apply(source, fix!)).toBe("@startmindmap\n* A\n** B\n@endmindmap");
   });
 
+  it("warns about a `* {` style rule, which crashes the engine, and offers node {}", () => {
+    const source = [
+      "@startmindmap",
+      "<style>",
+      "mindmapDiagram {",
+      "  * {",
+      "    FontSize 12",
+      "  }",
+      "}",
+      "</style>",
+      "* Root",
+      "@endmindmap",
+    ].join("\n");
+    const warnings = mindmapDiagnostics(source).filter((item) => /crashes/.test(item.message));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]!.severity).toBe("warning");
+    expect(source.slice(warnings[0]!.from, warnings[0]!.to)).toBe("*");
+    const fix = mindmapQuickFixes(source).find((item) => /Replace the \* \{\}/.test(item.message));
+    expect(apply(source, fix!)).toContain("  node {");
+    // The same text outside a style block is an ordinary root, and `.cls *` and `- {` are not reported.
+    expect(
+      mindmapDiagnostics("@startmindmap" + "\n" + "* {" + "\n" + "@endmindmap").filter((item) =>
+        /crashes/.test(item.message),
+      ),
+    ).toEqual([]);
+    const fine =
+      "@startmindmap" +
+      "\n" +
+      "<style>" +
+      "\n" +
+      "mindmapDiagram {" +
+      "\n" +
+      "  .a * {" +
+      "\n" +
+      "  }" +
+      "\n" +
+      "  - {" +
+      "\n" +
+      "  }" +
+      "\n" +
+      "}" +
+      "\n" +
+      "</style>" +
+      "\n" +
+      "* Root" +
+      "\n" +
+      "@endmindmap";
+    expect(mindmapDiagnostics(fine)).toEqual([]);
+  });
+
   it("gives manual guidance that names the mindmap tags", () => {
     const text = manualErrorGuidance(
       "mindmap",
@@ -215,6 +265,19 @@ describe("mindmap completions", () => {
   it("completes colour names after #", () => {
     const result = complete("** [#ligh");
     expect(result?.options.map((option) => option.label)).toContain("LightBlue");
+  });
+
+  it("offers style snippets that never contain a `* {` rule and render without errors", () => {
+    const labels = complete("<sty")!.options.map((option) => option.label);
+    expect(labels).toEqual(
+      expect.arrayContaining(["<style> block", "<style> class", "<style> depth", "<style> maximum width"]),
+    );
+    for (const snippet of Object.values(MINDMAP_STYLE_SNIPPETS)) {
+      expect(snippet).not.toMatch(/^\s*\*\s*\{/m);
+      const source = "@startmindmap" + "\n" + snippet + "\n" + "* Root" + "\n" + "** Child" + "\n" + "@endmindmap";
+      expect(parseMindmap(source).nodes.map((node) => node.label)).toEqual(["Root", "Child"]);
+      expect(mindmapDiagnostics(source)).toEqual([]);
+    }
   });
 });
 
