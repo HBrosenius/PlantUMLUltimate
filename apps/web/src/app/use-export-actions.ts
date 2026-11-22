@@ -30,6 +30,7 @@ import {
   type SnapshotDiagram,
 } from "../features/snapshot/snapshot-html";
 import { snapshotRelations, type RenderedDiagram } from "../features/snapshot/render-queue";
+import { ganttTaskDetails, markSnapshotTasks, type SnapshotTaskDetails } from "../features/snapshot/gantt-task-details";
 import type { SharedDocument } from "../shared-document";
 
 export interface useExportActionsInputs {
@@ -79,6 +80,24 @@ export interface useExportActionsInputs {
     session: WorkspaceSession;
   };
   workspace: WorkspaceSnapshot;
+}
+
+/**
+ * Adds Gantt task details to a snapshot diagram: the card data, and hit areas on the bars that carry it.
+ * A snapshot without details beats no snapshot, so a schedule that cannot be analysed is skipped.
+ */
+function withTaskDetails(
+  kind: string,
+  svg: string,
+  source: string,
+): { svg: string; taskDetails?: SnapshotTaskDetails[] } {
+  if (kind !== "gantt") return { svg };
+  try {
+    const details = ganttTaskDetails(source);
+    return details.length ? { svg: markSnapshotTasks(svg, source), taskDetails: details } : { svg };
+  } catch {
+    return { svg };
+  }
 }
 
 export function useExportActions({
@@ -207,7 +226,7 @@ export function useExportActions({
       const versionLabel = await snapshotVersionLabel();
       const name = activeDocument.displayName || workspace.fileName.replace(/\.(pumlu|puml|plantuml)$/i, "");
       const html = await buildSnapshotHtml({
-        svg: decorateExportSvg(result.svg),
+        ...withTaskDetails(workspace.diagramKind, decorateExportSvg(result.svg), workspace.source),
         source: workspace.source,
         documentName: name,
         diagramTitle: name,
@@ -246,7 +265,9 @@ export function useExportActions({
         title: entry.title,
         kind: entry.kind,
         source: entry.source,
-        ...(entry.svg ? { svg: entry.id === activeId ? decorateExportSvg(entry.svg) : entry.svg } : {}),
+        ...(entry.svg
+          ? withTaskDetails(entry.kind, entry.id === activeId ? decorateExportSvg(entry.svg) : entry.svg, entry.source)
+          : {}),
         ...(entry.error ? { error: entry.error } : {}),
       }));
       const html = await buildSnapshotDocumentHtml({

@@ -1,4 +1,5 @@
 import { sanitizeSvgFragment } from "../../render/sanitize-svg";
+import type { SnapshotTaskDetails } from "./gantt-task-details";
 
 export interface SnapshotInput {
   /** Decorated export SVG, as produced for image export. */
@@ -14,6 +15,8 @@ export interface SnapshotInput {
   snapshotDate: Date;
   /** Shown only when the current source matches a pinned or named version. */
   versionLabel?: string | undefined;
+  /** Gantt hover details for each task, shown on hover, focus or tap and listed in a table. */
+  taskDetails?: readonly SnapshotTaskDetails[] | undefined;
 }
 
 /** One diagram of a whole-document snapshot: its rendered SVG, or the reason it could not be rendered. */
@@ -28,6 +31,8 @@ export interface SnapshotDiagram {
   svg?: string | undefined;
   /** Why the diagram could not be rendered. */
   error?: string | undefined;
+  /** Gantt hover details for each task, shown on hover, focus or tap and listed in a table. */
+  taskDetails?: readonly SnapshotTaskDetails[] | undefined;
 }
 
 /** A project link between two diagrams (zero-based indexes into the diagram list). */
@@ -263,6 +268,21 @@ main{flex:1;padding:0 16px}
 .js .stage{overflow:hidden;height:70vh;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
 .js .stage.dragging{cursor:grabbing}
 .js .stage svg{max-width:none;position:absolute;left:0;top:0;transform-origin:0 0}
+.task-card{position:absolute;z-index:2;left:8px;top:8px;width:max-content;max-width:min(320px,calc(100% - 16px));padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:.85rem;line-height:1.4;pointer-events:none;overflow-wrap:anywhere}
+.task-card[hidden]{display:none}
+.task-card strong{display:block;margin-bottom:4px}
+.task-card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
+.task-card dt{color:var(--muted)}
+.task-card dd{margin:0}
+.stage [data-task-id][tabindex]:focus{outline:none}
+.stage [data-task-id][tabindex]:focus-visible .bar,.stage [data-task-id].task-active .bar{stroke:var(--accent);stroke-width:2px}
+.task-details{margin:8px 0 0}
+.task-details summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:600}
+.task-details summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.table-wrap{overflow-x:auto;max-width:100%}
+.task-details table{border-collapse:collapse;font-size:.85rem;min-width:100%}
+.task-details th,.task-details td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.task-details thead th{color:var(--muted);font-weight:600;white-space:nowrap}
 footer{color:var(--muted);font-size:.85rem}
 @media print{.tools,.toc-menu{display:none}.diagram{break-inside:avoid-page}.js .stage{height:auto;overflow:visible}.js .stage svg{position:static}}
 `;
@@ -297,9 +317,46 @@ const script = `
       if(pts.size===1){x+=e.clientX-p.x;y+=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;apply();}
       else{p.x=e.clientX;p.y=e.clientY;var d=dist(),r=stage.getBoundingClientRect(),a=[...pts.values()];
         if(last>0)zoomAt(d/last,(a[0].x+a[1].x)/2-r.left,(a[0].y+a[1].y)/2-r.top);last=d;}});
-    function up(e){pts.delete(e.pointerId);last=0;if(!pts.size)stage.className=stage.className.replace(" dragging","");}
+    var tasks=taskCard(section,stage);
+    var start=null;
+    stage.addEventListener("pointerdown",function(e){if(pts.size===1)start={x:e.clientX,y:e.clientY};else start=null;});
+    stage.addEventListener("pointermove",function(e){if(!tasks||pts.size)return;tasks.hover(e.target);});
+    stage.addEventListener("pointerleave",function(){if(tasks)tasks.leave();});
+    function up(e){
+      var tap=start&&pts.size===1&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<6;start=null;
+      pts.delete(e.pointerId);last=0;if(!pts.size)stage.className=stage.className.replace(" dragging","");
+      if(tap&&tasks&&e.type==="pointerup")tasks.tap(document.elementFromPoint(e.clientX,e.clientY));}
     stage.addEventListener("pointerup",up);stage.addEventListener("pointercancel",up);
     fit();
+  }
+  function taskCard(section,stage){
+    var card=stage.querySelector(".task-card");if(!card)return null;
+    var rows={},heads=[].map.call(section.querySelectorAll(".task-details thead th"),function(th){return th.textContent;});
+    [].forEach.call(section.querySelectorAll(".task-details tr[data-task]"),function(tr){rows[tr.getAttribute("data-task")]=tr;});
+    var shown=null,pinned=false;
+    function group(node){var g=node&&node.closest?node.closest("[data-task-id]"):null;return g&&stage.contains(g)&&rows[g.getAttribute("data-task-id")]?g:null;}
+    function show(g){
+      if(shown===g)return;hide();shown=g;g.classList.add("task-active");
+      var tr=rows[g.getAttribute("data-task-id")],cells=tr.children;
+      card.textContent="";var title=document.createElement("strong");title.textContent=cells[0].textContent;card.appendChild(title);
+      var dl=document.createElement("dl");
+      for(var i=1;i<cells.length;i++){if(!cells[i].textContent)continue;var dt=document.createElement("dt"),dd=document.createElement("dd");
+        dt.textContent=heads[i];dd.textContent=cells[i].textContent;dl.appendChild(dt);dl.appendChild(dd);}
+      card.appendChild(dl);card.hidden=false;
+      var s=stage.getBoundingClientRect(),r=g.getBoundingClientRect(),c=card.getBoundingClientRect();
+      var left=Math.min(Math.max(8,r.left-s.left),s.width-c.width-8),top=r.bottom-s.top+6;
+      if(top+c.height>s.height-8)top=Math.max(8,r.top-s.top-c.height-6);
+      card.style.left=Math.max(8,left)+"px";card.style.top=top+"px";}
+    function hide(){if(shown)shown.classList.remove("task-active");shown=null;pinned=false;card.hidden=true;}
+    [].forEach.call(stage.querySelectorAll("[data-task-id]"),function(g){if(!rows[g.getAttribute("data-task-id")])return;
+      g.setAttribute("tabindex","0");g.setAttribute("role","button");g.setAttribute("aria-describedby",card.id);
+      g.setAttribute("aria-label",rows[g.getAttribute("data-task-id")].children[0].textContent);
+      g.addEventListener("focus",function(){show(g);});g.addEventListener("blur",function(){if(shown===g)hide();});});
+    stage.addEventListener("keydown",function(e){if(e.key==="Escape"&&shown){hide();e.stopPropagation();}});
+    return{
+      hover:function(node){if(pinned)return;var g=group(node);if(g)show(g);else hide();},
+      leave:function(){if(!pinned)hide();},
+      tap:function(node){var g=group(node);if(g&&!(pinned&&shown===g)){show(g);pinned=true;}else hide();}};
   }
   [].forEach.call(document.querySelectorAll("section.diagram"),function(section){if(section.querySelector(".stage"))setup(section);});
   document.addEventListener("keydown",function(e){if(e.ctrlKey||e.metaKey||e.altKey)return;
@@ -335,6 +392,35 @@ function relatedLinks(
   return items.length ? `<p class="related">Linked diagrams: ${items.join("; ")}</p>\n` : "";
 }
 
+const taskColumns: ReadonlyArray<[keyof SnapshotTaskDetails, string]> = [
+  ["dates", "Dates"],
+  ["duration", "Duration"],
+  ["completion", "Progress"],
+  ["resources", "Resources"],
+  ["predecessors", "Depends on"],
+  ["successors", "Followed by"],
+  ["slack", "Slack"],
+];
+
+/**
+ * Every task's hover card as a table under the diagram. It is the page's only copy of the details: the
+ * script reads a row to fill the card on hover, focus or tap, and without scripts the table still reads.
+ */
+function taskDetailsTable(details: readonly SnapshotTaskDetails[] | undefined): string {
+  if (!details?.length) return "";
+  const columns = taskColumns.filter(([key]) => details.some((task) => task[key] !== undefined));
+  const head = `<tr><th scope="col">Task</th>${columns.map(([, label]) => `<th scope="col">${label}</th>`).join("")}</tr>`;
+  const rows = details
+    .map(
+      (task) =>
+        `<tr data-task="${escapeHtml(task.id)}"><th scope="row">${escapeHtml(task.label)}</th>${columns
+          .map(([key]) => `<td>${escapeHtml(String(task[key] ?? ""))}</td>`)
+          .join("")}</tr>`,
+    )
+    .join("");
+  return `<details class="task-details"><summary>Task details (${details.length})</summary><div class="table-wrap"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></details>`;
+}
+
 function renderSection(
   diagram: SnapshotDiagram,
   index: number,
@@ -360,7 +446,11 @@ function renderSection(
 <button type="button" data-action="fit" aria-label="Fit to view">Fit</button>
 <output id="snapshot-zoom-${number}" aria-live="polite">100%</output>
 </div>
-<div class="stage" id="snapshot-stage-${number}" role="group" aria-label="${escapeHtml(`${kind}: ${diagram.title}`)}" tabindex="0">${sanitized.svg}</div>`;
+<div class="stage" id="snapshot-stage-${number}" role="group" aria-label="${escapeHtml(`${kind}: ${diagram.title}`)}" tabindex="0">${sanitized.svg}${
+        diagram.taskDetails?.length
+          ? `<div class="task-card" id="snapshot-card-${number}" role="tooltip" hidden></div>`
+          : ""
+      }</div>${taskDetailsTable(diagram.taskDetails)}`;
     } catch (cause) {
       // One diagram that cannot be embedded must not sink a whole-document snapshot.
       if (!multi) throw cause;
@@ -429,6 +519,7 @@ export async function buildSnapshotHtml(input: SnapshotInput): Promise<string> {
     kind: input.diagramKind,
     source: input.source,
     svg: input.svg,
+    taskDetails: input.taskDetails,
   };
   return buildPage(
     {

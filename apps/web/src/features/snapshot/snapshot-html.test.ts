@@ -152,3 +152,41 @@ describe("buildSnapshotHtml", () => {
     expect(escapeHtml(`<&>"'`)).toBe("&lt;&amp;&gt;&quot;&#39;");
   });
 });
+
+describe("Gantt task details", () => {
+  const task = {
+    id: "build",
+    label: "Build <api>",
+    dates: "2026-09-07 → 2026-09-14",
+    duration: "6 days",
+    completion: "40%",
+    resources: "Ann 100%",
+    predecessors: "Design",
+    successors: "None",
+    slack: "0 working days total · 0 working days free",
+  };
+
+  it("lists every task in an escaped table and adds one hidden card to the stage", async () => {
+    const html = await buildSnapshotHtml({
+      ...base,
+      svg: svg(`<g data-task-id="build"><rect class="bar" width="40" height="10"/></g>`),
+      taskDetails: [task],
+    });
+    expect(html).toContain('<details class="task-details"><summary>Task details (1)</summary>');
+    expect(html).toContain('<tr data-task="build"><th scope="row">Build &lt;api&gt;</th>');
+    expect(html).toContain("<td>40%</td>");
+    expect(html).toContain('<th scope="col">Slack</th>');
+    expect(html).toContain('<div class="task-card" id="snapshot-card-1" role="tooltip" hidden></div>');
+    expect(html).toContain('data-task-id="build"');
+    expect(html.match(/<script\b[^>]*>/gi)).toHaveLength(1);
+  });
+
+  it("drops columns no task has and adds nothing for diagrams without details", async () => {
+    const { slack: _slack, ...withoutSlack } = task;
+    const html = await buildSnapshotHtml({ ...base, svg: svg("<rect/>"), taskDetails: [withoutSlack] });
+    expect(html).not.toContain('<th scope="col">Slack</th>');
+    const plain = await buildSnapshotHtml({ ...base, svg: svg("<rect/>") });
+    expect(plain).not.toContain('class="task-details"');
+    expect(plain).not.toContain('class="task-card"');
+  });
+});
