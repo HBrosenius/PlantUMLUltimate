@@ -107,6 +107,16 @@ describe("summary and report", () => {
     expect(markdown).toContain("| Add a timeout path | valid | ok |");
     expect(markdown).toContain("violation");
   });
+
+  it("escapes backslashes before pipes in failed-check text", () => {
+    const score = scoreResponse(task, response(good), usage, "claude-sonnet-5-5");
+    const failing = {
+      ...score,
+      checks: [{ name: "contains", pass: false, detail: String.raw`a\|b` }],
+    };
+    const markdown = renderMarkdown(summarize("claude-sonnet-5-5", [failing]), [task], [failing]);
+    expect(markdown).toContain(String.raw`contains (a\\\|b)`);
+  });
 });
 
 describe("measureScope", () => {

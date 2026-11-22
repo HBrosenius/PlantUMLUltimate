@@ -226,6 +226,8 @@ export function renderMarkdown(summary: EvalSummary, tasks: readonly EvalTask[],
       .filter((check) => !check.pass)
       .map((check) => (check.detail ? `${check.name} (${check.detail})` : check.name))
       .join("; ")
+      // Escape backslashes first, so a backslash in the text cannot undo the pipe escape.
+      .replace(/\\/g, "\\\\")
       .replace(/\|/g, "\\|");
     lines.push(
       `| ${task?.title ?? score.id} | ${score.outcome} | ${score.scopeViolation ? "violation" : "ok"} | ${
