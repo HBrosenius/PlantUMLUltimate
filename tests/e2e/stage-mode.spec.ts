@@ -213,9 +213,10 @@ test.describe("Stage mode", () => {
       .getByRole("button", { name: "Stage", exact: true })
       .click();
     const node = page.locator("[data-wbs-node-id]").filter({ hasText: "Discovery" }).first();
-    // WebKit cannot hit-test an SVG label under the node's hit area; click the hit area itself.
-    const nodeId = await node.getAttribute("data-wbs-node-id");
-    await page.locator(`rect.wbs-node-hit[data-wbs-node-id="${nodeId}"]`).click({ force: true });
+    // Select through the node's keyboard target: a forced click on the hit area could land while Stage
+    // was still fitting the diagram and miss the node (it flaked on Firefox and Chromium).
+    await page.getByRole("button", { name: "Select WBS node Discovery" }).focus();
+    await page.keyboard.press("Enter");
     const dock = page.getByRole("toolbar", { name: "Actions for Discovery" });
     await expect(dock).toBeVisible();
     await expect(dock.getByRole("button", { name: "Rename" })).toBeVisible();
