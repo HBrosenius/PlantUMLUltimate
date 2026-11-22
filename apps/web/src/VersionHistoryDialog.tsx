@@ -1,5 +1,5 @@
 import { validateGeneratedSource } from "./generated-source-validation";
-import { GanttReviewDetails } from "./GanttReviewDetails";
+import { ReviewPanel } from "./ReviewPanel";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
@@ -510,82 +510,17 @@ export function VersionHistoryDialog({
               </div>
             )}
             {comparisonView === "semantic" ? (
-              <div className="semantic-review" aria-label="Semantic changes">
-                <header>
-                  <div>
-                    <strong>Proposed change groups</strong>
-                    <p>
-                      Select confirmed groups, then review their combined result. Unclassified changes require Source
-                      review.
-                    </p>
-                  </div>
-                  <span>
-                    {reviewGroups.length} group{reviewGroups.length === 1 ? "" : "s"}
-                  </span>
-                </header>
-                <div className="semantic-review-groups">
-                  {reviewGroups.length ? (
-                    reviewGroups.map((group) => {
-                      const confirmed = group.confidence === "confirmed";
-                      const visibleInDiagram = visibleGroupIds.has(group.id);
-                      const diagramAction = visibleInDiagram
-                        ? visibleGroupIds.size > 1
-                          ? {
-                              label: "Show only in diagram",
-                              ariaLabel: `Show only ${group.title} in rendered diagrams`,
-                            }
-                          : { label: "Hide from diagram", ariaLabel: `Hide ${group.title} from rendered diagrams` }
-                        : visibleGroupIds.size
-                          ? { label: "Add to diagram", ariaLabel: `Add ${group.title} to rendered diagrams` }
-                          : { label: "Show in diagram", ariaLabel: `Show ${group.title} in rendered diagrams` };
-                      return (
-                        <div
-                          className={`semantic-review-group ${group.confidence}${activeGroupId === group.id ? " active" : ""}`}
-                          key={group.id}
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${group.title}`}
-                            disabled={!confirmed}
-                            checked={selectedGroups.has(group.id)}
-                            onChange={(event) => {
-                              const next = new Set(selectedGroups);
-                              if (event.target.checked) next.add(group.id);
-                              else next.delete(group.id);
-                              setSelectedGroups(next);
-                            }}
-                          />
-                          <span className="semantic-review-group-copy">
-                            <strong>{group.title}</strong>
-                            <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
-                            <span>{group.detail}</span>
-                            {diagramKind === "gantt" && <GanttReviewDetails group={group} before={leftSource} />}
-                          </span>
-                          <span className="semantic-review-inspect">
-                            <button
-                              type="button"
-                              disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
-                              aria-label={diagramAction.ariaLabel}
-                              aria-pressed={visibleInDiagram}
-                              onClick={() => showReviewGroupInDiagram(group.id)}
-                            >
-                              {diagramAction.label}
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Show ${group.title} in source`}
-                              onClick={() => showReviewGroupInSource(group.id)}
-                            >
-                              Show in source
-                            </button>
-                          </span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p>No changes between these versions.</p>
-                  )}
-                </div>
+              <ReviewPanel
+                groups={reviewGroups}
+                diagramKind={diagramKind}
+                before={leftSource}
+                selectedGroups={selectedGroups}
+                onSelectedGroupsChange={setSelectedGroups}
+                activeGroupId={activeGroupId}
+                visibleGroupIds={visibleGroupIds}
+                onShowInDiagram={showReviewGroupInDiagram}
+                onShowInSource={showReviewGroupInSource}
+              >
                 <div className="semantic-review-actions">
                   <button
                     type="button"
@@ -675,7 +610,7 @@ export function VersionHistoryDialog({
                     either reviewed revision. You can still export the selected patch.
                   </p>
                 ) : null}
-              </div>
+              </ReviewPanel>
             ) : comparisonView === "source" ? (
               <div ref={diffElement} className="version-diff" role="table" aria-label="Source differences">
                 {visibleDiff.map((line, index) => {

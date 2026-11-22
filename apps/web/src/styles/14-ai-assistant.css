@@ -24,3 +24,7 @@
   border-radius: 6px;
   font-size: 12px;
 }
+.semantic-review-outside {
+  color: var(--warning, #b45309);
+  font-weight: 600;
+}
