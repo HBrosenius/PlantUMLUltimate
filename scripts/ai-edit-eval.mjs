@@ -5,15 +5,19 @@
  * outside the selection unchanged) and writes a JSON and a Markdown summary.
  *
  *   ANTHROPIC_API_KEY=sk-ant-... node scripts/ai-edit-eval.mjs --model claude-sonnet-5-5
+ *   OPENAI_API_KEY=sk-...        node scripts/ai-edit-eval.mjs --provider openai --model gpt-6.2-sol
+ *   XAI_API_KEY=xai-...          node scripts/ai-edit-eval.mjs --provider xai --model grok-4.7
  *
- * Options: --model <id>   model to test (default claude-opus-5-5)
+ * Options: --provider <id> anthropic (default), openai or xai; the key comes from that provider's variable
+ *          --model <id>    model to test (default: the provider's default model in the app)
  *          --limit <n>    run only the first n tasks
  *          --task <id>    run only one task (repeatable)
  *          --out <dir>    output directory (default output/ai-edit-eval, which is not committed)
  *          --yes          skip the cost confirmation
  *
- * It calls the paid API with your key, so it only runs when you start it. It refuses to run without
- * ANTHROPIC_API_KEY and prints an estimated cost before the first request.
+ * It calls the paid API with your key, so it only runs when you start it. It refuses to run without the
+ * provider's key variable (ANTHROPIC_API_KEY, OPENAI_API_KEY or XAI_API_KEY) and prints an estimated cost
+ * before the first request. The same tasks, scoring and price table are used for every provider.
  */
 import { build } from "esbuild";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -23,8 +27,21 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+export const PROVIDER_KEY_VARIABLES = {
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  xai: "XAI_API_KEY",
+};
+
 export function parseArguments(argv) {
-  const options = { model: "claude-opus-5-5", limit: undefined, tasks: [], out: "output/ai-edit-eval", yes: false };
+  const options = {
+    provider: "anthropic",
+    model: undefined,
+    limit: undefined,
+    tasks: [],
+    out: "output/ai-edit-eval",
+    yes: false,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     const value = () => {
@@ -32,7 +49,11 @@ export function parseArguments(argv) {
       if (next === undefined) throw new Error(`${argument} needs a value`);
       return next;
     };
-    if (argument === "--model") options.model = value();
+    if (argument === "--provider") {
+      options.provider = value();
+      if (!(options.provider in PROVIDER_KEY_VARIABLES))
+        throw new Error(`--provider must be one of: ${Object.keys(PROVIDER_KEY_VARIABLES).join(", ")}`);
+    } else if (argument === "--model") options.model = value();
     else if (argument === "--limit") options.limit = Number(value());
     else if (argument === "--task") options.tasks.push(value());
     else if (argument === "--out") options.out = value();
@@ -52,7 +73,7 @@ async function loadCore() {
     platform: "node",
     format: "esm",
     logLevel: "error",
-    external: ["@anthropic-ai/sdk"],
+    external: ["@anthropic-ai/sdk", "openai"],
   });
   return import(pathToFileURL(outfile).href);
 }
@@ -61,8 +82,8 @@ function estimate(core, model, tasks) {
   let inputTokens = 0;
   let outputTokens = 0;
   for (const task of tasks) {
-    const payload = core.buildRequestPayload({ kind: task.kind ?? "sequence", ...task }, model);
-    inputTokens += Math.ceil((payload.system[0].text.length + payload.messages[0].content.length) / 3.5);
+    const payload = core.buildProviderRequest({ kind: task.kind ?? "sequence", ...task });
+    inputTokens += Math.ceil((payload.system.length + payload.user.length) / 3.5);
     outputTokens += Math.ceil(task.source.length / 3) + 200;
   }
   const costUsd = core.estimateCostUsd(model, {
@@ -75,17 +96,18 @@ function estimate(core, model, tasks) {
 }
 
 async function main() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY is not set. This script calls the paid Anthropic API with your key.");
-    console.error("Run: ANTHROPIC_API_KEY=sk-ant-... node scripts/ai-edit-eval.mjs --model claude-sonnet-5-5");
-    process.exit(2);
-  }
   let options;
   try {
     options = parseArguments(process.argv.slice(2));
   } catch (error) {
     console.error(error.message);
+    process.exit(2);
+  }
+  const keyVariable = PROVIDER_KEY_VARIABLES[options.provider];
+  const apiKey = process.env[keyVariable];
+  if (!apiKey) {
+    console.error(`${keyVariable} is not set. This script calls the paid ${options.provider} API with your key.`);
+    console.error(`Run: ${keyVariable}=... node scripts/ai-edit-eval.mjs --provider ${options.provider} --model <id>`);
     process.exit(2);
   }
   const { tasks: allTasks } = await import("./ai-edit-eval-tasks.mjs");
@@ -97,11 +119,15 @@ async function main() {
   }
 
   const core = await loadCore();
+  options.model = options.model ?? core.DEFAULT_AI_MODELS[options.provider];
   const guess = estimate(core, options.model, tasks);
+  console.log(`Provider: ${options.provider}`);
   console.log(`Model: ${options.model}`);
   console.log(`Tasks: ${tasks.length}`);
   console.log(
-    `Estimated cost: about $${guess.costUsd.toFixed(2)} (${guess.inputTokens} input and ${guess.outputTokens} output tokens, no cache hits assumed).`,
+    core.hasPrice(options.model)
+      ? `Estimated cost: about $${guess.costUsd.toFixed(2)} (${guess.inputTokens} input and ${guess.outputTokens} output tokens, no cache hits assumed).`
+      : `Estimated usage: ${guess.inputTokens} input and ${guess.outputTokens} output tokens. This model has no entry in the price table, so no cost is estimated.`,
   );
   if (!options.yes) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -120,6 +146,7 @@ async function main() {
     let failure;
     try {
       proposal = await core.requestAiEdit({
+        provider: options.provider,
         apiKey,
         model: options.model,
         request: {
@@ -144,7 +171,7 @@ async function main() {
   const outDirectory = path.resolve(root, options.out);
   await mkdir(outDirectory, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const base = path.join(outDirectory, `${options.model}-${stamp}`);
+  const base = path.join(outDirectory, `${options.provider}-${options.model}-${stamp}`);
   await writeFile(`${base}.json`, `${JSON.stringify({ summary, scores }, null, 2)}\n`);
   await writeFile(`${base}.md`, core.renderMarkdown(summary, tasks, scores));
   console.log(

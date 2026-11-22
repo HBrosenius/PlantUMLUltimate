@@ -6,7 +6,8 @@ import { applyReviewGroups } from "../../semantic-review";
 import type { DiagramKind } from "../../model";
 import { getAiAssistantState, getAiKey, subscribeAiAssistant } from "./ai-settings";
 import { instructionWithAnswers, runAiEdit, type AiEditOutcome, type AiEditPhase } from "./ai-edit-session";
-import { AI_MODELS, estimateCostUsd, type AiUsage } from "./models";
+import { estimateCostUsd, findAiModel, hasPrice, type AiUsage } from "./models";
+import { AI_PROVIDERS } from "./providers";
 import { selectionFromOffsets, type AiEditRequest, type AiSelection } from "./prompt";
 import { requestAiEdit } from "./provider";
 import { reviewProposal } from "./proposal-checks";
@@ -30,7 +31,7 @@ const PHASE_TEXT: Record<AiEditPhase, string> = {
 function usageText(model: string, usage: AiUsage): string {
   const tokens = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
   if (!tokens && !usage.outputTokens) return "";
-  const cost = estimateCostUsd(model, usage);
+  const cost = hasPrice(model) ? estimateCostUsd(model, usage) : 0;
   return `Used ${tokens} input and ${usage.outputTokens} output tokens${cost ? ` (about $${cost.toFixed(3)})` : ""}.`;
 }
 
@@ -73,7 +74,8 @@ export function AiEditDialog({
       .join("\n");
   }, [opened, selection]);
   const settings = useSyncExternalStore(subscribeAiAssistant, getAiAssistantState);
-  const modelLabel = AI_MODELS.find((model) => model.id === settings.model)?.label ?? settings.model;
+  const providerLabel = AI_PROVIDERS[settings.provider].label;
+  const modelLabel = findAiModel(settings.provider, settings.model)?.label ?? settings.model;
 
   const [view, setView] = useState<View>({ name: "compose" });
   const [instruction, setInstruction] = useState("");
@@ -100,6 +102,7 @@ export function AiEditDialog({
     setConfirmed(false);
     const outcome = await runAiEdit({
       request: { kind, source: opened, selection, instruction: text, previousProblems: retryProblems },
+      provider: getAiAssistantState().provider,
       apiKey: getAiKey(),
       model: getAiAssistantState().model,
       getCurrentSource: () => liveSource.current,
@@ -167,8 +170,10 @@ export function AiEditDialog({
                 onChange={(event) => setInstruction(event.target.value)}
               />
             </label>
-            <WhatWillBeSent request={request} model={settings.model} />
-            <p>Model: {modelLabel}. Change it in Settings → AI assistant.</p>
+            <WhatWillBeSent request={request} model={settings.model} provider={settings.provider} />
+            <p>
+              Model: {providerLabel}, {modelLabel}. Change it in Settings → AI assistant.
+            </p>
             {readOnly && <p role="alert">This document is read-only.</p>}
           </>
         )}

@@ -7,6 +7,8 @@ import { DEFAULT_SESSION } from "../../workspace-storage";
 import { serializeWorkspaceBackup } from "../../workspace-backup";
 
 const KEY = "sk-ant-api03-unit-test-key";
+const OPENAI_KEY = "sk-proj-openai-unit-test-key";
+const XAI_KEY = "xai-unit-test-key";
 
 async function freshModule() {
   vi.resetModules();
@@ -44,6 +46,7 @@ describe("AI assistant settings", () => {
     const ai = await freshModule();
     expect(ai.getAiAssistantState()).toEqual({
       enabled: false,
+      provider: "anthropic",
       consentedAt: undefined,
       model: "claude-opus-5-5",
       remember: false,
@@ -63,16 +66,99 @@ describe("AI assistant settings", () => {
     expect(ai.isAiAssistantReady()).toBe(false);
   });
 
-  it("ignores stored 'enabled' without a recorded consent and unknown models", async () => {
+  it("ignores stored 'enabled' without a recorded consent and invalid model ids, and accepts custom ids", async () => {
     localStorage.setItem(
       "plantuml-studio.ai-assistant",
-      JSON.stringify({ enabled: true, model: "claude-imaginary", remember: false }),
+      JSON.stringify({ enabled: true, model: "not a model!", remember: false }),
     );
     const ai = await freshModule();
     expect(ai.getAiAssistantState()).toMatchObject({ enabled: false, model: "claude-opus-5-5" });
     ai.setAiModel("claude-sonnet-5-5");
-    ai.setAiModel("not-a-model");
+    ai.setAiModel("not a model!");
     expect(ai.getAiAssistantState().model).toBe("claude-sonnet-5-5");
+    ai.setAiModel("claude-future-9");
+    expect(ai.getAiAssistantState().model).toBe("claude-future-9");
+  });
+
+  it("migrates the Anthropic-only stored shape without losing consent, model or the remember choice", async () => {
+    localStorage.setItem(
+      "plantuml-studio.ai-assistant",
+      JSON.stringify({
+        enabled: true,
+        consentedAt: "2026-11-01T10:00:00.000Z",
+        model: "claude-sonnet-5-5",
+        remember: true,
+      }),
+    );
+    const ai = await freshModule();
+    expect(ai.getAiAssistantState()).toEqual({
+      enabled: true,
+      provider: "anthropic",
+      consentedAt: "2026-11-01T10:00:00.000Z",
+      model: "claude-sonnet-5-5",
+      remember: true,
+      hasKey: false,
+    });
+    // The Anthropic key remembered under the original record name still loads.
+    await ai.saveAiKey(KEY, true);
+    const reloaded = await freshModule();
+    await reloaded.loadRememberedAiKey();
+    expect(reloaded.getAiKey()).toBe(KEY);
+    // The next write uses the per-provider shape.
+    reloaded.setAiProvider("openai");
+    const stored = JSON.parse(localStorage.getItem("plantuml-studio.ai-assistant")!);
+    expect(stored).toMatchObject({
+      version: 2,
+      provider: "openai",
+      consents: { anthropic: "2026-11-01T10:00:00.000Z" },
+    });
+  });
+
+  it("keeps provider, model, consent and key per provider", async () => {
+    const ai = await freshModule();
+    ai.enableAiAssistant();
+    await ai.saveAiKey(KEY, false);
+    ai.setAiProvider("openai");
+    // Consent to one company is not consent to another: the assistant is not ready for OpenAI.
+    expect(ai.getAiAssistantState()).toMatchObject({
+      provider: "openai",
+      model: "gpt-6.2-sol",
+      consentedAt: undefined,
+      hasKey: false,
+    });
+    expect(ai.isAiAssistantReady()).toBe(false);
+    ai.setAiModel("gpt-6-luna");
+    ai.enableAiAssistant();
+    await ai.saveAiKey(OPENAI_KEY, false);
+    expect(ai.isAiAssistantReady()).toBe(true);
+    expect(ai.getAiKey()).toBe(OPENAI_KEY);
+    expect(ai.getAiKey("anthropic")).toBe(KEY);
+    ai.setAiProvider("xai");
+    expect(ai.getAiAssistantState()).toMatchObject({ provider: "xai", model: "grok-4.7", hasKey: false });
+    ai.setAiProvider("anthropic");
+    expect(ai.getAiAssistantState()).toMatchObject({ model: "claude-opus-5-5", hasKey: true });
+    const reloaded = await freshModule();
+    expect(reloaded.getAiAssistantState().provider).toBe("anthropic");
+    reloaded.setAiProvider("openai");
+    expect(reloaded.getAiAssistantState().model).toBe("gpt-6-luna");
+  });
+
+  it("forgets one provider's key without touching the others", async () => {
+    const ai = await freshModule();
+    await ai.saveAiKey(KEY, true, "anthropic");
+    await ai.saveAiKey(OPENAI_KEY, true, "openai");
+    await ai.saveAiKey(XAI_KEY, true, "xai");
+    await ai.forgetAiKey("openai");
+    expect(ai.getAiKey("openai")).toBeUndefined();
+    const dump = await everythingInIndexedDb();
+    expect(dump).toContain(KEY);
+    expect(dump).toContain(XAI_KEY);
+    expect(dump).not.toContain(OPENAI_KEY);
+    const reloaded = await freshModule();
+    await reloaded.loadRememberedAiKey();
+    expect(reloaded.getAiKey("anthropic")).toBe(KEY);
+    expect(reloaded.getAiKey("xai")).toBe(XAI_KEY);
+    expect(reloaded.getAiKey("openai")).toBeUndefined();
   });
 
   it("keeps the key in memory only by default", async () => {
@@ -122,15 +208,34 @@ describe("AI assistant settings", () => {
 });
 
 describe("the API key never leaves the AI assistant module", () => {
-  it("does not appear in backups or any other browser storage", async () => {
+  it("no provider's key appears in backups, browser storage or any other IndexedDB database", async () => {
     const ai = await freshModule();
     ai.enableAiAssistant();
-    await ai.saveAiKey(KEY, true);
-    expect(serializeWorkspaceBackup(DEFAULT_SESSION)).not.toContain(KEY);
-    expect(JSON.stringify({ ...localStorage })).not.toContain(KEY);
-    expect(JSON.stringify({ ...sessionStorage })).not.toContain(KEY);
-    const databases = (await indexedDB.databases()).map((entry) => entry.name);
-    expect(databases).toEqual(["plantuml-studio-ai-assistant"]);
+    const keys = { anthropic: KEY, openai: OPENAI_KEY, xai: XAI_KEY } as const;
+    for (const [provider, key] of Object.entries(keys) as Array<[keyof typeof keys, string]>)
+      await ai.saveAiKey(key, true, provider);
+    // An unrelated database next to the assistant's, as the workspace has.
+    await new Promise<void>((resolve) => {
+      const open = indexedDB.open("some-other-database", 1);
+      open.onupgradeneeded = () => open.result.createObjectStore("things");
+      open.onsuccess = () => {
+        open.result.close();
+        resolve();
+      };
+    });
+    const backup = serializeWorkspaceBackup(DEFAULT_SESSION);
+    const other = (await everythingInIndexedDb())
+      .split("\n")
+      .filter((line) => !line.startsWith("plantuml-studio-ai-assistant/"))
+      .join("\n");
+    for (const key of Object.values(keys)) {
+      expect(backup).not.toContain(key);
+      expect(JSON.stringify({ ...localStorage })).not.toContain(key);
+      expect(JSON.stringify({ ...sessionStorage })).not.toContain(key);
+      expect(other).not.toContain(key);
+    }
+    const databases = (await indexedDB.databases()).map((entry) => entry.name).sort();
+    expect(databases).toEqual(["plantuml-studio-ai-assistant", "some-other-database"]);
   });
 
   it("is read by no code outside features/ai-edits (documents, exports, sharing, collaboration, workers)", () => {

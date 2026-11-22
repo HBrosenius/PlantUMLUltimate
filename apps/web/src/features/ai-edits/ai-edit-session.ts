@@ -3,6 +3,7 @@ import type { AiEditProposal, AiProgress, RequestAiEditOptions } from "./provide
 import type { AiEditRequest } from "./prompt";
 import { checkProposal, type ProposalCheckResult } from "./proposal-checks";
 import type { AiUsage } from "./models";
+import type { AiProviderId } from "./providers";
 
 export type AiEditPhase = "drafting" | "checking" | "retrying";
 
@@ -26,6 +27,8 @@ export type AiEditOutcome =
 
 export interface RunAiEditOptions {
   request: AiEditRequest;
+  /** Defaults to Anthropic. */
+  provider?: AiProviderId | undefined;
   apiKey: string | undefined;
   model: string;
   /** Read at check time: the document may have changed while the request ran. */
@@ -61,6 +64,7 @@ export async function runAiEdit(options: RunAiEditOptions): Promise<AiEditOutcom
     let proposal: AiEditProposal;
     try {
       proposal = await options.send({
+        provider: options.provider,
         apiKey: options.apiKey,
         model: options.model,
         request,

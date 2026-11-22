@@ -2,4 +2,5 @@
 export * from "./eval-scoring";
 export * from "./models";
 export * from "./prompt";
+export * from "./providers";
 export { requestAiEdit, buildStreamBody } from "./provider";
