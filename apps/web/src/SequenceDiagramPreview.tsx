@@ -305,21 +305,17 @@ export function SequenceDiagramPreview({
     }
   }, [svg, geometry, selectedParticipantId, selectedMessageId, selectedStructureId]);
 
-  /** Right-click on a message or participant offers the AI assistant for exactly that source range. */
+  /** Right-click on a message offers the AI assistant for exactly that source range. */
   const openAiContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!editingEnabled) return;
     const target = event.target as Element;
-    const participantId = target
-      .closest("[data-sequence-participant-id]")
-      ?.getAttribute("data-sequence-participant-id");
+    // Participants have the app's symbol menu, which carries the same "Ask AI to change this…" item.
+    if (target.closest("[data-sequence-participant-id]")) return;
     const messageId = target.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id");
-    const range = participantId
-      ? participants.find((item) => item.id === participantId)?.sourceRange
-      : messages.find((item) => item.id === messageId)?.sourceRange;
-    if (!range) return;
+    const range = messages.find((item) => item.id === messageId)?.sourceRange;
+    if (!range || !messageId) return;
     event.preventDefault();
-    if (participantId) onParticipantSelect(participantId);
-    else if (messageId) onMessageSelect(messageId);
+    onMessageSelect(messageId);
     setAiMenu({ x: event.clientX, y: event.clientY, from: range.from, to: range.to });
   };
 

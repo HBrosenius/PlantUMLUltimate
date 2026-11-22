@@ -1,3 +1,4 @@
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
 import { analyzeDiagram } from "../../diagram-diagnostics";
 import type { DiagramKind } from "../../model";
@@ -22,6 +23,10 @@ export interface EvalExpectations {
   notContains?: string[];
   /** Bounds on the number of messages afterwards. */
   messageCount?: { min?: number; max?: number };
+  /** Gantt: task labels (case-insensitive) that must exist afterwards. */
+  tasks?: string[];
+  /** Gantt: task labels that must not exist afterwards. */
+  absentTasks?: string[];
   /** The model should ask a question instead of changing anything. */
   shouldAsk?: boolean;
 }
@@ -102,16 +107,19 @@ export function scoreResponse(
   const revised = response.revisedSource;
   const leaked = revised.includes(SELECTION_START_MARKER) || revised.includes(SELECTION_END_MARKER);
   checks.push({ name: "selection markers removed", pass: !leaked });
-  const framed = /^\s*@startuml\b/i.test(revised) && /@enduml\s*$/i.test(revised);
-  checks.push({ name: "has @startuml/@enduml", pass: framed });
+  const [open, close] = kind === "gantt" ? ["@startgantt", "@endgantt"] : ["@startuml", "@enduml"];
+  const framed = new RegExp(`^\\s*${open}\\b`, "i").test(revised) && new RegExp(`${close}\\s*$`, "i").test(revised);
+  checks.push({ name: `has ${open}/${close}`, pass: framed });
 
   let document: ReturnType<typeof parseSequence> | undefined;
+  let ganttDocument: ReturnType<typeof parseGantt>["document"] | undefined;
   try {
-    document = parseSequence(revised);
+    if (kind === "gantt") ganttDocument = parseGantt(revised).document;
+    else document = parseSequence(revised);
   } catch (error) {
     checks.push({ name: "parses", pass: false, detail: String(error) });
   }
-  if (document) checks.push({ name: "parses", pass: true });
+  if (document || ganttDocument) checks.push({ name: "parses", pass: true });
 
   const before = errorMessages(kind, task.source);
   const added = errorMessages(kind, revised).filter((message) => {
@@ -154,6 +162,13 @@ export function scoreResponse(
       checks.push({ name: `at least ${bounds.min} messages`, pass: count >= bounds.min, detail: `${count}` });
     if (bounds?.max !== undefined)
       checks.push({ name: `at most ${bounds.max} messages`, pass: count <= bounds.max, detail: `${count}` });
+  }
+  if (ganttDocument) {
+    const labels = ganttDocument.tasks.map((task) => task.label.toLowerCase());
+    for (const wanted of task.expect.tasks ?? [])
+      checks.push({ name: `task ${wanted} exists`, pass: labels.includes(wanted.toLowerCase()) });
+    for (const unwanted of task.expect.absentTasks ?? [])
+      checks.push({ name: `task ${unwanted} is gone`, pass: !labels.includes(unwanted.toLowerCase()) });
   }
   for (const text of task.expect.contains ?? []) checks.push({ name: `contains "${text}"`, pass: has(revised, text) });
   for (const text of task.expect.notContains ?? [])

@@ -5,6 +5,7 @@ import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt"
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
 import { ColorField } from "./ColorField";
 import { useJiraLinked } from "./jira-linked-context";
+import { requestAiEditDialog } from "./features/ai-edits/ai-edit-bridge";
 
 export interface TaskInspectorValue {
   label: string;
@@ -594,6 +595,9 @@ export function TaskInspector({
           </section>
         )}
         <div className="inspector-actions">
+          <button type="button" onClick={() => requestAiEditDialog(task.sourceRange)}>
+            Ask AI to change this task…
+          </button>
           <button type="button" onClick={onClose}>
             Close
           </button>

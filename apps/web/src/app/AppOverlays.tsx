@@ -1,4 +1,5 @@
 import { ProblemsPanel } from "../ProblemsPanel";
+import { aiEditSupports, useAiAssistantEnabled } from "../features/ai-edits/use-ai-edit-launcher";
 import { SymbolReferencesPanel } from "../SymbolReferencesPanel";
 import { InlineLabelEditor } from "../InlineLabelEditor";
 import { RenameSymbolDialog } from "../RenameSymbolDialog";
@@ -87,6 +88,7 @@ export interface AppOverlaysProps {
   diagramMulti: ReturnType<typeof useDiagramMultiSelection>;
   dialog: AppDialog | undefined;
   duplicateTaskOccurrence: (occurrence: SemanticSymbolOccurrence) => void;
+  askAiAboutSymbol: (occurrence: SemanticSymbolOccurrence) => void;
   inlineRename:
     | { request: SemanticRenameRequest; source: string; documentId: string; anchor: { left: number; bottom: number } }
     | undefined;
@@ -202,6 +204,7 @@ export function AppOverlays({
   diagramMulti,
   dialog,
   duplicateTaskOccurrence,
+  askAiAboutSymbol,
   inlineRename,
   linkedWbs,
   mindmap,
@@ -256,6 +259,7 @@ export function AppOverlays({
   viewMode,
   workspace,
 }: AppOverlaysProps) {
+  const aiAssistantEnabled = useAiAssistantEnabled();
   return (
     <>
       <ProblemsPanel
@@ -557,6 +561,25 @@ export function AppOverlays({
           >
             Next reference
           </button>
+          {aiAssistantEnabled &&
+            aiEditSupports(workspace.diagramKind) &&
+            ["task", "participant"].includes(
+              (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
+                ?.kind ?? "",
+            ) && (
+              <button
+                role="menuitem"
+                onClick={() => {
+                  const occurrence =
+                    symbolMenu.occurrence ??
+                    (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+                  if (occurrence) askAiAboutSymbol(occurrence);
+                  setSymbolMenu(undefined);
+                }}
+              >
+                Ask AI to change this…
+              </button>
+            )}
         </div>
       )}
       {referenceSymbol && (
