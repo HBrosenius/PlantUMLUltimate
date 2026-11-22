@@ -483,8 +483,9 @@
   gap: 4px;
   padding-bottom: 0;
 }
-/* Create / Open / Examples switch the dialog body, so they read as tabs, not buttons. */
-.new-document-dialog .start-routes > button {
+/* Create / Open / Examples and the Settings categories switch the dialog body, so they read as tabs, not buttons. */
+.new-document-dialog .start-routes > button,
+.settings-dialog .settings-categories > button {
   min-height: 36px;
   margin-bottom: -1px;
   padding: 6px 14px;
@@ -495,11 +496,13 @@
   color: var(--muted);
   font-weight: 600;
 }
-.new-document-dialog .start-routes > button:hover {
+.new-document-dialog .start-routes > button:hover,
+.settings-dialog .settings-categories > button:hover {
   color: var(--text);
   background: transparent;
 }
-.new-document-dialog .start-routes > button[aria-pressed="true"] {
+.new-document-dialog .start-routes > button[aria-pressed="true"],
+.settings-dialog .settings-categories > button[aria-pressed="true"] {
   border-bottom-color: var(--accent);
   color: var(--accent);
 }
