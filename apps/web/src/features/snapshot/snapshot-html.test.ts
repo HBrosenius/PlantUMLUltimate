@@ -119,7 +119,7 @@ describe("buildSnapshotHtml", () => {
     expect(csp).toContain("img-src data:");
     const scripts = html.match(/<script\b[^>]*>/gi) ?? [];
     expect(scripts).toHaveLength(1);
-    const body = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/i.exec(html)![1]!;
+    const body = /<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/i.exec(html)![1]!;
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
     expect(csp).toContain(`'sha256-${btoa(String.fromCharCode(...new Uint8Array(digest)))}'`);
   });
