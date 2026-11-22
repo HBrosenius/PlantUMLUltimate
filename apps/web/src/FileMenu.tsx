@@ -23,6 +23,7 @@ function FileMenuView({
   onExportSvg,
   onExportPng,
   onExportPdf,
+  onExportSnapshot,
   onCopyImage,
   onCopyMarkdown,
   onCopyConfluence,
@@ -49,6 +50,7 @@ function FileMenuView({
   onExportSvg(): void;
   onExportPng(): void;
   onExportPdf(): void;
+  onExportSnapshot(): void;
   onCopyImage(): void;
   onCopyMarkdown(): void;
   onCopyConfluence(): void;
@@ -326,6 +328,18 @@ function FileMenuView({
                   onClick={() => run(onExportPdf)}
                 >
                   Quick download PDF
+                </button>
+                <button
+                  role="menuitem"
+                  disabled={!canExport}
+                  title={
+                    !canExport
+                      ? "Wait for the current diagram preview to finish rendering"
+                      : "One self-contained HTML file that opens offline, without the source"
+                  }
+                  onClick={() => run(onExportSnapshot)}
+                >
+                  Snapshot (HTML)
                 </button>
                 <span className="menu-separator" role="separator" />
                 <button
