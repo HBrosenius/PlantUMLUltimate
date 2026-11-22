@@ -6,6 +6,7 @@ import {
   diagramBulkItems,
   pasteDiagramItems,
   setMindmapItemsBoxless,
+  setMindmapItemsSide,
   type BulkDiagramKind,
 } from "./diagram-bulk-operations";
 import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
@@ -240,5 +241,128 @@ describe("mindmap bulk operations", () => {
       ),
     ).toThrow(/at least one root/);
     expect(deleteMindmapItems(two, [keyOf(two, "First")]).source).toBe(wrap(["* Second", "** B"].join(NL)));
+  });
+  describe("bulk side change", () => {
+    const keysOf = (src: string, ...labels: string[]) => labels.map((label) => keyOf(src, label));
+
+    it("moves every selected branch with its subtree in one edit and parses clean", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "One", "Three"), "left");
+      expect(result).toMatchObject({ applied: 2, skipped: 0 });
+      expect(result.source).toBe(wrap(["* Root", "-- One", "--- One A", "** Two", "-- Three"].join(NL)));
+      expect(parseMindmap(result.source).diagnostics).toEqual([]);
+      const back = setMindmapItemsSide(result.source, keysOf(result.source, "One", "Three"), "right");
+      expect(back.source).toBe(wrap(["* Root", "++ One", "+++ One A", "** Two", "++ Three"].join(NL)));
+    });
+
+    it("skips nodes that own no side, like the single-node inspector, and moves a parent once", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "Root", "One", "One A"), "left");
+      expect(result).toMatchObject({ applied: 1, skipped: 2 });
+      expect(result.source).toBe(wrap(["* Root", "-- One", "--- One A", "** Two", "** Three"].join(NL)));
+      const onlyDeep = setMindmapItemsSide(source, keysOf(source, "One A"), "left");
+      expect(onlyDeep).toMatchObject({ applied: 0, source });
+    });
+
+    it("changes nothing for branches that are already on that side", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "One", "Two"), "right");
+      expect(result).toMatchObject({ applied: 0, source });
+    });
+
+    it("offers no side in Markdown form or in a right to left document", () => {
+      const markdown = wrap(["# Root", "## One"].join(NL));
+      expect(diagramBulkItems("mindmap", markdown).some((item) => item.side)).toBe(false);
+      const mirrored = `@startmindmap${NL}right to left direction${NL}* Root${NL}** One${NL}@endmindmap`;
+      expect(diagramBulkItems("mindmap", mirrored).some((item) => item.side)).toBe(false);
+      expect(setMindmapItemsSide(mirrored, keysOf(mirrored, "One"), "left")).toMatchObject({ applied: 0 });
+    });
+
+    it("flags only direct children of a root as owning a side", () => {
+      const sided = diagramBulkItems("mindmap", source)
+        .filter((item) => item.side)
+        .map((item) => item.label);
+      expect(sided).toEqual(["One", "Two", "Three"]);
+    });
+
+    it("keeps CRLF line endings", () => {
+      const lines = ["@startmindmap", "* Root", "** One", "*** One A", "** Two", "** Three", "@endmindmap"];
+      const crlf = lines.join("\r\n");
+      const result = setMindmapItemsSide(crlf, keysOf(crlf, "One", "Two"), "left");
+      expect(result.applied).toBe(2);
+      expect(result.source).toBe(
+        ["@startmindmap", "* Root", "-- One", "--- One A", "-- Two", "** Three", "@endmindmap"].join("\r\n"),
+      );
+    });
+
+    it("moves a branch with a multi-line label and keeps the others in step", () => {
+      const multi = wrap(["* Root", "**:One", "line two;", "** Two", "** Three"].join(NL));
+      const result = setMindmapItemsSide(multi, keysOf(multi, "Two", "Three"), "left");
+      expect(result.applied).toBe(2);
+      const after = parseMindmap(result.source);
+      expect(after.diagnostics).toEqual([]);
+      expect(after.nodes.filter((node) => node.depth === 2).map((node) => `${node.label}:${node.side}`)).toEqual(
+        expect.arrayContaining(["Two:left", "Three:left"]),
+      );
+    });
+  });
+
+  describe("copy, paste and duplicate", () => {
+    const parentOf = (src: string, label: string) => parseMindmap(src).nodes.find((node) => node.label === label)!;
+
+    it("copies a branch once with its subtree and pastes it under the chosen node at the right depth", () => {
+      const copied = copyDiagramItems("mindmap", source, [keyOf(source, "One"), keyOf(source, "One A")])!;
+      expect(copied.text).toBe(`** One${NL}*** One A`);
+      const pasted = pasteDiagramItems("mindmap", source, copied, parentOf(source, "Two").id);
+      expect(pasted.source).toBe(
+        wrap(["* Root", "** One", "*** One A", "** Two", "*** One", "**** One A", "** Three"].join(NL)),
+      );
+      expect(pasted.keys).toHaveLength(2);
+    });
+
+    it("duplicates next to the originals, under the same parent, and keeps markers, sides and boxes", () => {
+      const sided = wrap(["* Root", "++ Right", "--_ Left", "--- Deep"].join(NL));
+      const copied = copyDiagramItems("mindmap", sided, [keyOf(sided, "Left")])!;
+      const result = pasteDiagramItems("mindmap", sided, copied, parentOf(sided, "Left").parentId);
+      expect(result.source).toBe(wrap(["* Root", "++ Right", "--_ Left", "--- Deep", "--_ Left", "--- Deep"].join(NL)));
+    });
+
+    it("pastes copied roots as new roots when no node is chosen, or under a node when one is", () => {
+      const copied = copyDiagramItems("mindmap", source, [keyOf(source, "Root")])!;
+      const asRoot = pasteDiagramItems("mindmap", source, copied);
+      expect(parseMindmap(asRoot.source).roots).toHaveLength(2);
+      expect(
+        asRoot.source.endsWith(`** Three${NL}* Root${NL}** One${NL}*** One A${NL}** Two${NL}** Three${NL}@endmindmap`),
+      ).toBe(true);
+      const nested = pasteDiagramItems("mindmap", source, copied, parentOf(source, "Three").id);
+      expect(parseMindmap(nested.source).roots).toHaveLength(1);
+      expect(nested.source).toContain(`** Three${NL}*** Root${NL}**** One${NL}***** One A`);
+    });
+
+    it("keeps CRLF line endings", () => {
+      const CRLF = "\r\n";
+      const crlf = source.replaceAll(NL, CRLF);
+      const copied = copyDiagramItems("mindmap", crlf, [keyOf(crlf, "One")])!;
+      expect(copied.text).toBe(`** One${NL}*** One A`);
+      const result = pasteDiagramItems("mindmap", crlf, copied, parentOf(crlf, "Two").id);
+      expect(result.source).toBe(
+        [
+          "@startmindmap",
+          "* Root",
+          "** One",
+          "*** One A",
+          "** Two",
+          "*** One",
+          "**** One A",
+          "** Three",
+          "@endmindmap",
+        ].join(CRLF),
+      );
+    });
+
+    it("refuses Markdown-form mindmaps", () => {
+      const markdown = wrap(["# Root", "## One"].join(NL));
+      expect(() => copyDiagramItems("mindmap", markdown, [keyOf(markdown, "One")])).toThrow("Convert to * markers");
+      expect(() => pasteDiagramItems("mindmap", markdown, { kind: "mindmap", text: "** X" })).toThrow(
+        "Convert to * markers",
+      );
+    });
   });
 });

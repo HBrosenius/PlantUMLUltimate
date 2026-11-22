@@ -19,10 +19,14 @@ import {
 } from "@plantuml-studio/diagram-wbs";
 import {
   deleteMindmapNode,
+  isMirroredDirection,
+  mindmapSideBlocker,
   parseMindmap,
   setMindmapNodeBoxless,
+  setMindmapNodeSide,
   updateMindmapNode,
   mindmapEditBlocker,
+  MINDMAP_MARKDOWN_UNAVAILABLE,
   type MindmapNode,
 } from "@plantuml-studio/diagram-mindmap";
 import {
@@ -47,6 +51,8 @@ export interface DiagramBulkItem {
   /** Mindmap nodes only: the node can be drawn without a box, and deleted with its subtree. */
   boxless?: boolean;
   deletable?: boolean;
+  /** Mindmap nodes only: a direct child of a root in a document where branches have a side. */
+  side?: boolean;
   changeColor?: (color: string) => string;
 }
 const key = (attribute: string, id: string) => `${attribute}:${id}`;
@@ -191,6 +197,7 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
     }
   } else if (kind === "mindmap") {
     const doc = parseMindmap(source);
+    const sidesApply = !isMirroredDirection(doc);
     for (const node of doc.nodes) {
       // A node written in Markdown form can only be edited as text.
       const editable = !mindmapEditBlocker(doc, node);
@@ -198,6 +205,7 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
       const item = items[items.length - 1]!;
       item.boxless = !node.markdown;
       item.deletable = editable;
+      item.side = sidesApply && !mindmapSideBlocker(source, doc, node);
     }
   } else {
     const doc = parseWbs(source);
@@ -361,6 +369,49 @@ export function setMindmapItemsBoxless(
 }
 
 /**
+ * Moves every selected mindmap branch to `side` in one edit. Only the direct children of a root own a
+ * side, exactly as in the single-node inspector, so deeper nodes are skipped rather than moving their
+ * ancestor; a branch selected together with such a descendant moves once, with its whole subtree.
+ * Nodes that cannot change side (Markdown form, right-to-left documents) are skipped too.
+ */
+export function setMindmapItemsSide(
+  source: string,
+  keys: readonly string[],
+  side: "left" | "right",
+): { source: string; applied: number; skipped: number } {
+  const document = parseMindmap(source);
+  const eligible = new Set(
+    diagramBulkItems("mindmap", source)
+      .filter((item) => keys.includes(item.key) && item.side)
+      .map((item) => item.id),
+  );
+  // A branch is told apart from its siblings by its root, label and place among equal labels, because
+  // moving a multi-line branch to a `left side` / `right side` line changes the order of the nodes.
+  const identify = (doc: ReturnType<typeof parseMindmap>, node: MindmapNode) => {
+    const siblings = doc.nodes.filter((item) => item.parentId === node.parentId && item.label === node.label);
+    const roots = doc.nodes.filter((item) => item.depth === 1);
+    return {
+      root: roots.findIndex((item) => item.id === node.parentId),
+      label: node.label,
+      index: siblings.indexOf(node),
+    };
+  };
+  const targets = document.nodes.filter((node) => eligible.has(node.id)).map((node) => identify(document, node));
+  let current = source;
+  let applied = 0;
+  for (const target of targets) {
+    const doc = parseMindmap(current);
+    const root = doc.nodes.filter((item) => item.depth === 1)[target.root];
+    const node = doc.nodes.filter((item) => item.parentId === root?.id && item.label === target.label)[target.index];
+    if (!node || mindmapSideBlocker(current, doc, node)) continue;
+    const next = setMindmapNodeSide(current, doc, node, side);
+    if (next !== current) applied++;
+    current = next;
+  }
+  return { source: current, applied, skipped: keys.length - eligible.size };
+}
+
+/**
  * Deletes the selected mindmap nodes with their subtrees in one edit. A node whose ancestor is also
  * selected goes with that ancestor. At least one root has to stay, and Markdown-form nodes are blocked.
  */
@@ -399,6 +450,7 @@ export function copyDiagramItems(
   const items = diagramBulkItems(kind, source);
   const selected = items.filter((item) => keys.includes(item.key));
   if (!selected.length) return undefined;
+  if (kind === "mindmap" && selected.some((item) => !item.deletable)) throw new Error(MINDMAP_MARKDOWN_UNAVAILABLE);
   const implicit =
     kind === "usecase"
       ? parseUseCase(source).elements.filter(
@@ -456,7 +508,9 @@ export function copyDiagramItems(
     text: [
       ...implicit.map((item) => insertUseCaseElement("", item).trimEnd()),
       ...ranges.map((range) => source.slice(range.from, range.to).trimEnd()),
-    ].join("\n"),
+    ]
+      .join("\n")
+      .replace(/\r\n/g, "\n"),
   };
 }
 
@@ -491,7 +545,14 @@ export function pasteDiagramItems(
   parentId?: string,
 ) {
   if (kind !== clipboard.kind) throw new Error("Paste into a diagram of the same type.");
-  const envelope = (text: string) => (kind === "wbs" ? `@startwbs\n${text}\n@endwbs` : `@startuml\n${text}\n@enduml`);
+  if (kind === "mindmap" && parseMindmap(source).nodes.some((node) => node.markdown))
+    throw new Error(MINDMAP_MARKDOWN_UNAVAILABLE);
+  const envelope = (text: string) =>
+    kind === "wbs"
+      ? `@startwbs\n${text}\n@endwbs`
+      : kind === "mindmap"
+        ? `@startmindmap\n${text}\n@endmindmap`
+        : `@startuml\n${text}\n@enduml`;
   let fragment = envelope(clipboard.text);
   const existing = occurrences(kind, source);
   const copied = occurrences(kind, fragment);
@@ -527,21 +588,29 @@ export function pasteDiagramItems(
   }
   fragment = replaceRanges(fragment, edits);
   let block = fragment.slice(fragment.indexOf("\n") + 1, fragment.lastIndexOf("\n"));
-  let at = /^\s*@end(?:uml|wbs)\b/im.exec(source)?.index ?? source.length;
-  if (kind === "wbs") {
-    const doc = parseWbs(source);
-    const parent = doc.nodes.find((item) => item.id === parentId) ?? doc.roots[0];
-    const pasted = parseWbs(envelope(block));
+  let at = /^\s*@end(?:uml|wbs|mindmap)\b/im.exec(source)?.index ?? source.length;
+  if (kind === "wbs" || kind === "mindmap") {
+    const parse = kind === "wbs" ? parseWbs : parseMindmap;
+    const doc = parse(source);
+    const pasted = parse(envelope(block));
     const minimum = Math.min(...pasted.nodes.map((item) => item.depth));
+    // Copied mindmap roots pasted with no node to go under become new roots at the end; anything
+    // else goes under the given node, or under the first root.
+    const asRoots = kind === "mindmap" && !parentId && minimum === 1;
+    const parent = asRoots ? undefined : (doc.nodes.find((item) => item.id === parentId) ?? doc.roots[0]);
     const delta = parent ? parent.depth + 1 - minimum : 1 - minimum;
     block = block.replace(
-      /^(\s*)(\*+|[+-]+)(?=\s|\[|\(|:)/gm,
+      /^(\s*)(\*+|[+-]+)(?=\s|\[|\(|:|_)/gm,
       (_, indent: string, marker: string) => `${indent}${marker[0]!.repeat(Math.max(1, marker.length + delta))}`,
     );
     if (parent) at = endLine(source, parent.subtreeRange).to;
   }
-  const prefix = at > 0 && source[at - 1] !== "\n" ? "\n" : "";
-  const nextSource = source.slice(0, at) + prefix + block + "\n" + source.slice(at);
+  // Pasted lines follow the document's own line endings, so a CRLF file stays CRLF.
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  if (at > 0 && source[at - 1] === "\r" && source[at] === "\n") at++;
+  block = block.replace(/\r?\n/g, newline);
+  const prefix = at > 0 && source[at - 1] !== "\n" ? newline : "";
+  const nextSource = source.slice(0, at) + prefix + block + newline + source.slice(at);
   const start = at + prefix.length;
   const keys = diagramBulkItems(kind, nextSource)
     .filter((item) => item.range.from >= start && item.range.from < start + block.length)

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./coverage";
-import { fillSource, prepareEditor, readEditorSource, setSource } from "./editor-helpers";
+import { fillSource, prepareEditor, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 
 async function createMindmap(page: Page) {
   await page.getByRole("button", { name: "New diagram tab" }).click();
@@ -248,4 +248,54 @@ test("the style snippets render, and a * { } style rule gets a warning and a fix
   await expect.poll(() => readEditorSource(page)).toBe(broken.replace("  * {", "  node {"));
   await expect(page.locator(".cm-lintRange-warning")).toHaveCount(0);
   await expect(page.locator(".mindmap-diagram svg")).toContainText("Root", { timeout: 45_000 });
+});
+
+test("moves several selected mindmap branches to the other side in one undo step", async ({ page, browserName }) => {
+  test.setTimeout(browserName === "webkit" ? 180_000 : 90_000);
+  await prepareEditor(page);
+  await createMindmap(page);
+  const wrap = (body: string[]) => ["@startmindmap", ...body, "@endmindmap"].join("\n");
+  const original = wrap(["* Root", "** One", "*** One A", "** Two", "** Three"]);
+  await setSource(page, original);
+  await expect(page.locator(".mindmap-diagram svg")).toBeVisible({ timeout: 45_000 });
+  await waitForDiagramRender(page);
+  const click = async (text: string, shift = false) => {
+    await waitForDiagramRender(page);
+    // Aim with the browser's own rectangle: WebKit reports an SVG box in a scaled diagram without the scale.
+    const point = await page
+      .locator("text[data-mindmap-node-id]", { hasText: text })
+      .first()
+      .evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      });
+    if (shift) await page.keyboard.down("Shift");
+    try {
+      await page.mouse.click(point.x, point.y);
+    } finally {
+      if (shift) await page.keyboard.up("Shift");
+    }
+  };
+  const inspector = page.getByRole("complementary", { name: "Selected elements inspector" });
+  const press = (button: ReturnType<Page["getByRole"]>) =>
+    browserName === "webkit" ? button.press("Enter") : button.click();
+
+  // A deeper node owns no side: it is counted out, and its selected parent moves once with it.
+  await click("One");
+  await click("One A", true);
+  await click("Two", true);
+  await expect(inspector.getByText("3 elements selected")).toBeVisible();
+  await expect(inspector.getByText("2 of 3 nodes have a side")).toBeVisible();
+  await press(inspector.getByRole("button", { name: "Move to left side", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "-- One", "--- One A", "-- Two", "** Three"]));
+  await expect(page.locator(".statusbar")).toContainText("Moved 2 branches to the left");
+  await expect(inspector.getByText("3 elements selected")).toBeVisible();
+  await press(inspector.getByRole("button", { name: "Move to right side", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "++ One", "+++ One A", "++ Two", "** Three"]));
+
+  // Each side change is one undo step.
+  await press(page.getByRole("button", { name: "Undo", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "-- One", "--- One A", "-- Two", "** Three"]));
+  await press(page.getByRole("button", { name: "Undo", exact: true }));
+  await expect.poll(() => readEditorSource(page)).toBe(original);
 });

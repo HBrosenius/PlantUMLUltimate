@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import {
   changeDiagramItems,
   copyDiagramItems,
   deleteMindmapItems,
   setMindmapItemsBoxless,
+  setMindmapItemsSide,
   diagramBulkItems,
   pasteDiagramItems,
   type BulkDiagramKind,
@@ -211,9 +213,15 @@ export function useDiagramMultiSelection({
     }
   };
   const copy = () => {
-    if (kind === "gantt" || kind === "mindmap") return;
+    if (kind === "gantt") return;
     const currentKeys = selectionKeys();
-    const copied = copyDiagramItems(kind, source, currentKeys);
+    let copied: ReturnType<typeof copyDiagramItems>;
+    try {
+      copied = copyDiagramItems(kind, source, currentKeys);
+    } catch (error) {
+      report(error instanceof Error ? error.message : "Could not copy the selection.");
+      return;
+    }
     if (!copied) return;
     clipboard.current = copied;
     void navigator.clipboard?.writeText(copied.text).catch(() => undefined);
@@ -221,16 +229,19 @@ export function useDiagramMultiSelection({
   };
   const paste = (duplicate = false, duplicateKeys = selectionKeys()) =>
     attempt(() => {
-      if (readOnly || kind === "gantt" || kind === "mindmap") return;
+      if (readOnly || kind === "gantt") return;
       const copied = duplicate ? copyDiagramItems(kind, source, duplicateKeys) : clipboard.current;
       if (!copied) return;
       const selectedNode = (duplicate ? items.filter((item) => duplicateKeys.includes(item.key)) : selected).find(
-        (item) => item.attribute === "data-wbs-node-id",
+        (item) => item.attribute === "data-wbs-node-id" || item.attribute === "data-mindmap-node-id",
       );
+      // A duplicate goes next to the original, under its parent; a paste goes under the selected node.
       const parent =
-        kind === "wbs"
+        kind === "wbs" || kind === "mindmap"
           ? duplicate
-            ? parseWbs(source).nodes.find((node) => node.id === selectedNode?.id)?.parentId
+            ? (kind === "wbs" ? parseWbs(source) : parseMindmap(source)).nodes.find(
+                (node) => node.id === selectedNode?.id,
+              )?.parentId
             : selectedNode?.id
           : undefined;
       const result = pasteDiagramItems(kind, source, copied, parent);
@@ -272,6 +283,32 @@ export function useDiagramMultiSelection({
       choose(keys, result.source);
       report(`Updated ${result.applied} nodes${result.skipped ? ` · ${result.skipped} cannot change their box` : ""}`);
     });
+  const setSide = (side: "left" | "right") =>
+    attempt(() => {
+      if (readOnly || kind !== "mindmap") return;
+      const result = setMindmapItemsSide(source, keys, side);
+      if (!result.applied || result.source === source) {
+        report(`Nothing to change: the selected branches are already on the ${side}`);
+        return;
+      }
+      if (!commit(result.source, `Move ${result.applied} mindmap branches to the ${side}`)) return;
+      // A branch with a multi-line label moves in the source, so keep the selection by label, not by id.
+      const nextItems = diagramBulkItems(kind, result.source);
+      const occurrence = (list: readonly DiagramBulkItem[], item: DiagramBulkItem) =>
+        list.filter((other) => other.label === item.label).indexOf(item);
+      choose(
+        selected.flatMap((item) => {
+          const next = nextItems.filter((other) => other.label === item.label)[occurrence(items, item)];
+          return next ? [next.key] : [];
+        }),
+        result.source,
+      );
+      report(
+        `Moved ${result.applied} ${result.applied === 1 ? "branch" : "branches"} to the ${side}${
+          result.skipped ? ` · ${result.skipped} have no side of their own` : ""
+        }`,
+      );
+    });
   const remove = () =>
     attempt(() => {
       if (readOnly || kind !== "mindmap") return;
@@ -308,8 +345,6 @@ export function useDiagramMultiSelection({
       const key = event.key.toLowerCase();
       const activeKeys = state.selectionKeys();
       const diagramFocus = target instanceof Element && !!target.closest(".diagram");
-      // Mindmap selections have no clipboard: only select all applies.
-      if (state.kind === "mindmap" && key !== "a") return;
       if (key === "a" && diagramFocus) {
         event.preventDefault();
         event.stopPropagation();
@@ -367,6 +402,7 @@ export function useDiagramMultiSelection({
     },
     change,
     setBoxless,
+    setSide,
     remove,
     onPointerDownCapture,
     onClickCapture,
