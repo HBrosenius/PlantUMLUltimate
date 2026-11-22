@@ -217,44 +217,48 @@ export function useExportActions({
     }
     return undefined;
   }, [activeDocument.historyId, workspace.source]);
-  const exportSnapshotThisDiagram = useCallback(async () => {
-    if (!result?.svg || !exportReady) {
-      setInteractionMessage("Render a valid diagram before exporting a snapshot");
-      return;
-    }
-    try {
-      const versionLabel = await snapshotVersionLabel();
-      const name = activeDocument.displayName || workspace.fileName.replace(/\.(pumlu|puml|plantuml)$/i, "");
-      const html = await buildSnapshotHtml({
-        ...withTaskDetails(workspace.diagramKind, decorateExportSvg(result.svg), workspace.source),
-        source: workspace.source,
-        documentName: name,
-        diagramTitle: name,
-        diagramKind: workspace.diagramKind,
-        snapshotDate: new Date(),
-        versionLabel,
-      });
-      downloadText(html, snapshotFileName(workspace.fileName), "text/html;charset=utf-8");
-      notifySuccess("Exported snapshot (HTML)");
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [
-    activeDocument.displayName,
-    decorateExportSvg,
-    exportReady,
-    notifySuccess,
-    reportFileError,
-    result,
-    setInteractionMessage,
-    snapshotVersionLabel,
-    workspace.diagramKind,
-    workspace.fileName,
-    workspace.source,
-  ]);
+  const exportSnapshotThisDiagram = useCallback(
+    async (includeSource = false) => {
+      if (!result?.svg || !exportReady) {
+        setInteractionMessage("Render a valid diagram before exporting a snapshot");
+        return;
+      }
+      try {
+        const versionLabel = await snapshotVersionLabel();
+        const name = activeDocument.displayName || workspace.fileName.replace(/\.(pumlu|puml|plantuml)$/i, "");
+        const html = await buildSnapshotHtml({
+          ...withTaskDetails(workspace.diagramKind, decorateExportSvg(result.svg), workspace.source),
+          source: workspace.source,
+          documentName: name,
+          diagramTitle: name,
+          diagramKind: workspace.diagramKind,
+          snapshotDate: new Date(),
+          versionLabel,
+          includeSource,
+        });
+        downloadText(html, snapshotFileName(workspace.fileName), "text/html;charset=utf-8");
+        notifySuccess("Exported snapshot (HTML)");
+      } catch (error) {
+        reportFileError(error);
+      }
+    },
+    [
+      activeDocument.displayName,
+      decorateExportSvg,
+      exportReady,
+      notifySuccess,
+      reportFileError,
+      result,
+      setInteractionMessage,
+      snapshotVersionLabel,
+      workspace.diagramKind,
+      workspace.fileName,
+      workspace.source,
+    ],
+  );
   /** Builds and downloads one snapshot from diagrams the snapshot queue has already rendered. */
   const exportSnapshotDocument = useCallback(
-    async (rendered: readonly RenderedDiagram[]) => {
+    async (rendered: readonly RenderedDiagram[], includeSource = false) => {
       if (!sharedDocument) return;
       const activeId = sharedDocument.diagrams.find(
         (diagram) => diagram.documentId === activeDocument.portableDocumentId,
@@ -276,6 +280,7 @@ export function useExportActions({
         relations: snapshotRelations(sharedDocument),
         snapshotDate: new Date(),
         versionLabel: await snapshotVersionLabel(),
+        includeSource,
       });
       const failed = diagrams.filter((diagram) => diagram.error).length;
       downloadText(html, snapshotFileName(workspace.fileName), "text/html;charset=utf-8");
@@ -295,11 +300,14 @@ export function useExportActions({
       workspace.fileName,
     ],
   );
-  // With several diagrams a dialog offers this diagram or the whole document; otherwise export directly.
+  // The dialog asks whether to include the source and, with several diagrams, offers the whole document.
   const exportSnapshot = useCallback(async () => {
-    if (sharedDocument && sharedDocument.diagrams.length > 1) openSnapshotDialog();
-    else await exportSnapshotThisDiagram();
-  }, [exportSnapshotThisDiagram, openSnapshotDialog, sharedDocument]);
+    if (!result?.svg || !exportReady) {
+      setInteractionMessage("Render a valid diagram before exporting a snapshot");
+      return;
+    }
+    openSnapshotDialog();
+  }, [exportReady, openSnapshotDialog, result, setInteractionMessage]);
   const copyImage = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before copying it");

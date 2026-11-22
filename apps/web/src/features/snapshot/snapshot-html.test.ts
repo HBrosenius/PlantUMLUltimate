@@ -190,3 +190,33 @@ describe("Gantt task details", () => {
     expect(plain).not.toContain('class="task-card"');
   });
 });
+
+describe("opt-in source", () => {
+  const tricky = ["@startuml", `' note: </pre><script>alert(1)</script> & "q"`, "A -> B", "@enduml"].join("\n");
+
+  it("keeps the source out unless asked", async () => {
+    const html = await buildSnapshotHtml({ ...base, source: tricky, svg: svg("<rect/>") });
+    expect(html).not.toContain("@startuml");
+    expect(html).not.toContain("Includes PlantUML source");
+    expect(html).not.toContain('class="source"');
+  });
+
+  it("offers an escaped copy and a .puml download, and still runs one script", async () => {
+    const html = await buildSnapshotHtml({
+      ...base,
+      source: tricky,
+      diagramTitle: "Plan / v2.puml",
+      svg: svg("<rect/>"),
+      includeSource: true,
+    });
+    expect(html).toContain("<li>Includes PlantUML source</li>");
+    expect(html).toContain("&lt;/pre&gt;&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;q&quot;");
+    expect(html).not.toMatch(/<script\b[^>]*>\s*alert/i);
+    expect(html).toContain('download="Plan  v2.puml"');
+    const link = new DOMParser().parseFromString(html, "text/html").querySelector("a[download]")!;
+    const prefix = "data:text/plain;charset=utf-8,";
+    expect(link.getAttribute("href")!.startsWith(prefix)).toBe(true);
+    expect(decodeURIComponent(link.getAttribute("href")!.slice(prefix.length))).toBe(tricky);
+    expect(html.match(/<script\b[^>]*>/gi)).toHaveLength(1);
+  });
+});

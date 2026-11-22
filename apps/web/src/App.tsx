@@ -3242,11 +3242,11 @@ export function App() {
           wbsSettingsOpen={wbsSettingsOpen}
           workspace={workspace}
         />
-        {snapshotDialogOpen && singleFileProject.sharedDocument && (
+        {snapshotDialogOpen && (
           <SnapshotDialog
             document={singleFileProject.sharedDocument}
             activeDiagramId={
-              singleFileProject.sharedDocument.diagrams.find(
+              singleFileProject.sharedDocument?.diagrams.find(
                 (diagram) => diagram.documentId === activeDocument.portableDocumentId,
               )?.id
             }

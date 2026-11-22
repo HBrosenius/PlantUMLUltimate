@@ -15,12 +15,13 @@ export function SnapshotDialog({
   onDocument,
   onClose,
 }: {
-  document: SharedDocument;
+  /** The document's diagrams; absent or single when only this diagram can be exported. */
+  document: SharedDocument | undefined;
   /** The diagram open in the editor; its current preview is reused instead of rendering it again. */
   activeDiagramId: string | undefined;
   activeResult: RenderResult | undefined;
-  onThisDiagram(): Promise<void>;
-  onDocument(rendered: readonly RenderedDiagram[]): Promise<void>;
+  onThisDiagram(includeSource: boolean): Promise<void>;
+  onDocument(rendered: readonly RenderedDiagram[], includeSource: boolean): Promise<void>;
   onClose(): void;
 }) {
   const form = useRef<HTMLFormElement>(null);
@@ -28,7 +29,9 @@ export function SnapshotDialog({
   const latestResult = useRef(activeResult);
   latestResult.current = activeResult;
   const { render, release } = useSnapshotRenderer();
-  const [scope, setScope] = useState<Scope>("document");
+  const count = shared?.diagrams.length ?? 1;
+  const [scope, setScope] = useState<Scope>(count > 1 ? "document" : "diagram");
+  const [includeSource, setIncludeSource] = useState(false);
   const [progress, setProgress] = useState<QueueProgress | undefined>();
   const [error, setError] = useState<string | undefined>();
   const running = progress !== undefined;
@@ -52,8 +55,8 @@ export function SnapshotDialog({
 
   const create = async () => {
     setError(undefined);
-    if (scope === "diagram") {
-      await onThisDiagram();
+    if (scope === "diagram" || !shared) {
+      await onThisDiagram(includeSource);
       onClose();
       return;
     }
@@ -80,7 +83,7 @@ export function SnapshotDialog({
           onProgress: setProgress,
         },
       );
-      await onDocument(rendered);
+      await onDocument(rendered, includeSource);
       release();
       onClose();
     } catch (cause) {
@@ -91,7 +94,6 @@ export function SnapshotDialog({
     }
   };
 
-  const count = shared.diagrams.length;
   return (
     <div
       className="modal-backdrop"
@@ -110,27 +112,43 @@ export function SnapshotDialog({
         }}
       >
         <h2 id="snapshot-dialog-title">Snapshot (HTML)</h2>
-        <fieldset disabled={running}>
-          <legend>Include</legend>
-          <label>
-            <input
-              type="radio"
-              name="snapshot-scope"
-              checked={scope === "document"}
-              onChange={() => setScope("document")}
-            />
-            Whole document ({count} diagrams)
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="snapshot-scope"
-              checked={scope === "diagram"}
-              onChange={() => setScope("diagram")}
-            />
-            This diagram
-          </label>
-        </fieldset>
+        {count > 1 && (
+          <fieldset disabled={running}>
+            <legend>Include</legend>
+            <label>
+              <input
+                type="radio"
+                name="snapshot-scope"
+                checked={scope === "document"}
+                onChange={() => setScope("document")}
+              />
+              Whole document ({count} diagrams)
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="snapshot-scope"
+                checked={scope === "diagram"}
+                onChange={() => setScope("diagram")}
+              />
+              This diagram
+            </label>
+          </fieldset>
+        )}
+        <label className="snapshot-source-option">
+          <input
+            type="checkbox"
+            checked={includeSource}
+            disabled={running}
+            onChange={(event) => setIncludeSource(event.target.checked)}
+          />
+          Include PlantUML source
+        </label>
+        <p className="fieldset-help">
+          {includeSource
+            ? "Anyone with the file can download each diagram's source, including notes and comments, and open it in PlantUML Ultimate."
+            : "The file holds only the rendered diagrams and a fingerprint of the source, not the source itself."}
+        </p>
         {running && progress && (
           <div className="snapshot-progress" role="status" aria-live="polite">
             <progress max={progress.total} value={progress.done} aria-label="Snapshot progress" />

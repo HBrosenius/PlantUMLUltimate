@@ -1,6 +1,6 @@
 # B3: Shareable read-only snapshots — plan
 
-Status: decided 2026-11-22 (see [section 6](#6-decisions)); S1, S0, S2 and S3 are built. S4 (include source) is next. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
+Status: decided 2026-11-22 (see [section 6](#6-decisions)); S1–S4 are built. S5 (in-app viewer and small links) waits for use. Source: [next steps, B3](next-steps-2026-11-20.md#b3-shareable-read-only-snapshots-and-walkthroughs--value-mediumhigh-effort-m).
 
 ## 0. What this is for
 
@@ -35,7 +35,7 @@ Today there are three partial ways, and none of them fits:
   - Connections between diagrams in the document (the `represents` and `implements` links, and in-document `[[…]]` links) become in-page anchors.
   - External `[[url]]` links stay clickable, limited to `http:`, `https:` and `mailto:`.
 - **Gantt details:** each task's hover card (dates, duration, progress, resources, dependencies, Jira key) is embedded as data. It shows on hover or focus, and on tap on touch screens.
-- **Optional source:** an "Include source" checkbox, off by default. When on, the file embeds the portable document so "Open in PlantUML Ultimate" can import it again. When off, the file holds only rendered output, which is the safe default for sharing outside the team.
+- **Optional source:** an "Include PlantUML source" checkbox, off by default. When on, each diagram offers its plain `.puml` source as a download and as text to copy, so it can be opened again in PlantUML Ultimate or any PlantUML tool. When off, the file holds only rendered output and a fingerprint, which is the safe default for sharing outside the team. (As built: plain source, not the portable document. See decision 5.)
 - **Safety:**
   - A strict CSP meta tag: no network access, inline script and style only.
   - SVG output is sanitised again before embedding: no `<script>` and no event attributes from diagram text.
@@ -70,6 +70,7 @@ S1 can start before S0 is finished. S3 and S4 don't depend on each other.
 Decided on 2026-11-22:
 
 1. **The snapshot file comes first (option A).** The in-app viewer with small links (S5) waits until S1–S3 have been used. Hosted links (option C) are out.
-2. **Source is opt-in.** It is off by default, and a checkbox includes the portable document so the file can be opened in the app again (S4).
+2. **Source is opt-in.** It is off by default, and a checkbox includes it so the file can be opened in the app again (S4).
 3. **The first PR is S1, the active diagram only.** It settles the file format, the safety rules and the version stamp before S0 takes on rendering the other diagrams.
 4. **Walkthroughs are dropped**, not deferred.
+5. **S4 ships plain `.puml` source, not the `.pumlu` portable document** (2026-11-22, while building S4). A portable document carries the whole version history and can be encrypted, so embedding it would leak past versions and needs the unlock key. Plain source carries only what the reader sees rendered, opens in any PlantUML tool, and needs no key. Reopening with history stays with Save As.
