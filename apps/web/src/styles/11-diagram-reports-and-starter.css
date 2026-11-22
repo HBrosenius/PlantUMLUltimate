@@ -480,6 +480,28 @@
 }
 .new-document-dialog .start-routes {
   z-index: 2;
+  gap: 4px;
+  padding-bottom: 0;
+}
+/* Create / Open / Examples switch the dialog body, so they read as tabs, not buttons. */
+.new-document-dialog .start-routes > button {
+  min-height: 36px;
+  margin-bottom: -1px;
+  padding: 6px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+}
+.new-document-dialog .start-routes > button:hover {
+  color: var(--text);
+  background: transparent;
+}
+.new-document-dialog .start-routes > button[aria-pressed="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 .diagram-kind-preview .preview-light-labels text {
   fill: white;
