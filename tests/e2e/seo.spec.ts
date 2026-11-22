@@ -7,7 +7,7 @@ test("serves the guide and discovery metadata without JavaScript", async ({ page
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Create PlantUML diagrams in your browser");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://plantuml.brosenius.se/guide/");
   await expect(page.getByRole("link", { name: "Start editing diagrams" })).toHaveAttribute("href", "/");
-  await expect(page.locator("pre code")).toHaveCount(3);
+  await expect(page.locator("pre code")).toHaveCount(4);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/seo-guide-mobile.png" });
