@@ -8,6 +8,8 @@ test-results
 .env*
 .DS_Store
 *.local
+# Scratch logs, screenshots and one-off output from local or agent runs
+/.scratch/
 *.tsbuildinfo
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).

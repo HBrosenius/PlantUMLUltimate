@@ -13,6 +13,7 @@ export default tseslint.config(
       ".claude/**",
       "graft/**",
       ".trail/**",
+      ".scratch/**",
       "output/**",
       "playwright-report/**",
       "test-results/**",
