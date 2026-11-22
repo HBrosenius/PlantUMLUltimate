@@ -83,7 +83,12 @@ export function updateTreeNode(source: string, node: TreeNode, value: TreeNodeIn
   // rewrites this node's own marker — descendants keep whichever side they were each given.
   const side = node.depth === 1 ? "root" : (value.side ?? node.side);
   const marker = (side === node.side ? node.marker : markerFor(node.depth, side)) + (node.boxless ? "_" : "");
-  return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, alias)}${source.slice(node.sourceRange.to)}`;
+  // In a CRLF file the node's range ends with the line's `\r`; keep it, and write a multi-line
+  // label's own breaks in the file's line ending too, so the file stays CRLF.
+  const newline = eol(source);
+  const keptCr = source[node.sourceRange.to - 1] === "\r" ? "\r" : "";
+  const written = statement(marker, value, alias).replace(/\r?\n/g, newline);
+  return `${source.slice(0, node.sourceRange.from)}${written}${keptCr}${source.slice(node.sourceRange.to)}`;
 }
 
 /**

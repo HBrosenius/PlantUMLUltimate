@@ -79,6 +79,21 @@ describe("tree operations", () => {
     expect(byLabel(lf, "A").label).toBe("A");
   });
 
+  it("keeps CRLF line endings when updating a node, including multi-line labels", () => {
+    const crlf = "@starttree\r\n* Root\r\n** A\r\n** B\r\n@endtree\r\n";
+    const document = parse(crlf);
+    expect(updateTreeNode(crlf, document.nodes[1]!, { label: "A2" })).toBe(
+      "@starttree\r\n* Root\r\n** A2\r\n** B\r\n@endtree\r\n",
+    );
+    expect(updateTreeNode(crlf, document.nodes[1]!, { label: "one\ntwo" })).toBe(
+      "@starttree\r\n* Root\r\n**: one\r\ntwo;\r\n** B\r\n@endtree\r\n",
+    );
+    const multi = "@starttree\r\n* Root\r\n**: one\r\ntwo;\r\n** B\r\n@endtree\r\n";
+    expect(updateTreeNode(multi, parse(multi).nodes[1]!, { label: "solo" })).toBe(
+      "@starttree\r\n* Root\r\n** solo\r\n** B\r\n@endtree\r\n",
+    );
+  });
+
   it("removes only the node's own subtree plus any extra ranges", () => {
     const document = parse(lf);
     expect(deleteTreeNode(lf, document.nodes[1]!)).toBe("@starttree\n* Root\n** B\n@endtree");
