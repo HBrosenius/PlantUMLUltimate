@@ -167,7 +167,15 @@ test("exports a whole document with contents, in-page links and one stage per di
   const jump = handover.locator(".stage a[href^='#diagram-']");
   await expect(jump).toHaveCount(1);
   expect(await jump.getAttribute("href")).toBe(`#${scopeId}`);
-  await jump.locator("text").first().click();
+  // Playwright's WebKit reports an SVG element's box without the stage's zoom, so a locator click lands
+  // on another shape; aim with the browser's own rectangle instead.
+  const label = jump.locator("text").first();
+  await label.scrollIntoViewIfNeeded();
+  const point = await label.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  });
+  await viewer.mouse.click(point.x, point.y);
   await expect(viewer).toHaveURL(new RegExp(`#${scopeId}$`));
   // External links keep the S1 rules.
   const external = handover.locator(".stage a[href^='https://']");
