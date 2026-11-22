@@ -713,6 +713,16 @@ export function WorkspaceDiagramPane({
               if (node) setSelectionRequest({ ...node.sourceRange });
             }}
             onInlineRename={commandReadOnly ? undefined : startInlineRename}
+            onMove={mindmap.moveNode}
+            onAddChild={(id) => mindmap.openAddNode("child", id)}
+            onAddSibling={(id) => mindmap.openAddNode("sibling", id)}
+            onDelete={(id) => mindmap.removeNode(mindmap.document.nodes.find((item) => item.id === id))}
+            onEditLabel={() =>
+              window.setTimeout(
+                () => globalThis.document.querySelector<HTMLElement>(".mindmap-node-inspector textarea")?.focus(),
+                0,
+              )
+            }
           />
         ) : (
           <WbsDiagramPreview

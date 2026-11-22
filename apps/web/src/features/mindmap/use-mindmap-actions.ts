@@ -15,6 +15,7 @@ import {
 } from "@plantuml-studio/diagram-mindmap";
 import { applicationMindmapAdapter } from "../../diagram-adapters";
 import type { MindmapInsertPosition } from "./MindmapDialogs";
+import { settleMirroredMarkerFamilies } from "./mindmap-families";
 
 /** What the Settings inspector edits. An empty text removes the statement. */
 export interface MindmapSettings {
@@ -74,6 +75,33 @@ export function applyMindmapSettings(source: string, settings: MindmapSettings):
   return current;
 }
 
+/** A node with everything below it: what stays the same when a subtree is moved. */
+const subtreeSignature = (document: MindmapDocument, node: MindmapNode) =>
+  document.nodes
+    .filter((item) => item.sourceRange.from >= node.sourceRange.from && item.sourceRange.from <= node.subtreeRange.to)
+    .map((item) => item.label)
+    .join("\u0000");
+
+/**
+ * The id the same node has after an edit that only reordered nodes. Ids are positions, so a move shifts
+ * the ids of everything between the old and the new place; the node is found again by its label and the
+ * labels below it, taking the same turn among identical subtrees.
+ */
+export function remapMindmapNodeId(
+  before: MindmapDocument,
+  after: MindmapDocument,
+  nodeId: string,
+): string | undefined {
+  const node = before.nodes.find((item) => item.id === nodeId);
+  if (!node) return undefined;
+  const wanted = subtreeSignature(before, node);
+  const turn = before.nodes
+    .filter((item) => subtreeSignature(before, item) === wanted)
+    .findIndex((item) => item.id === nodeId);
+  const candidates = after.nodes.filter((item) => subtreeSignature(after, item) === wanted);
+  return candidates[Math.min(turn, candidates.length - 1)]?.id;
+}
+
 /** The node that a successful insertion added: the first place where the labels of old and new differ. */
 export function findInsertedMindmapNode(
   before: MindmapDocument,
@@ -113,19 +141,32 @@ export function useMindmapActions({
   reportMessage,
 }: UseMindmapActionsOptions) {
   const applyOperation = useCallback(
-    (operation: ReturnType<typeof applicationMindmapAdapter.applyVisualOperation>, fallback?: string) => {
+    (
+      operation: ReturnType<typeof applicationMindmapAdapter.applyVisualOperation>,
+      fallback?: string,
+      // The operations that rewrite markers also settle the marker families of a mirrored document.
+      settleMarkers = false,
+    ) => {
       if (operation.unavailableReason) {
         reportMessage(operation.unavailableReason);
         return undefined;
       }
-      const updated = applySourceEdits(source, operation.edits);
-      if (updated === source) {
+      const edited = applySourceEdits(source, operation.edits);
+      if (edited === source) {
         if (fallback) reportMessage(fallback);
         return undefined;
       }
-      return updated;
+      return settleMarkers ? settleMirroredMarkerFamilies(edited) : edited;
     },
     [reportMessage, source],
+  );
+
+  // A move shifts the ids of the nodes it passes over, so the selection follows its node to the new id.
+  const keepSelection = useCallback(
+    (updated: string) => {
+      if (selectedNode) selectNode(remapMindmapNodeId(document, parseMindmap(updated), selectedNode.id));
+    },
+    [document, selectNode, selectedNode],
   );
 
   const addNode = useCallback(
@@ -145,6 +186,7 @@ export function useMindmapActions({
           source,
         ),
         "The node cannot be added there",
+        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Add mindmap node ${value.label}`)) return;
@@ -196,12 +238,15 @@ export function useMindmapActions({
       if (!node) return;
       const updated = applyOperation(
         applicationMindmapAdapter.applyVisualOperation({ kind: "set-side", nodeId: node.id, side }, document, source),
+        undefined,
+        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Move mindmap branch ${node.label} to the ${side}`)) return;
       reportMessage(`Moved ${node.label} to the ${side}`);
+      keepSelection(updated);
     },
-    [applyOperation, commitSource, document, reportMessage, selectedNode, source],
+    [applyOperation, commitSource, document, keepSelection, reportMessage, selectedNode, source],
   );
 
   const removeNode = useCallback(
@@ -250,12 +295,14 @@ export function useMindmapActions({
           source,
         ),
         "That mindmap branch cannot be moved there",
+        true,
       );
       if (updated === undefined) return;
       if (!commitSource(updated, `Move mindmap branch ${node.label}`)) return;
+      keepSelection(updated);
       reportMessage(`Moved ${node.label}${parent ? ` under ${parent.label}` : ""}${side ? ` to the ${side}` : ""}`);
     },
-    [applyOperation, commitSource, document, reportMessage, source],
+    [applyOperation, commitSource, document, keepSelection, reportMessage, source],
   );
 
   const applySettings = useCallback(
