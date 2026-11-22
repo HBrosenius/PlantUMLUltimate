@@ -199,3 +199,81 @@ test("exports a whole document with contents, in-page links and one stage per di
   expect(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await phone.close();
 });
+
+test("shows Gantt task details on hover, keyboard focus and tap, and lists them in a table", async ({
+  page,
+  context,
+}, testInfo) => {
+  await prepareEditor(page);
+  await setSource(
+    page,
+    source("[Design] requires 5 days\n[Build] requires 8 days and is 40% completed\n[Build] starts at [Design]'s end"),
+  );
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Snapshot (HTML)" }).click();
+  const file = await download;
+  const path = testInfo.outputPath(file.suggestedFilename());
+  await file.saveAs(path);
+
+  const viewer = await context.newPage();
+  const fileUrl = pathToFileURL(path).href;
+  const requests: string[] = [];
+  viewer.on("request", (request) => requests.push(request.url()));
+  const pageErrors: string[] = [];
+  viewer.on("pageerror", (error) => pageErrors.push(error.message));
+  await viewer.goto(fileUrl);
+
+  // The table carries every task's details, and reads without the card.
+  const table = viewer.locator(".task-details");
+  await table.locator("summary").click();
+  const buildRow = table.locator("tr[data-task]").filter({ has: viewer.getByRole("rowheader", { name: "Build" }) });
+  await expect(buildRow).toContainText("40%");
+  await expect(buildRow).toContainText("Design");
+
+  const card = viewer.locator("#snapshot-card-1");
+  await expect(card).toBeHidden();
+  const build = viewer.locator("#snapshot-stage-1 [data-task-id][role='button'][aria-label='Build']");
+  await expect(build).toBeAttached();
+  // Aim with the browser's own rectangle: Playwright's WebKit reports SVG boxes without the stage's zoom.
+  const centre = () =>
+    build.evaluate((element) => {
+      const box = (element.querySelector(".bar") ?? element).getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+
+  let point = await centre();
+  await viewer.mouse.move(point.x, point.y);
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Build");
+  await expect(card).toContainText("Progress");
+  await expect(card).toContainText("40%");
+  await viewer.mouse.move(2, 2);
+  await expect(card).toBeHidden();
+
+  // Keyboard: the task takes focus and describes itself with the card; Escape closes it.
+  await build.focus();
+  await expect(card).toBeVisible();
+  await expect(build).toHaveAttribute("aria-describedby", "snapshot-card-1");
+  await viewer.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await viewer.locator("h1").click();
+
+  // A tap (press and release without moving) pins the card; a tap elsewhere closes it.
+  point = await centre();
+  await viewer.mouse.move(point.x, point.y);
+  await viewer.mouse.down();
+  await viewer.mouse.up();
+  await viewer.mouse.move(2, 2);
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("40%");
+  const stage = (await viewer.locator("#snapshot-stage-1").boundingBox())!;
+  await viewer.mouse.click(stage.x + stage.width - 6, stage.y + stage.height - 6);
+  await expect(card).toBeHidden();
+
+  await viewer.setViewportSize({ width: 375, height: 740 });
+  expect(await viewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(pageErrors).toEqual([]);
+  expect(requests.filter((url) => !url.startsWith(fileUrl))).toEqual([]);
+});
