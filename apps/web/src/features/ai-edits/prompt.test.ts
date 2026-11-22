@@ -74,6 +74,6 @@ describe("request building", () => {
     });
     expect(big.ok).toBe(false);
     expect(checkRequestSize({ kind: "sequence", source: SOURCE, instruction: " " }).ok).toBe(false);
-    expect(checkRequestSize({ kind: "sequence", source: SOURCE, instruction: "x".repeat(2001) }).ok).toBe(false);
+    expect(checkRequestSize({ kind: "sequence", source: SOURCE, instruction: "x".repeat(6001) }).ok).toBe(false);
   });
 });

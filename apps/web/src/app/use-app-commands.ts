@@ -1,4 +1,5 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
+import { aiEditSupports } from "../features/ai-edits/use-ai-edit-launcher";
 import type { Command } from "@plantuml-studio/editor-core";
 import { modShortcut, optionShortcut } from "../platform-shortcuts";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "../diagram-zoom";
@@ -10,6 +11,7 @@ import type { RenderResult, ViewMode } from "../model";
 import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
 
 export interface useAppCommandsInputs {
+  askAi: () => void;
   activateTab: (id: string) => void;
   activeHistory: SourceHistory;
   backupWorkspace: () => Promise<void>;
@@ -88,6 +90,7 @@ export interface useAppCommandsInputs {
 }
 
 export function useAppCommands({
+  askAi,
   activateTab,
   activeHistory,
   backupWorkspace,
@@ -361,6 +364,13 @@ export function useAppCommands({
         category: "Edit",
         enabled: !commandReadOnly,
         run: openFormatSource,
+      },
+      {
+        id: "edit.ask-ai",
+        label: "Ask AI to change the selection…",
+        category: "Edit",
+        enabled: !commandReadOnly && aiEditSupports(workspace.diagramKind),
+        run: askAi,
       },
       {
         id: "edit.rename-symbol",

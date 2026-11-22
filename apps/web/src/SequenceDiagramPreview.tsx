@@ -1,7 +1,8 @@
 import { previewInteractionGuard } from "./preview-interaction-guard";
 import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
-import { useMemo, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useLayoutEffect, useRef, useState } from "react";
+import { requestAiEditDialog } from "./features/ai-edits/ai-edit-bridge";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
@@ -119,6 +120,18 @@ export function SequenceDiagramPreview({
   const dragFeedbackRef = useRef<HTMLOutputElement>(null);
   const dragGhostRef = useRef<HTMLDivElement>(null);
   const [orderTrayOpen, setOrderTrayOpen] = useState(false);
+  const [aiMenu, setAiMenu] = useState<{ x: number; y: number; from: number; to: number } | undefined>();
+  useEffect(() => {
+    if (!aiMenu) return;
+    const dismiss = () => setAiMenu(undefined);
+    const escape = (event: KeyboardEvent) => event.key === "Escape" && dismiss();
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", escape);
+    };
+  }, [aiMenu]);
   const [trayDrag, setTrayDrag] = useState<{ kind: "participant" | "message" | "structure"; id: string }>();
   const selectedParticipant = participants.find((participant) => participant.id === selectedParticipantId);
   const selectedMessage = messages.find((message) => message.id === selectedMessageId);
@@ -291,6 +304,24 @@ export function SequenceDiagramPreview({
       }
     }
   }, [svg, geometry, selectedParticipantId, selectedMessageId, selectedStructureId]);
+
+  /** Right-click on a message or participant offers the AI assistant for exactly that source range. */
+  const openAiContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!editingEnabled) return;
+    const target = event.target as Element;
+    const participantId = target
+      .closest("[data-sequence-participant-id]")
+      ?.getAttribute("data-sequence-participant-id");
+    const messageId = target.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id");
+    const range = participantId
+      ? participants.find((item) => item.id === participantId)?.sourceRange
+      : messages.find((item) => item.id === messageId)?.sourceRange;
+    if (!range) return;
+    event.preventDefault();
+    if (participantId) onParticipantSelect(participantId);
+    else if (messageId) onMessageSelect(messageId);
+    setAiMenu({ x: event.clientX, y: event.clientY, from: range.from, to: range.to });
+  };
 
   const selectRenderedObject = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
@@ -709,6 +740,10 @@ export function SequenceDiagramPreview({
                 { label: "From edge", run: () => onMessageExternalize(selectedMessage.id, "from", "[") },
                 { label: "To edge", run: () => onMessageExternalize(selectedMessage.id, "to", "]") },
                 { label: "Mark lost", run: () => onMessageExternalize(selectedMessage.id, "to", "?") },
+                {
+                  label: "Ask AI to change this message…",
+                  run: () => requestAiEditDialog(selectedMessage.sourceRange),
+                },
               ]}
             />
           </span>
@@ -759,6 +794,7 @@ export function SequenceDiagramPreview({
             data-inspector-trigger
             style={{ transform: `scale(${zoom})` }}
             onClick={selectRenderedObject}
+            onContextMenu={openAiContextMenu}
             onKeyDown={selectRenderedObjectByKeyboard}
             onPointerDown={startDrag}
             onPointerMove={moveDrag}
@@ -774,6 +810,27 @@ export function SequenceDiagramPreview({
           </div>
         )}
       </div>
+      {aiMenu && (
+        <div
+          role="menu"
+          aria-label="Diagram item actions"
+          className="application-menu ai-context-menu"
+          style={{ position: "fixed", left: aiMenu.x, top: aiMenu.y, zIndex: 50 }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            autoFocus
+            onClick={() => {
+              requestAiEditDialog({ from: aiMenu.from, to: aiMenu.to });
+              setAiMenu(undefined);
+            }}
+          >
+            Ask AI to change this…
+          </button>
+        </div>
+      )}
       <output ref={dragFeedbackRef} className="interaction-feedback" hidden />
       <div ref={dragGhostRef} className="sequence-drag-ghost" aria-hidden="true" hidden />
       <PreviewRenderNotice

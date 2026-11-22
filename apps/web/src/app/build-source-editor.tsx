@@ -1,4 +1,5 @@
 import { CodeEditor, type SourceRepairRequest } from "../CodeEditor";
+import { reportEditorSelection } from "../features/ai-edits/ai-edit-bridge";
 import { SOURCE_EDIT_DESCRIPTION, type SourceProblemPreview } from "../features/documents/use-source-commands";
 import { findTaskAt, parseGantt } from "@plantuml-studio/diagram-gantt";
 import { findSequenceObjectAt } from "@plantuml-studio/diagram-sequence";
@@ -238,6 +239,7 @@ export function buildSourceEditor({
       }
       onCursorChange={(line, column, position, anchor, head, sourceChanged) => {
         update("cursor", { line, column });
+        reportEditorSelection(anchor, head);
         if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
         // Cursor navigation in a utility panel must not replace it with object properties.
         if (problemsOpen || unsupportedOpen || projectInspectorOpen || resourcePanelOpen) return;

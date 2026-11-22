@@ -40,6 +40,11 @@ const VersionHistoryDialog = lazyFeature<ComponentProps<typeof import("../Versio
   "version history",
 );
 
+const AiEditDialog = lazyFeature<ComponentProps<typeof import("../features/ai-edits/AiEditDialog").AiEditDialog>>(
+  () => import("../features/ai-edits/AiEditDialog").then((module) => ({ default: module.AiEditDialog })),
+  "AI assistant",
+);
+
 const SettingsDialog = lazyFeature<ComponentProps<typeof import("../SettingsDialog").SettingsDialog>>(
   () => import("../SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
   "settings",
@@ -56,6 +61,8 @@ const JiraDialog = lazyFeature<ComponentProps<typeof import("../JiraDialog").Jir
 );
 
 export interface DocumentDialogsProps {
+  aiEdit: { selection: { from: number; to: number } | undefined } | undefined;
+  closeAiEdit(): void;
   activeDocument: DocumentSnapshot;
   addMissingProjectItem: (item: WbsGanttMissingItem) => Promise<void>;
   addProjectDiagram: (kind: DiagramKind, name: string, initialSource?: string) => Promise<boolean>;
@@ -197,6 +204,8 @@ export interface DocumentDialogsProps {
 }
 
 export function DocumentDialogs({
+  aiEdit,
+  closeAiEdit,
   activeDocument,
   addMissingProjectItem,
   addProjectDiagram,
@@ -280,6 +289,31 @@ export function DocumentDialogs({
   versionHistoryOpen,
   workspace,
 }: DocumentDialogsProps) {
+  const applyReviewSelection = async (source: string, expectedSource: string) => {
+    const documentId = tabs.activeId;
+    const isCurrent = () =>
+      reviewApplyContext.current.documentId === documentId &&
+      reviewApplyContext.current.source === expectedSource &&
+      !reviewApplyContext.current.readOnly;
+    if (!isCurrent()) return false;
+    try {
+      await recordDocumentVersion("before-restore", "Before semantic review");
+      if (!isCurrent()) {
+        setInteractionMessage("The working copy changed during review. Nothing was applied.");
+        return false;
+      }
+      const applied = commitGeneratedSource(source, "Apply semantic review selection");
+      if (applied) {
+        setInteractionMessage("Applied selected review changes");
+        setVersionHistoryOpen(false);
+      }
+      return applied;
+    } catch (error) {
+      reportFileError(error);
+      return false;
+    }
+  };
+
   return (
     <>
       {project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple && (
@@ -414,6 +448,16 @@ export function DocumentDialogs({
           onClose={() => setDateMenuFor(undefined)}
         />
       )}
+      {aiEdit && (
+        <AiEditDialog
+          kind={workspace.diagramKind}
+          source={workspace.source}
+          selection={aiEdit.selection}
+          readOnly={commandReadOnly}
+          onApply={applyReviewSelection}
+          onClose={closeAiEdit}
+        />
+      )}
       {versionHistoryOpen && (
         <VersionHistoryDialog
           versions={documentVersions}
@@ -430,30 +474,7 @@ export function DocumentDialogs({
           diagramKind={workspace.diagramKind}
           fileName={workspace.fileName}
           readOnly={commandReadOnly}
-          onApplyReview={async (source, expectedSource) => {
-            const documentId = tabs.activeId;
-            const isCurrent = () =>
-              reviewApplyContext.current.documentId === documentId &&
-              reviewApplyContext.current.source === expectedSource &&
-              !reviewApplyContext.current.readOnly;
-            if (!isCurrent()) return false;
-            try {
-              await recordDocumentVersion("before-restore", "Before semantic review");
-              if (!isCurrent()) {
-                setInteractionMessage("The working copy changed during review. Nothing was applied.");
-                return false;
-              }
-              const applied = commitGeneratedSource(source, "Apply semantic review selection");
-              if (applied) {
-                setInteractionMessage("Applied selected review changes");
-                setVersionHistoryOpen(false);
-              }
-              return applied;
-            } catch (error) {
-              reportFileError(error);
-              return false;
-            }
-          }}
+          onApplyReview={applyReviewSelection}
           onSetBaseline={setBaseline}
           onClose={() => setVersionHistoryOpen(false)}
         />

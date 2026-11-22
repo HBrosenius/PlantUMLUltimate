@@ -1,4 +1,5 @@
 import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
+import { useAiEditLauncher } from "./features/ai-edits/use-ai-edit-launcher";
 import { buildPresentationData } from "./app/build-presentation-data";
 import { buildApplySemanticRename } from "./app/build-apply-semantic-rename";
 import { useOutlineModeEffects } from "./app/use-outline-mode-effects";
@@ -2173,6 +2174,19 @@ export function App() {
   const commandReadOnly = collaborationAppliesToActiveDiagram && collaboration?.role === "viewer";
   const reviewApplyContext = useRef({ documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly });
   reviewApplyContext.current = { documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly };
+  const { aiEdit, askAi, closeAiEdit } = useAiEditLauncher({
+    kind: workspace.diagramKind,
+    source: workspace.source,
+    readOnly: commandReadOnly,
+    sequenceDocument,
+    selectedMessageId: selectedSequenceMessageId,
+    selectedParticipantId: selectedSequenceParticipantId,
+    openAiSettings: () => {
+      setSettingsCategory("AI assistant");
+      setSettingsOpen(true);
+    },
+    notify: setInteractionMessage,
+  });
   const startInlineRename = (id: string, anchor: Element) => {
     if (commandReadOnly || diagramMulti.multiple || status !== "idle" || anchor.closest("[data-class-member-id]"))
       return false;
@@ -2207,6 +2221,7 @@ export function App() {
 
   const dependencyTaskCount = parseResult.document.tasks.length;
   const { commands } = useAppCommands({
+    askAi,
     activateTab,
     activeHistory,
     backupWorkspace,
@@ -3209,6 +3224,8 @@ export function App() {
         />
         <DocumentDialogs
           activeDocument={activeDocument}
+          aiEdit={aiEdit}
+          closeAiEdit={closeAiEdit}
           addMissingProjectItem={addMissingProjectItem}
           addProjectDiagram={addProjectDiagram}
           applyExternalConflictMerge={applyExternalConflictMerge}

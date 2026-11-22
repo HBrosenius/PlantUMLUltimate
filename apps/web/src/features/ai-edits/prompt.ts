@@ -3,7 +3,7 @@ import { DEFAULT_AI_MODEL } from "./models";
 
 /** Documents larger than this are refused before anything is sent. */
 export const MAX_AI_SOURCE_BYTES = 100 * 1024;
-export const MAX_AI_INSTRUCTION_CHARS = 2000;
+export const MAX_AI_INSTRUCTION_CHARS = 6000;
 export const SELECTION_START_MARKER = "[[[SELECTION_START]]]";
 export const SELECTION_END_MARKER = "[[[SELECTION_END]]]";
 
