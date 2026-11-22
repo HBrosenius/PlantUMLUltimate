@@ -220,3 +220,20 @@ test("points to Settings when the assistant is off", async ({ page }) => {
   await expect(aiDialog(page)).toHaveCount(0);
   expect(requests).toHaveLength(0);
 });
+
+test("opens from the Sequence toolbar's Ask AI button with the selected message", async ({ page }) => {
+  await mockAnthropic(page, [answer(WITH_TIMEOUT)]);
+  await enableAi(page);
+  await page.locator("[data-sequence-message-id]").first().click({ force: true });
+  await page.locator(".preview-tools").getByRole("button", { name: "Ask AI…", exact: true }).click();
+  await expect(aiDialog(page).getByText(/Selected lines \d+–\d+/)).toBeVisible();
+});
+
+test("the toolbar's Ask AI button points to Settings when the assistant is off", async ({ page }) => {
+  const requests = await mockAnthropic(page, [answer(WITH_TIMEOUT)]);
+  await page.locator(".preview-tools").getByRole("button", { name: "Ask AI…", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await expect(settings.getByText(/The AI assistant can propose changes/)).toBeVisible();
+  await expect(aiDialog(page)).toHaveCount(0);
+  expect(requests).toHaveLength(0);
+});

@@ -61,7 +61,7 @@ function estimate(core, model, tasks) {
   let inputTokens = 0;
   let outputTokens = 0;
   for (const task of tasks) {
-    const payload = core.buildRequestPayload({ kind: "sequence", ...task }, model);
+    const payload = core.buildRequestPayload({ kind: task.kind ?? "sequence", ...task }, model);
     inputTokens += Math.ceil((payload.system[0].text.length + payload.messages[0].content.length) / 3.5);
     outputTokens += Math.ceil(task.source.length / 3) + 200;
   }
@@ -122,7 +122,12 @@ async function main() {
       proposal = await core.requestAiEdit({
         apiKey,
         model: options.model,
-        request: { kind: "sequence", source: task.source, selection: task.selection, instruction: task.instruction },
+        request: {
+          kind: task.kind ?? "sequence",
+          source: task.source,
+          selection: task.selection,
+          instruction: task.instruction,
+        },
       });
     } catch (error) {
       failure = error instanceof Error ? error.message : String(error);

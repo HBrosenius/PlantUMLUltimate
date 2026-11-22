@@ -1,5 +1,6 @@
 import "./stage.css";
 import { modShortcut } from "../platform-shortcuts";
+import { AskAiButton } from "../features/ai-edits/AskAiButton";
 
 export interface StageTopBarProps {
   documents: Array<{ id: string; label: string; dirty: boolean }>;
@@ -16,6 +17,8 @@ export interface StageTopBarProps {
   onTrueRenderChange(value: boolean): void;
   /** Shown only when the dark recolouring would apply, so the toggle never looks inert. */
   recolorAvailable: boolean;
+  /** Show "Ask AI…" for diagram kinds the AI assistant supports. */
+  askAiAvailable?: boolean;
   onExit(): void;
 }
 
@@ -34,6 +37,7 @@ export function StageTopBar({
   trueRender,
   onTrueRenderChange,
   recolorAvailable,
+  askAiAvailable = false,
   onExit,
 }: StageTopBarProps) {
   return (
@@ -72,6 +76,7 @@ export function StageTopBar({
       >
         True render
       </button>
+      {askAiAvailable && <AskAiButton className="stage-ask-ai" />}
       <button type="button" className="stage-palette" onClick={onOpenPalette} aria-keyshortcuts="Control+K Meta+K">
         <span aria-hidden="true">{modShortcut("K")}</span> Ask or do…
       </button>

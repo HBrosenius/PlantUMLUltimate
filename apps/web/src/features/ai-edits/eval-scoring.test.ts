@@ -152,6 +152,31 @@ describe("the task file and the script", () => {
     }
   });
 
+  it("scores Gantt tasks: a correct split passes, a dangling dependency or a rename elsewhere does not", async () => {
+    const module = (await import(/* @vite-ignore */ new URL(`file:///${tasksPath.replace(/\\/g, "/")}`).href)) as {
+      tasks: EvalTask[];
+    };
+    const gantt = module.tasks.filter((entry) => entry.kind === "gantt");
+    expect(gantt.length).toBeGreaterThanOrEqual(15);
+    const split = gantt.find((entry) => entry.id === "gantt-split-backend")!;
+    const good = split.source
+      .replace("[Backend] starts at [Design]'s end", "[Backend API] starts at [Design]'s end")
+      .replace(
+        "[Backend] lasts 10 days",
+        "[Backend API] lasts 6 days\n[Backend DB] starts at [Backend API]'s end\n[Backend DB] lasts 4 days",
+      )
+      .replace("[Testing] starts at [Backend]'s end", "[Testing] starts at [Backend DB]'s end");
+    const score = scoreResponse(split, response(good), usage, "claude-opus-5-5");
+    expect(score.checks.filter((check) => !check.pass)).toEqual([]);
+    expect(score).toMatchObject({ outcome: "valid", valid: true, scopeViolation: false });
+
+    const dangling = good.replace("[Testing] starts at [Backend DB]'s end", "[Testing] starts at [Backend]'s end");
+    expect(scoreResponse(split, response(dangling), usage, "claude-opus-5-5").valid).toBe(false);
+
+    const outside = good.replace("Project starts 2026-09-01", "Project starts 2026-09-02");
+    expect(scoreResponse(split, response(outside), usage, "claude-opus-5-5").scopeViolation).toBe(true);
+  });
+
   it("refuses to run without ANTHROPIC_API_KEY and never reaches the network", () => {
     const { ANTHROPIC_API_KEY: _removed, ...environment } = process.env;
     void _removed;

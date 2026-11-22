@@ -49,6 +49,7 @@ import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-fo
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
 import { trackWindowPointerDrag, type WindowPointerDragHandlers } from "./pointer-drag";
 import { formatTimelineDate, timelineDateRangeOnScreen, timelineScreenColumns } from "./timeline-visible-range";
+import { AskAiButton } from "./features/ai-edits/AskAiButton";
 
 interface Props {
   sharedDates?: Map<string, ResolvedTaskDates>;
@@ -62,6 +63,8 @@ interface Props {
   initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(zoom: number): void;
+  /** Show the "Ask AI…" button in the toolbar; off for embedded previews such as delivery scenarios. */
+  showAskAi?: boolean;
   selectedTaskId?: string | undefined;
   highlightedTaskId?: string | undefined;
   remoteEditTaskId?: string | undefined;
@@ -163,6 +166,7 @@ export function DiagramPreview({
   source,
   zoom,
   onZoomChange,
+  showAskAi = true,
   selectedTaskId,
   highlightedTaskId,
   remoteEditTaskId,
@@ -253,7 +257,7 @@ export function DiagramPreview({
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
     const next = viewport ? timelineDateRangeOnScreen(svg, viewport.getBoundingClientRect()) : undefined;
     setVisibleDates((current) => (current?.from === next?.from && current?.to === next?.to ? current : next));
-  }, []);
+  }, [viewportRef]);
   const cancelTaskHoverClose = () => {
     if (hoverCloseTimerRef.current !== undefined) {
       window.clearTimeout(hoverCloseTimerRef.current);
@@ -1378,6 +1382,7 @@ export function DiagramPreview({
               +
             </button>
           </div>
+          {showAskAi && <AskAiButton />}
           {selectedDependencyIndex !== undefined && (
             <button onClick={onDependencyDelete} aria-label="Delete dependency">
               Delete link

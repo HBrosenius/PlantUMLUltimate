@@ -2174,19 +2174,30 @@ export function App() {
   const commandReadOnly = collaborationAppliesToActiveDiagram && collaboration?.role === "viewer";
   const reviewApplyContext = useRef({ documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly });
   reviewApplyContext.current = { documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly };
-  const { aiEdit, askAi, closeAiEdit } = useAiEditLauncher({
+  const { aiEdit, askAi, askAiAt, closeAiEdit } = useAiEditLauncher({
     kind: workspace.diagramKind,
     source: workspace.source,
     readOnly: commandReadOnly,
-    sequenceDocument,
-    selectedMessageId: selectedSequenceMessageId,
-    selectedParticipantId: selectedSequenceParticipantId,
+    selectedObjectRange:
+      workspace.diagramKind === "gantt"
+        ? selectedTask?.sourceRange
+        : (
+            sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId) ??
+            sequenceDocument.participants.find((item) => item.id === selectedSequenceParticipantId)
+          )?.sourceRange,
     openAiSettings: () => {
       setSettingsCategory("AI assistant");
       setSettingsOpen(true);
     },
     notify: setInteractionMessage,
   });
+  const askAiAboutSymbol = (occurrence: { key: string; range: { from: number; to: number } }) =>
+    askAiAt(
+      (workspace.diagramKind === "gantt"
+        ? parseResult.document.symbols.tasks.get(occurrence.key)?.sourceRange
+        : sequenceDocument.participants.find((item) => item.id === occurrence.key || item.alias === occurrence.key)
+            ?.sourceRange) ?? occurrence.range,
+    );
   const startInlineRename = (id: string, anchor: Element) => {
     if (commandReadOnly || diagramMulti.multiple || status !== "idle" || anchor.closest("[data-class-member-id]"))
       return false;
@@ -3501,6 +3512,7 @@ export function App() {
           diagramMulti={diagramMulti}
           dialog={dialog}
           duplicateTaskOccurrence={duplicateTaskOccurrence}
+          askAiAboutSymbol={askAiAboutSymbol}
           inlineRename={inlineRename}
           linkedWbs={linkedWbs}
           mindmap={mindmap}

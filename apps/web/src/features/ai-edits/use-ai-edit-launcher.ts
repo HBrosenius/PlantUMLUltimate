@@ -1,23 +1,41 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { SequenceDocument } from "@plantuml-studio/diagram-sequence";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { DiagramKind } from "../../model";
 import { onAiEditDialogRequest, currentEditorSelection, type AiEditRange } from "./ai-edit-bridge";
-import { isAiAssistantReady, loadRememberedAiKey } from "./ai-settings";
+import { getAiAssistantState, isAiAssistantReady, loadRememberedAiKey, subscribeAiAssistant } from "./ai-settings";
 
-/** Kinds the assistant supports. Gantt is added by its own slice. */
-export const AI_EDIT_KINDS: readonly DiagramKind[] = ["sequence"];
+/** Diagram kinds the assistant can change. */
+export const AI_EDIT_KINDS: readonly DiagramKind[] = ["sequence", "gantt"];
 
 export function aiEditSupports(kind: DiagramKind): boolean {
   return AI_EDIT_KINDS.includes(kind);
+}
+
+/** True when the user has turned the assistant on. Menus that are otherwise unchanged use this to stay quiet. */
+export function useAiAssistantEnabled(): boolean {
+  return useSyncExternalStore(subscribeAiAssistant, () => getAiAssistantState().enabled);
+}
+
+/**
+ * Picks what "the selection" means when no range is passed explicitly. Selecting an object in the
+ * diagram also highlights part of it in the source, so an editor selection that lies inside the selected
+ * object is that highlight, not a choice: use the whole object then. An editor selection elsewhere wins.
+ */
+export function chooseSelection(
+  editor: AiEditRange | undefined,
+  diagramObject: AiEditRange | undefined,
+): AiEditRange | undefined {
+  const object = diagramObject ? { from: diagramObject.from, to: diagramObject.to } : undefined;
+  if (!editor) return object;
+  if (object && editor.from >= object.from && editor.to <= object.to) return object;
+  return editor;
 }
 
 export interface AiEditLauncherInput {
   kind: DiagramKind;
   source: string;
   readOnly: boolean;
-  sequenceDocument: SequenceDocument;
-  selectedMessageId: string | undefined;
-  selectedParticipantId: string | undefined;
+  /** Source range of the diagram object selected in the preview (a message, participant or task). */
+  selectedObjectRange: AiEditRange | undefined;
   /** Opens Settings on the AI assistant page. */
   openAiSettings(): void;
   notify(message: string): void;
@@ -36,25 +54,26 @@ export function useAiEditLauncher(input: AiEditLauncherInput) {
   const askAi = useCallback(async (explicit?: AiEditRange) => {
     const current = latest.current;
     if (current.readOnly) return current.notify("This document is read-only, so the AI assistant cannot change it.");
-    if (!aiEditSupports(current.kind)) return current.notify("The AI assistant can change Sequence diagrams for now.");
+    if (!aiEditSupports(current.kind))
+      return current.notify("The AI assistant can change Sequence and Gantt diagrams for now.");
     await loadRememberedAiKey();
     if (!isAiAssistantReady()) {
       current.notify("Turn on the AI assistant and add a key in Settings first.");
       current.openAiSettings();
       return;
     }
-    const message = current.sequenceDocument.messages.find((item) => item.id === current.selectedMessageId);
-    const participant = current.sequenceDocument.participants.find((item) => item.id === current.selectedParticipantId);
-    const fromDiagram = (message ?? participant)?.sourceRange;
     setOpen({
       selection:
-        explicit ??
-        currentEditorSelection(current.source.length) ??
-        (fromDiagram ? { from: fromDiagram.from, to: fromDiagram.to } : undefined),
+        explicit ?? chooseSelection(currentEditorSelection(current.source.length), current.selectedObjectRange),
     });
   }, []);
 
   useEffect(() => onAiEditDialogRequest((range) => void askAi(range)), [askAi]);
 
-  return { aiEdit: open, askAi: () => void askAi(), closeAiEdit: () => setOpen(undefined) };
+  return {
+    aiEdit: open,
+    askAi: () => void askAi(),
+    askAiAt: (range: AiEditRange | undefined) => void askAi(range),
+    closeAiEdit: () => setOpen(undefined),
+  };
 }

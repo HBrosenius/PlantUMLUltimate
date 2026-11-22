@@ -1,5 +1,6 @@
 /**
- * Task set for scripts/ai-edit-eval.mjs: 30 Sequence edits over three starting documents.
+ * Task set for scripts/ai-edit-eval.mjs: 30 Sequence edits over three starting documents and 15 Gantt edits
+ * over one plan (each task has a `kind`; Sequence is the default).
  * Each task has an instruction, a starting source, a selection (1-based inclusive lines) and checkable
  * expectations. Selections are written as text anchors so the sources stay easy to edit.
  */
@@ -65,7 +66,7 @@ function lines(source, from, to = from) {
 }
 const body = (source) => ({ startLine: 2, endLine: source.split("\n").length - 1 });
 
-export const tasks = [
+const sequenceTasks = [
   {
     id: "checkout-timeout",
     title: "Add a timeout path to the database call",
@@ -322,3 +323,132 @@ export const tasks = [
     expect: { shouldAsk: true },
   },
 ];
+
+const PLAN = `@startgantt
+Project starts 2026-09-01
+[Design] lasts 5 days
+[Backend] starts at [Design]'s end
+[Backend] lasts 10 days
+[Frontend] starts at [Design]'s end
+[Frontend] lasts 8 days
+[Testing] starts at [Backend]'s end
+[Testing] lasts 5 days
+[Release] happens at [Testing]'s end
+@endgantt`;
+
+const gantt = (task) => ({ kind: "gantt", source: PLAN, ...task });
+
+const ganttTasks = [
+  gantt({
+    id: "gantt-split-backend",
+    title: "Split Backend into API and DB tasks",
+    instruction:
+      "Split the Backend task into two tasks, Backend API (6 days) and Backend DB (4 days), one after the other. Testing should start after the last of them.",
+    selection: lines(PLAN, "[Backend] starts", "[Testing] lasts"),
+    expect: {
+      tasks: ["Backend API", "Backend DB", "Testing"],
+      absentTasks: ["Backend"],
+      contains: ["6 days", "4 days"],
+    },
+  }),
+  gantt({
+    id: "gantt-review-milestone",
+    title: "Add a review milestone after Testing",
+    instruction: "Add a Code review milestone after Testing and before Release happens.",
+    selection: lines(PLAN, "[Testing] lasts", "[Release] happens"),
+    expect: { tasks: ["Code review", "Release"], contains: ["review"] },
+  }),
+  gantt({
+    id: "gantt-rename-frontend",
+    title: "Rename Frontend to UI",
+    instruction: "Rename the Frontend task to UI everywhere.",
+    selection: body(PLAN),
+    expect: { tasks: ["UI"], absentTasks: ["Frontend"], notContains: ["Frontend"] },
+  }),
+  gantt({
+    id: "gantt-longer-backend",
+    title: "Make Backend take 15 days",
+    instruction: "Make Backend take 15 days.",
+    selection: lines(PLAN, "[Backend] lasts"),
+    expect: { contains: ["15 days"], notContains: ["10 days"], tasks: ["Backend"] },
+  }),
+  gantt({
+    id: "gantt-rewire-frontend",
+    title: "Frontend after Backend",
+    instruction: "Make Frontend start after Backend ends instead of after Design.",
+    selection: lines(PLAN, "[Frontend] starts"),
+    expect: { contains: ["[Backend]'s end"], tasks: ["Frontend"] },
+  }),
+  gantt({
+    id: "gantt-resource",
+    title: "Assign Alice to Backend",
+    instruction: "Assign Alice to the Backend task.",
+    selection: lines(PLAN, "[Backend] starts", "[Backend] lasts"),
+    expect: { contains: ["Alice"], tasks: ["Backend"] },
+  }),
+  gantt({
+    id: "gantt-complete",
+    title: "Mark Design complete",
+    instruction: "Mark Design as 100% complete.",
+    selection: lines(PLAN, "[Design] lasts"),
+    expect: { contains: ["100%"], tasks: ["Design"] },
+  }),
+  gantt({
+    id: "gantt-colour",
+    title: "Colour Testing red",
+    instruction: "Colour the Testing task red.",
+    selection: lines(PLAN, "[Testing] starts", "[Testing] lasts"),
+    expect: { contains: ["red"], tasks: ["Testing"] },
+  }),
+  gantt({
+    id: "gantt-documentation",
+    title: "Add a Documentation task",
+    instruction: "Add a Documentation task of 3 days that starts when Design ends.",
+    selection: lines(PLAN, "[Frontend] lasts"),
+    expect: { tasks: ["Documentation", "Frontend", "Design"], contains: ["3 days"] },
+  }),
+  gantt({
+    id: "gantt-remove-frontend",
+    title: "Remove Frontend",
+    instruction: "Remove the Frontend task.",
+    selection: lines(PLAN, "[Frontend] starts", "[Frontend] lasts"),
+    expect: { absentTasks: ["Frontend"], tasks: ["Design", "Backend", "Testing"] },
+  }),
+  gantt({
+    id: "gantt-project-start",
+    title: "Move the project start",
+    instruction: "Start the project on 2026-10-05.",
+    selection: lines(PLAN, "Project starts"),
+    expect: { contains: ["2026-10-05"], notContains: ["2026-09-01"], tasks: ["Design", "Release"] },
+  }),
+  gantt({
+    id: "gantt-note",
+    title: "Add a note to Release",
+    instruction: "Add a note to Release saying that it needs sign-off.",
+    selection: lines(PLAN, "[Release] happens"),
+    expect: { contains: ["sign-off"], tasks: ["Release"] },
+  }),
+  gantt({
+    id: "gantt-needs-owner",
+    title: "Ask for a missing owner",
+    instruction: "Assign the person who actually owns Testing to that task.",
+    selection: lines(PLAN, "[Testing] starts", "[Testing] lasts"),
+    expect: { shouldAsk: true },
+  }),
+  gantt({
+    id: "gantt-divider",
+    title: "Add a divider before Testing",
+    instruction: "Add a divider titled Delivery before the Testing task.",
+    selection: lines(PLAN, "[Testing] starts"),
+    expect: { contains: ["Delivery"], tasks: ["Testing"] },
+  }),
+  gantt({
+    id: "gantt-buffer",
+    title: "Add a two-day buffer",
+    instruction: "Add a 2-day Buffer task between Backend and Testing.",
+    selection: lines(PLAN, "[Testing] starts", "[Testing] lasts"),
+    expect: { tasks: ["Buffer", "Testing", "Backend"], contains: ["2 days"] },
+  }),
+];
+
+export const tasks = [...sequenceTasks, ...ganttTasks];

@@ -1,5 +1,6 @@
 import { WorkspaceNavigation } from "../Ribbon";
 import { diagramKindDisplayName } from "../use-workspace-documents";
+import { aiEditSupports } from "../features/ai-edits/use-ai-edit-launcher";
 import { requestSidePanelChange } from "../side-panel-events";
 import { embeddedMemberHistoryId } from "../projects/embedded-project";
 import { StageTopBar } from "../stage/StageTopBar";
@@ -355,6 +356,7 @@ export function NavigationChrome({
           trueRender={stageTrueRender}
           onTrueRenderChange={setStageTrueRender}
           recolorAvailable={stageDark}
+          askAiAvailable={aiEditSupports(workspace.diagramKind)}
           onExit={() => update("viewMode", "split")}
         />
       )}

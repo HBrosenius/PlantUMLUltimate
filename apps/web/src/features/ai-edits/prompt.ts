@@ -42,8 +42,11 @@ const KIND_RULES: Partial<Record<DiagramKind, string>> = {
   ].join("\n"),
   gantt: [
     "Gantt diagram rules:",
-    "- Tasks are `[Name] lasts N days`, `[Name] starts D and ends D`, `[A] starts at [B]'s end`; milestones use `happens at`.",
-    "- Keep task names exactly as written, including brackets, so dependencies keep resolving.",
+    "- The project starts with `Project starts YYYY-MM-DD`. Tasks are `[Name] lasts N days`, `[Name] starts YYYY-MM-DD`, `[Name] starts at [Other]'s end` or `[Name] starts at [Other]'s start`; a task may use several lines. Milestones use `[Name] happens at [Other]'s end` or `happens at YYYY-MM-DD`.",
+    "- Other forms already in the document keep their exact syntax: `[Name] is N% complete`, `[Name] is colored in Red`, `[Name] on {Resource}`, dividers like `-- Title --`, calendar lines such as `closes`, and notes.",
+    "- A task name is its text inside the square brackets. Keep names exactly as written, including case and spaces, so dependencies keep resolving. Do not rename a task unless the instruction asks for it, and then update every reference to it.",
+    "- When a task is split, removed or renamed, update every line that referred to it (starts at, ends at, happens at) so no dependency points at a task that no longer exists.",
+    "- Do not invent dates, durations or people. Compute only what the instruction states; ask instead when a number is missing.",
   ].join("\n"),
 };
 
