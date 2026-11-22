@@ -10,6 +10,7 @@ export function BulkDiagramInspector({
   onDuplicate,
   onPaste,
   onBoxless,
+  onSide,
   onDelete,
   onClose,
 }: {
@@ -21,6 +22,8 @@ export function BulkDiagramInspector({
   onPaste(): void;
   /** Mindmap only: draw the selected nodes without a box, or with one. */
   onBoxless?(boxless: boolean): void;
+  /** Mindmap only: move the selected branches to the left or right of their root. */
+  onSide?(side: "left" | "right"): void;
   /** Mindmap only: delete the selected nodes with their subtrees. */
   onDelete?(): void;
   onClose(): void;
@@ -30,6 +33,7 @@ export function BulkDiagramInspector({
   const colorCount = items.filter((item) => item.color).length;
   const stereotypeCount = items.filter((item) => item.stereotype).length;
   const boxlessCount = items.filter((item) => item.boxless).length;
+  const sideCount = items.filter((item) => item.side).length;
   // Mindmap selections have no clipboard: copy, paste and duplicate only apply to the other kinds.
   const clipboard = !onBoxless;
   const styleLabel = onBoxless ? "Style class" : "Stereotype";
@@ -85,6 +89,19 @@ export function BulkDiagramInspector({
               </small>
             </div>
           )}
+          {onSide && sideCount > 0 && (
+            <div className="bulk-task-row">
+              <button type="button" onClick={() => onSide("left")}>
+                Move to left side
+              </button>
+              <button type="button" onClick={() => onSide("right")}>
+                Move to right side
+              </button>
+              <small>
+                {sideCount} of {items.length} nodes have a side
+              </small>
+            </div>
+          )}
         </fieldset>
         <div className="bulk-task-row">
           {clipboard && (
@@ -110,7 +127,7 @@ export function BulkDiagramInspector({
       <p className="fieldset-help">
         {clipboard
           ? "Ctrl/⌘+C copies, Ctrl/⌘+V pastes, Ctrl/⌘+D duplicates. Each edit is one undo step. Paste into the same diagram type; WBS subtrees paste under the selected node."
-          : "Each edit is one undo step. A node selected together with its parent is deleted with that parent, and at least one root stays."}
+          : "Each edit is one undo step. A node selected together with its parent is deleted with that parent, and at least one root stays. Only the direct children of a root have a side."}
       </p>
     </InspectorPanel>
   );

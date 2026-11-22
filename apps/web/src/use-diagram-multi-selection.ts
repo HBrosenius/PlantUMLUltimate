@@ -5,6 +5,7 @@ import {
   copyDiagramItems,
   deleteMindmapItems,
   setMindmapItemsBoxless,
+  setMindmapItemsSide,
   diagramBulkItems,
   pasteDiagramItems,
   type BulkDiagramKind,
@@ -272,6 +273,32 @@ export function useDiagramMultiSelection({
       choose(keys, result.source);
       report(`Updated ${result.applied} nodes${result.skipped ? ` · ${result.skipped} cannot change their box` : ""}`);
     });
+  const setSide = (side: "left" | "right") =>
+    attempt(() => {
+      if (readOnly || kind !== "mindmap") return;
+      const result = setMindmapItemsSide(source, keys, side);
+      if (!result.applied || result.source === source) {
+        report(`Nothing to change: the selected branches are already on the ${side}`);
+        return;
+      }
+      if (!commit(result.source, `Move ${result.applied} mindmap branches to the ${side}`)) return;
+      // A branch with a multi-line label moves in the source, so keep the selection by label, not by id.
+      const nextItems = diagramBulkItems(kind, result.source);
+      const occurrence = (list: readonly DiagramBulkItem[], item: DiagramBulkItem) =>
+        list.filter((other) => other.label === item.label).indexOf(item);
+      choose(
+        selected.flatMap((item) => {
+          const next = nextItems.filter((other) => other.label === item.label)[occurrence(items, item)];
+          return next ? [next.key] : [];
+        }),
+        result.source,
+      );
+      report(
+        `Moved ${result.applied} ${result.applied === 1 ? "branch" : "branches"} to the ${side}${
+          result.skipped ? ` · ${result.skipped} have no side of their own` : ""
+        }`,
+      );
+    });
   const remove = () =>
     attempt(() => {
       if (readOnly || kind !== "mindmap") return;
@@ -367,6 +394,7 @@ export function useDiagramMultiSelection({
     },
     change,
     setBoxless,
+    setSide,
     remove,
     onPointerDownCapture,
     onClickCapture,

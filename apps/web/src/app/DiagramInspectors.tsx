@@ -486,7 +486,7 @@ export function DiagramInspectors({
           onPaste={diagramMulti.paste}
           onDuplicate={diagramMulti.duplicate}
           {...(workspace.diagramKind === "mindmap"
-            ? { onBoxless: diagramMulti.setBoxless, onDelete: diagramMulti.remove }
+            ? { onBoxless: diagramMulti.setBoxless, onSide: diagramMulti.setSide, onDelete: diagramMulti.remove }
             : {})}
           onClose={() => {
             diagramMulti.clear();

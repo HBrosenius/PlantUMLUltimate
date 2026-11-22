@@ -6,6 +6,7 @@ import {
   diagramBulkItems,
   pasteDiagramItems,
   setMindmapItemsBoxless,
+  setMindmapItemsSide,
   type BulkDiagramKind,
 } from "./diagram-bulk-operations";
 import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
@@ -240,5 +241,66 @@ describe("mindmap bulk operations", () => {
       ),
     ).toThrow(/at least one root/);
     expect(deleteMindmapItems(two, [keyOf(two, "First")]).source).toBe(wrap(["* Second", "** B"].join(NL)));
+  });
+  describe("bulk side change", () => {
+    const keysOf = (src: string, ...labels: string[]) => labels.map((label) => keyOf(src, label));
+
+    it("moves every selected branch with its subtree in one edit and parses clean", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "One", "Three"), "left");
+      expect(result).toMatchObject({ applied: 2, skipped: 0 });
+      expect(result.source).toBe(wrap(["* Root", "-- One", "--- One A", "** Two", "-- Three"].join(NL)));
+      expect(parseMindmap(result.source).diagnostics).toEqual([]);
+      const back = setMindmapItemsSide(result.source, keysOf(result.source, "One", "Three"), "right");
+      expect(back.source).toBe(wrap(["* Root", "++ One", "+++ One A", "** Two", "++ Three"].join(NL)));
+    });
+
+    it("skips nodes that own no side, like the single-node inspector, and moves a parent once", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "Root", "One", "One A"), "left");
+      expect(result).toMatchObject({ applied: 1, skipped: 2 });
+      expect(result.source).toBe(wrap(["* Root", "-- One", "--- One A", "** Two", "** Three"].join(NL)));
+      const onlyDeep = setMindmapItemsSide(source, keysOf(source, "One A"), "left");
+      expect(onlyDeep).toMatchObject({ applied: 0, source });
+    });
+
+    it("changes nothing for branches that are already on that side", () => {
+      const result = setMindmapItemsSide(source, keysOf(source, "One", "Two"), "right");
+      expect(result).toMatchObject({ applied: 0, source });
+    });
+
+    it("offers no side in Markdown form or in a right to left document", () => {
+      const markdown = wrap(["# Root", "## One"].join(NL));
+      expect(diagramBulkItems("mindmap", markdown).some((item) => item.side)).toBe(false);
+      const mirrored = `@startmindmap${NL}right to left direction${NL}* Root${NL}** One${NL}@endmindmap`;
+      expect(diagramBulkItems("mindmap", mirrored).some((item) => item.side)).toBe(false);
+      expect(setMindmapItemsSide(mirrored, keysOf(mirrored, "One"), "left")).toMatchObject({ applied: 0 });
+    });
+
+    it("flags only direct children of a root as owning a side", () => {
+      const sided = diagramBulkItems("mindmap", source)
+        .filter((item) => item.side)
+        .map((item) => item.label);
+      expect(sided).toEqual(["One", "Two", "Three"]);
+    });
+
+    it("keeps CRLF line endings", () => {
+      const lines = ["@startmindmap", "* Root", "** One", "*** One A", "** Two", "** Three", "@endmindmap"];
+      const crlf = lines.join("\r\n");
+      const result = setMindmapItemsSide(crlf, keysOf(crlf, "One", "Two"), "left");
+      expect(result.applied).toBe(2);
+      expect(result.source).toBe(
+        ["@startmindmap", "* Root", "-- One", "--- One A", "-- Two", "** Three", "@endmindmap"].join("\r\n"),
+      );
+    });
+
+    it("moves a branch with a multi-line label and keeps the others in step", () => {
+      const multi = wrap(["* Root", "**:One", "line two;", "** Two", "** Three"].join(NL));
+      const result = setMindmapItemsSide(multi, keysOf(multi, "Two", "Three"), "left");
+      expect(result.applied).toBe(2);
+      const after = parseMindmap(result.source);
+      expect(after.diagnostics).toEqual([]);
+      expect(after.nodes.filter((node) => node.depth === 2).map((node) => `${node.label}:${node.side}`)).toEqual(
+        expect.arrayContaining(["Two:left", "Three:left"]),
+      );
+    });
   });
 });

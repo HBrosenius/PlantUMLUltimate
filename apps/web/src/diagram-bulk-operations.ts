@@ -19,8 +19,11 @@ import {
 } from "@plantuml-studio/diagram-wbs";
 import {
   deleteMindmapNode,
+  isMirroredDirection,
+  mindmapSideBlocker,
   parseMindmap,
   setMindmapNodeBoxless,
+  setMindmapNodeSide,
   updateMindmapNode,
   mindmapEditBlocker,
   type MindmapNode,
@@ -47,6 +50,8 @@ export interface DiagramBulkItem {
   /** Mindmap nodes only: the node can be drawn without a box, and deleted with its subtree. */
   boxless?: boolean;
   deletable?: boolean;
+  /** Mindmap nodes only: a direct child of a root in a document where branches have a side. */
+  side?: boolean;
   changeColor?: (color: string) => string;
 }
 const key = (attribute: string, id: string) => `${attribute}:${id}`;
@@ -191,6 +196,7 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
     }
   } else if (kind === "mindmap") {
     const doc = parseMindmap(source);
+    const sidesApply = !isMirroredDirection(doc);
     for (const node of doc.nodes) {
       // A node written in Markdown form can only be edited as text.
       const editable = !mindmapEditBlocker(doc, node);
@@ -198,6 +204,7 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
       const item = items[items.length - 1]!;
       item.boxless = !node.markdown;
       item.deletable = editable;
+      item.side = sidesApply && !mindmapSideBlocker(source, doc, node);
     }
   } else {
     const doc = parseWbs(source);
@@ -358,6 +365,49 @@ export function setMindmapItemsBoxless(
     .filter((item) => keys.includes(item.key) && item.boxless)
     .map((item) => item.id);
   return changeMindmapNodes(source, ids, keys.length, (node, current) => setMindmapNodeBoxless(current, node, boxless));
+}
+
+/**
+ * Moves every selected mindmap branch to `side` in one edit. Only the direct children of a root own a
+ * side, exactly as in the single-node inspector, so deeper nodes are skipped rather than moving their
+ * ancestor; a branch selected together with such a descendant moves once, with its whole subtree.
+ * Nodes that cannot change side (Markdown form, right-to-left documents) are skipped too.
+ */
+export function setMindmapItemsSide(
+  source: string,
+  keys: readonly string[],
+  side: "left" | "right",
+): { source: string; applied: number; skipped: number } {
+  const document = parseMindmap(source);
+  const eligible = new Set(
+    diagramBulkItems("mindmap", source)
+      .filter((item) => keys.includes(item.key) && item.side)
+      .map((item) => item.id),
+  );
+  // A branch is told apart from its siblings by its root, label and place among equal labels, because
+  // moving a multi-line branch to a `left side` / `right side` line changes the order of the nodes.
+  const identify = (doc: ReturnType<typeof parseMindmap>, node: MindmapNode) => {
+    const siblings = doc.nodes.filter((item) => item.parentId === node.parentId && item.label === node.label);
+    const roots = doc.nodes.filter((item) => item.depth === 1);
+    return {
+      root: roots.findIndex((item) => item.id === node.parentId),
+      label: node.label,
+      index: siblings.indexOf(node),
+    };
+  };
+  const targets = document.nodes.filter((node) => eligible.has(node.id)).map((node) => identify(document, node));
+  let current = source;
+  let applied = 0;
+  for (const target of targets) {
+    const doc = parseMindmap(current);
+    const root = doc.nodes.filter((item) => item.depth === 1)[target.root];
+    const node = doc.nodes.filter((item) => item.parentId === root?.id && item.label === target.label)[target.index];
+    if (!node || mindmapSideBlocker(current, doc, node)) continue;
+    const next = setMindmapNodeSide(current, doc, node, side);
+    if (next !== current) applied++;
+    current = next;
+  }
+  return { source: current, applied, skipped: keys.length - eligible.size };
 }
 
 /**
