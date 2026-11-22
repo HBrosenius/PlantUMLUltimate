@@ -33,13 +33,14 @@ test("starts with actions, exposes examples and keeps learning optional", async 
 test("blank diagrams start with minimal content and an Add route", async ({ page }) => {
   await page.goto("/");
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  for (const kind of ["WBS", "Gantt", "Sequence", "Use Case", "Class", "Component", "Activity"]) {
+  for (const kind of ["WBS", "Mindmap", "Gantt", "Sequence", "Use Case", "Class", "Component", "Activity"]) {
     await expect(chooser).toBeVisible();
     await chooser.getByLabel("Start with").selectOption("blank");
-    await chooser.getByRole("button", { name: `${kind} diagram`, exact: true }).click();
+    await chooser.getByRole("button", { name: kind === "Mindmap" ? kind : `${kind} diagram`, exact: true }).click();
     await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     await expect(chooser).toBeHidden();
     const source = await readEditorSource(page);
+    if (kind === "Mindmap") expect(source).toBe("@startmindmap\n* Topic\n@endmindmap");
     expect(source).not.toContain("Website redesign");
     expect(source.split("\n").length).toBeLessThanOrEqual(4);
     await expect(page.getByRole("tab", { name: "Insert", exact: true })).toBeVisible();

@@ -108,3 +108,25 @@ test("retains the modal on phones with clear search and filter-aware empty state
   await page.getByRole("button", { name: "Find in diagram", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Find in diagram", exact: true })).toBeVisible();
 });
+
+test("lists mindmap nodes in the outline and selects one in the diagram", async ({ page }) => {
+  test.setTimeout(60_000);
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab", exact: true }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await chooser.getByRole("button", { name: "Mindmap", exact: true }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  await fillSource(page, "@startmindmap\n* Launch\n** Plan\n*** Budget\n-- Sales\n@endmindmap");
+  await waitForDiagramRender(page);
+  const original = await readEditorSource(page);
+  await openRibbonGroup(page, "View", "Navigation and panels");
+  await page.getByRole("button", { name: "Outline", exact: true }).click();
+  const modal = page.getByRole("dialog", { name: "Diagram outline", exact: true });
+  await modal.getByLabel("Search diagram elements").fill("Launch Plan");
+  await expect(modal.getByRole("button", { name: /Budget/ })).toBeVisible();
+  await modal.getByRole("button", { name: /Budget/ }).click();
+  await expect(
+    page.getByRole("complementary", { name: "Mindmap node inspector" }).locator("textarea").first(),
+  ).toHaveValue("Budget");
+  expect(await readEditorSource(page)).toBe(original);
+});

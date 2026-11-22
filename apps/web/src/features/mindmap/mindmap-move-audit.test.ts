@@ -13,7 +13,6 @@ import { mindmapEmissionOrder, parseMindmap, type MindmapDocument } from "@plant
 import { applicationMindmapAdapter } from "../../diagram-adapters";
 import { planMindmapDrop, type DropBox } from "./mindmap-drop-plan";
 import { planMindmapKeyboardMove, type ArrowKey } from "./mindmap-keyboard";
-import { settleMirroredMarkerFamilies } from "./mindmap-families";
 
 function layout(document: MindmapDocument) {
   const boxes = new Map<string, DropBox>();
@@ -107,7 +106,7 @@ describe("planner and keyboard moves", () => {
       const tryMove = (label: string, op: Parameters<typeof applicationMindmapAdapter.applyVisualOperation>[0]) => {
         const result = applicationMindmapAdapter.applyVisualOperation(op, document, source);
         if (result.unavailableReason) return;
-        const next = settleMirroredMarkerFamilies(applySourceEdits(source, result.edits));
+        const next = applySourceEdits(source, result.edits);
         if (next !== source) add(`${name}:${label}`, next, document.nodes.length);
       };
       for (const node of document.nodes.filter((item) => item.depth > 1)) {

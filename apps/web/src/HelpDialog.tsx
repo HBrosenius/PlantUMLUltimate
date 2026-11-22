@@ -87,7 +87,9 @@ const topics: Topic[] = [
     paragraphs: [
       "Write one * root, then ** children, *** grandchildren and so on. Use ++ and -- (or left side and right side lines) to place branches on either side, and _ after the markers for a node without a box. Click a node to edit its label, colours, style class, box, side, link and icon in the inspector, or add children and siblings with Insert → Mindmap node. Drag a node above or below another to reorder it, onto the middle of one to nest it, or beside the root to move it to the other side. You can also type in the editor and the preview follows.",
       "With a node focused, the arrow keys move around the picture (Up and Down between siblings, Left and Right into a child and back out; on the left side, and in right to left maps, they follow the picture; in top to bottom maps the axes turn). Alt with an arrow moves the node itself: reorder it, move a first-level branch to the other side, or indent and outdent it. Enter selects, Enter again edits the label, F2 renames in place, Shift+Enter adds a sibling, Alt+Enter or Insert adds a child, and Delete removes the branch.",
-      "A mindmap written with # headers or indented * bullets (Markdown form) stays source-only. Use the Convert to * markers quick fix on its info message to switch it to the standard form.",
+      "Shift-click or Ctrl/⌘-click nodes to select several. The Selected elements inspector then sets a colour or a style class on all of them, removes or restores their boxes, or deletes them with their branches (at least one root always stays). Each bulk action is one undo step.",
+      "Type <style in the editor for a style block snippet: a plain block, a style class, a depth rule or a maximum width. Avoid a * { } rule inside a style block, because the engine reads it as a node and fails; the editor warns and offers node { } instead.",
+      "A mindmap written with # headers or indented * bullets (Markdown form) stays source-only. Use the Convert to * markers quick fix on its info message, or the button in the node or Mindmap settings inspector, to switch it to the standard form.",
     ],
     example:
       "* Product launch\n** Plan\n*** Budget\n** Build\n--[#lightblue] Marketing\n-- Sales\n++_ Notes\nleft to right direction",
@@ -180,6 +182,7 @@ function shortcuts(): Shortcut[] {
   add("mindmap", "Shift+Enter", "Add a sibling after the focused node");
   add("mindmap", `${apple ? "⌥" : "Alt+"}Enter or Insert`, "Add a child to the focused node");
   add("mindmap", "Delete", "Delete the focused node and its branch");
+  add("mindmap", `${apple ? "⌘" : "Ctrl+"}Enter`, "Toggle the focused node in the selection");
   add("sequence", optionShortcut("P"), "Add participant…");
   add("sequence", optionShortcut("M"), "Add message…");
   return rows;

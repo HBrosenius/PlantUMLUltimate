@@ -3,6 +3,8 @@ import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import {
   changeDiagramItems,
   copyDiagramItems,
+  deleteMindmapItems,
+  setMindmapItemsBoxless,
   diagramBulkItems,
   pasteDiagramItems,
   type BulkDiagramKind,
@@ -51,10 +53,7 @@ export function useDiagramMultiSelection({
   const pressedItem = useRef<{ key: string; source: string; x: number; y: number; toggled: boolean } | undefined>(
     undefined,
   );
-  const items = useMemo(
-    () => (kind === "gantt" || kind === "mindmap" ? [] : diagramBulkItems(kind, source)),
-    [kind, source],
-  );
+  const items = useMemo(() => (kind === "gantt" ? [] : diagramBulkItems(kind, source)), [kind, source]);
   const pendingPlainKey =
     plainSelection.current?.documentId === documentId &&
     plainSelection.current.kind === kind &&
@@ -93,8 +92,29 @@ export function useDiagramMultiSelection({
     plainSelection.current = undefined;
     setSelection({ documentId, kind, source: nextSource, keys: next, reveal });
   };
-  const targetItem = (target: EventTarget | null) => {
+  // A click on a mindmap node's box misses its label, so the nearest label within reach stands for it.
+  const mindmapLabelAt = (point: { clientX: number; clientY: number } | undefined) => {
+    let closest: string | undefined;
+    let closestDistance = 48;
+    for (const text of root.current?.querySelectorAll<SVGTextElement>(".diagram text[data-mindmap-node-id]") ?? []) {
+      const bounds = text.getBoundingClientRect();
+      const distance = Math.hypot(
+        (point?.clientX ?? 0) - (bounds.left + bounds.width / 2),
+        (point?.clientY ?? 0) - (bounds.top + bounds.height / 2),
+      );
+      if (point && distance <= closestDistance) {
+        closest = text.getAttribute("data-mindmap-node-id") ?? undefined;
+        closestDistance = distance;
+      }
+    }
+    return closest;
+  };
+  const targetItem = (target: EventTarget | null, point?: { clientX: number; clientY: number }) => {
     if (!(target instanceof Element) || !target.closest(".diagram")) return undefined;
+    if (kind === "mindmap" && !target.closest("[data-mindmap-node-id]")) {
+      const id = target.closest("svg") ? mindmapLabelAt(point) : undefined;
+      return id ? items.find((item) => item.id === id) : undefined;
+    }
     return items.find((item) => {
       const attributes =
         item.attribute === "data-class-object-id" ? [item.attribute, "data-class-hit-id"] : [item.attribute];
@@ -109,8 +129,8 @@ export function useDiagramMultiSelection({
   };
   const onPointerDownCapture = (event: React.PointerEvent) => {
     pressedItem.current = undefined;
-    if (kind === "gantt" || kind === "mindmap" || event.button !== 0) return;
-    const item = targetItem(event.target);
+    if (kind === "gantt" || event.button !== 0) return;
+    const item = targetItem(event.target, event);
     if (!item) return;
     pressedItem.current = { key: item.key, source, x: event.clientX, y: event.clientY, toggled: modifier(event) };
     if (!modifier(event)) {
@@ -118,8 +138,8 @@ export function useDiagramMultiSelection({
       plainSelection.current = { documentId, kind, source, key: item.key };
       return;
     }
-    if (kind === "wbs" && event.shiftKey && !event.ctrlKey && !event.metaKey) {
-      // WBS Shift-drag places a branch before its target. Toggle only on a click.
+    if ((kind === "wbs" || kind === "mindmap") && event.shiftKey && !event.ctrlKey && !event.metaKey) {
+      // WBS and mindmap Shift-drag places a branch before its target. Toggle only on a click.
       pressedItem.current.toggled = false;
       return;
     }
@@ -128,13 +148,13 @@ export function useDiagramMultiSelection({
     event.stopPropagation();
   };
   const onClickCapture = (event: React.MouseEvent) => {
-    if (kind === "gantt" || kind === "mindmap") return;
+    if (kind === "gantt") return;
     // Preview selection can recreate SVG hit targets between pointerdown and click.
     const pressed = pressedItem.current;
     pressedItem.current = undefined;
     if (pressed && (pressed.source !== source || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5))
       return;
-    const direct = targetItem(event.target);
+    const direct = targetItem(event.target, event);
     const item = direct ?? items.find((item) => item.key === pressed?.key);
     if (item) {
       if (modifier(event)) {
@@ -152,7 +172,7 @@ export function useDiagramMultiSelection({
   const onPointerUp = (event: PointerEvent) => {
     const pressed = pressedItem.current;
     if (
-      kind !== "wbs" ||
+      (kind !== "wbs" && kind !== "mindmap") ||
       !pressed ||
       pressed.toggled ||
       !modifier(event) ||
@@ -173,10 +193,11 @@ export function useDiagramMultiSelection({
     return () => window.removeEventListener("pointerup", handle, true);
   }, []);
   const onKeyDownCapture = (event: React.KeyboardEvent) => {
-    if (kind === "gantt" || kind === "mindmap" || !["Enter", " "].includes(event.key)) return;
+    if (kind === "gantt" || !["Enter", " "].includes(event.key)) return;
     const item = targetItem(event.target);
     if (!item) return;
-    if (modifier(event)) {
+    // In a mindmap Shift+Enter adds a sibling, so Enter toggles only with Ctrl or Cmd.
+    if (kind === "mindmap" && event.key === "Enter" ? event.ctrlKey || event.metaKey : modifier(event)) {
       event.preventDefault();
       event.stopPropagation();
       toggle(item.key);
@@ -224,7 +245,7 @@ export function useDiagramMultiSelection({
       .sort((a, b) => a.range.to - a.range.from - (b.range.to - b.range.from))[0];
   const change = (mode: "color" | "stereotype", value: string) =>
     attempt(() => {
-      if (readOnly || kind === "gantt" || kind === "mindmap") return;
+      if (readOnly || kind === "gantt") return;
       const result = changeDiagramItems(kind as BulkDiagramKind, source, keys, mode, value);
       if (!result.applied || !commit(result.source, `Set ${mode} on ${result.applied} elements`)) return;
       // Resolve positional IDs after style edits from the unchanged semantic ordering.
@@ -238,12 +259,42 @@ export function useDiagramMultiSelection({
         `Updated ${result.applied} elements${result.skipped ? ` · ${result.skipped} do not support ${mode}` : ""}`,
       );
     });
+  const setBoxless = (boxless: boolean) =>
+    attempt(() => {
+      if (readOnly || kind !== "mindmap") return;
+      const result = setMindmapItemsBoxless(source, keys, boxless);
+      if (!result.applied || result.source === source) {
+        report(`Nothing to change: the selected nodes already ${boxless ? "have no box" : "have a box"}`);
+        return;
+      }
+      if (!commit(result.source, `${boxless ? "Remove the box from" : "Box"} ${result.applied} mindmap nodes`)) return;
+      // Boxless edits rewrite only markers, so every id and key stays valid.
+      choose(keys, result.source);
+      report(`Updated ${result.applied} nodes${result.skipped ? ` · ${result.skipped} cannot change their box` : ""}`);
+    });
+  const remove = () =>
+    attempt(() => {
+      if (readOnly || kind !== "mindmap") return;
+      const result = deleteMindmapItems(source, keys);
+      if (!result.applied) return;
+      const extra = result.removed - result.applied;
+      const noun = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+      if (
+        !window.confirm(
+          `Delete ${noun(result.applied, "selected node")}${extra > 0 ? ` and ${noun(extra, "descendant")}` : ""}?`,
+        )
+      )
+        return;
+      if (!commit(result.source, `Delete ${noun(result.applied, "mindmap node")}`)) return;
+      clear();
+      report(`Deleted ${noun(result.removed, "mindmap node")}`);
+    });
   const current = useRef({ kind, selectionKeys, items, readOnly, copy, paste, clear, choose });
   current.current = { kind, selectionKeys, items, readOnly, copy, paste, clear, choose };
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const state = current.current;
-      if (state.kind === "gantt" || state.kind === "mindmap") return;
+      if (state.kind === "gantt") return;
       const target = event.target;
       if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], .cm-editor'))
         return;
@@ -257,6 +308,8 @@ export function useDiagramMultiSelection({
       const key = event.key.toLowerCase();
       const activeKeys = state.selectionKeys();
       const diagramFocus = target instanceof Element && !!target.closest(".diagram");
+      // Mindmap selections have no clipboard: only select all applies.
+      if (state.kind === "mindmap" && key !== "a") return;
       if (key === "a" && diagramFocus) {
         event.preventDefault();
         event.stopPropagation();
@@ -280,7 +333,7 @@ export function useDiagramMultiSelection({
   }, []);
   useLayoutEffect(() => {
     const workspace = root.current;
-    if (!workspace || kind === "gantt" || kind === "mindmap") return;
+    if (!workspace || kind === "gantt") return;
     const highlight = () => {
       workspace.querySelectorAll(".diagram-bulk-selected").forEach((element) => {
         element.classList.remove("diagram-bulk-selected");
@@ -313,6 +366,8 @@ export function useDiagramMultiSelection({
       paste(true, activeKeys.includes(item.key) ? activeKeys : [item.key]);
     },
     change,
+    setBoxless,
+    remove,
     onPointerDownCapture,
     onClickCapture,
     onKeyDownCapture,

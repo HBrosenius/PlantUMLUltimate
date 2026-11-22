@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { applySourceEdits } from "@plantuml-studio/diagram-gantt";
-import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
-import { applicationMindmapAdapter } from "../../diagram-adapters";
-import { settleMirroredMarkerFamilies } from "./mindmap-families";
+import { settleMirroredMarkerFamilies } from "./families";
+import { insertMindmapNode, moveMindmapSubtree, setMindmapNodeSide } from "./operations";
+import { parseMindmap } from "./parser";
 
 const RTL = (body: string) => `@startmindmap\nright to left direction\n${body}\n@endmindmap`;
 
@@ -44,25 +43,24 @@ describe("settleMirroredMarkerFamilies", () => {
     expect(settleMirroredMarkerFamilies(ttb)).toBe(ttb);
   });
 
-  it("repairs the result of a real move under a + node", () => {
+  it("is applied by the operations themselves, so a move under a + node never mixes families", () => {
     const source = RTL("* Root\n** A\n*** A1\n++ B\n-- C");
     const document = parseMindmap(source);
-    const moved = applicationMindmapAdapter.applyVisualOperation(
-      {
-        kind: "move-subtree",
-        nodeId: document.nodes.find((n) => n.label === "A")!.id,
-        parentId: document.nodes.find((n) => n.label === "B")!.id,
-      },
-      document,
-      source,
-    );
-    const raw = applySourceEdits(source, moved.edits);
-    const settled = settleMirroredMarkerFamilies(raw);
-    const result = parseMindmap(settled);
-    const label = (name: string) => result.nodes.find((n) => n.label === name)!;
-    // A and its child share one family, the one of B.
-    expect(label("A").marker[0]).toBe(label("B").marker[0]);
-    expect(label("A1").marker[0]).toBe(label("B").marker[0]);
-    expect(result.diagnostics.filter((item) => item.severity === "error")).toEqual([]);
+    const label = (doc: ReturnType<typeof parseMindmap>, name: string) => doc.nodes.find((n) => n.label === name)!;
+    const moved = parseMindmap(moveMindmapSubtree(source, document, label(document, "A"), label(document, "B")));
+    expect(label(moved, "A").marker[0]).toBe(label(moved, "B").marker[0]);
+    expect(label(moved, "A1").marker[0]).toBe(label(moved, "B").marker[0]);
+    expect(moved.diagnostics.filter((item) => item.severity === "error")).toEqual([]);
+  });
+
+  it("is applied when a node is inserted below a + node or pushed to the other side", () => {
+    const source = RTL("* Root\n++ B\n+++ B1\n-- C\n--- C1");
+    const document = parseMindmap(source);
+    const find = (doc: ReturnType<typeof parseMindmap>, name: string) => doc.nodes.find((n) => n.label === name)!;
+    const inserted = parseMindmap(insertMindmapNode(source, document, { label: "New" }, find(document, "B1")));
+    expect(find(inserted, "New").marker[0]).toBe("+");
+    const flipped = parseMindmap(setMindmapNodeSide(source, document, find(document, "C"), "right"));
+    expect(find(flipped, "C").marker[0]).toBe(find(flipped, "C1").marker[0]);
+    expect(flipped.diagnostics.filter((item) => item.severity === "error")).toEqual([]);
   });
 });
