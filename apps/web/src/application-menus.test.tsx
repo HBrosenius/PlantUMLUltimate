@@ -55,6 +55,7 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onExportSvg: vi.fn(),
   onExportPng: vi.fn(),
   onExportPdf: vi.fn(),
+  onExportSnapshot: vi.fn(),
   onCopyImage: vi.fn(),
   onCopyMarkdown: vi.fn(),
   onCopyConfluence: vi.fn(),
@@ -138,6 +139,7 @@ describe("application menus", () => {
 
     for (const [name, callback] of [
       ["Quick download PDF", callbacks.onExportPdf],
+      ["Snapshot (HTML)", callbacks.onExportSnapshot],
       ["Copy image", callbacks.onCopyImage],
       ["Copy as Markdown", callbacks.onCopyMarkdown],
       ["Copy for Confluence", callbacks.onCopyConfluence],

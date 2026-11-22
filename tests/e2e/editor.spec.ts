@@ -197,6 +197,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Quick download SVG",
     "Quick download PNG",
     "Quick download PDF",
+    "Snapshot (HTML)",
     "Copy image",
     "Copy as Markdown",
     "Copy for Confluence",

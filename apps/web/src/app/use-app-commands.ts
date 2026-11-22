@@ -25,6 +25,7 @@ export interface useAppCommandsInputs {
   dependencyTaskCount: number;
   exportPdf: () => Promise<void>;
   exportPng: () => Promise<void>;
+  exportSnapshot: () => Promise<void>;
   exportReady: boolean;
   exportSource: () => void;
   exportSvg: () => void;
@@ -104,6 +105,7 @@ export function useAppCommands({
   dependencyTaskCount,
   exportPdf,
   exportPng,
+  exportSnapshot,
   exportReady,
   exportSource,
   exportSvg,
@@ -513,6 +515,13 @@ export function useAppCommands({
         run: exportPdf,
       },
       {
+        id: "export.snapshot",
+        label: "Export snapshot (HTML)",
+        category: "Export",
+        enabled: exportReady,
+        run: exportSnapshot,
+      },
+      {
         id: "export.copy-image",
         label: "Copy diagram image",
         category: "Export",
@@ -552,6 +561,7 @@ export function useAppCommands({
     exportReady,
     exportPdf,
     exportPng,
+    exportSnapshot,
     exportSource,
     exportSvg,
     newDocument,

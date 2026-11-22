@@ -1873,6 +1873,7 @@ export function App() {
     exportSvg,
     exportPng,
     exportPdf,
+    exportSnapshot,
     copyImage,
     copyMarkdown,
     copyConfluence,
@@ -2246,6 +2247,7 @@ export function App() {
     dependencyTaskCount,
     exportPdf,
     exportPng,
+    exportSnapshot,
     exportReady,
     exportSource,
     exportSvg,
@@ -2845,6 +2847,7 @@ export function App() {
           dialog={dialog}
           exportPdf={exportPdf}
           exportPng={exportPng}
+          exportSnapshot={exportSnapshot}
           exportReady={exportReady}
           exportSource={exportSource}
           exportSvg={exportSvg}

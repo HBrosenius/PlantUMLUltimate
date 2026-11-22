@@ -17,7 +17,13 @@ import {
   plantUmlMarkdown,
   confluencePlantUmlMarkup,
 } from "../diagram-export";
-import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
+import {
+  loadDocumentVersions,
+  type DocumentSnapshot,
+  type WorkspaceSession,
+  type WorkspaceSnapshot,
+} from "../workspace-storage";
+import { buildSnapshotHtml, snapshotFileName } from "../features/snapshot/snapshot-html";
 
 export interface useExportActionsInputs {
   decorateExportSvg: (svg: string) => string;
@@ -168,6 +174,50 @@ export function useExportActions({
     setInteractionMessage,
     notifySuccess,
   ]);
+  const exportSnapshot = useCallback(async () => {
+    if (!result?.svg || !exportReady) {
+      setInteractionMessage("Render a valid diagram before exporting a snapshot");
+      return;
+    }
+    try {
+      let versionLabel: string | undefined;
+      try {
+        const versions = await loadDocumentVersions(activeDocument.historyId);
+        const match = versions.find(
+          (version) => version.source === workspace.source && (version.pinned || version.label),
+        );
+        if (match) versionLabel = match.label ?? `Pinned ${match.createdAt.slice(0, 10)}`;
+      } catch {
+        /* The version stamp is optional. */
+      }
+      const name = activeDocument.displayName || workspace.fileName.replace(/\.(pumlu|puml|plantuml)$/i, "");
+      const html = await buildSnapshotHtml({
+        svg: decorateExportSvg(result.svg),
+        source: workspace.source,
+        documentName: name,
+        diagramTitle: name,
+        diagramKind: workspace.diagramKind,
+        snapshotDate: new Date(),
+        versionLabel,
+      });
+      downloadText(html, snapshotFileName(workspace.fileName), "text/html;charset=utf-8");
+      notifySuccess("Exported snapshot (HTML)");
+    } catch (error) {
+      reportFileError(error);
+    }
+  }, [
+    activeDocument.displayName,
+    activeDocument.historyId,
+    decorateExportSvg,
+    exportReady,
+    notifySuccess,
+    reportFileError,
+    result,
+    setInteractionMessage,
+    workspace.diagramKind,
+    workspace.fileName,
+    workspace.source,
+  ]);
   const copyImage = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before copying it");
@@ -215,6 +265,7 @@ export function useExportActions({
     exportSvg,
     exportPng,
     exportPdf,
+    exportSnapshot,
     copyImage,
     copyMarkdown,
     copyConfluence,

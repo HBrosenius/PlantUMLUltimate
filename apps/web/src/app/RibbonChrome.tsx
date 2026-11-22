@@ -39,6 +39,7 @@ export interface RibbonChromeProps {
   dialog: AppDialog | undefined;
   exportPdf: () => Promise<void>;
   exportPng: () => Promise<void>;
+  exportSnapshot: () => Promise<void>;
   exportReady: boolean;
   exportSource: () => void;
   exportSvg: () => void;
@@ -137,6 +138,7 @@ export function RibbonChrome({
   dialog,
   exportPdf,
   exportPng,
+  exportSnapshot,
   exportReady,
   exportSource,
   exportSvg,
@@ -255,6 +257,7 @@ export function RibbonChrome({
     onExportSvg: exportSvg,
     onExportPng: () => void exportPng(),
     onExportPdf: () => void exportPdf(),
+    onExportSnapshot: () => void exportSnapshot(),
     onCopyImage: () => void copyImage(),
     onCopyMarkdown: () => void copyMarkdown(),
     onCopyConfluence: () => void copyConfluence(),
