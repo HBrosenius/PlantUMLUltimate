@@ -67,7 +67,8 @@ test.describe("Stage mode", () => {
     await expect.poll(() => readEditorSource(page)).toContain("[Build] lasts 16 days");
     await expect(lens.locator(".cm-content")).not.toContainText("[Design] lasts");
     await expect
-      .poll(async () => (await page.locator('.diagram [data-task-id="build"]').first().boundingBox())!.width, {
+      // The bar is briefly detached while the diagram re-renders; read that as no width and keep polling.
+      .poll(async () => (await page.locator('.diagram [data-task-id="build"]').first().boundingBox())?.width ?? 0, {
         timeout: 20_000,
       })
       .toBeGreaterThan(widthBefore * 1.3);
