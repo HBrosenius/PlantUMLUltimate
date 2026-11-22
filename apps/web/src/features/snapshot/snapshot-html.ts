@@ -17,6 +17,8 @@ export interface SnapshotInput {
   versionLabel?: string | undefined;
   /** Gantt hover details for each task, shown on hover, focus or tap and listed in a table. */
   taskDetails?: readonly SnapshotTaskDetails[] | undefined;
+  /** Opt-in: offer each diagram's PlantUML source as a download. Off by default; only a fingerprint is kept. */
+  includeSource?: boolean | undefined;
 }
 
 /** One diagram of a whole-document snapshot: its rendered SVG, or the reason it could not be rendered. */
@@ -48,6 +50,8 @@ export interface SnapshotDocumentInput {
   relations?: readonly SnapshotRelation[] | undefined;
   snapshotDate: Date;
   versionLabel?: string | undefined;
+  /** Opt-in: offer each diagram's PlantUML source as a download. Off by default; only a fingerprint is kept. */
+  includeSource?: boolean | undefined;
 }
 
 const kindLabels: Record<string, string> = {
@@ -283,6 +287,11 @@ main{flex:1;padding:0 16px}
 .task-details table{border-collapse:collapse;font-size:.85rem;min-width:100%}
 .task-details th,.task-details td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .task-details thead th{color:var(--muted);font-weight:600;white-space:nowrap}
+.source{margin:8px 0 0}
+.source summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:600}
+.source summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.source p{margin:0 0 8px}
+.source pre{margin:0;padding:12px;max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--card);font-size:.85rem}
 footer{color:var(--muted);font-size:.85rem}
 @media print{.tools,.toc-menu{display:none}.diagram{break-inside:avoid-page}.js .stage{height:auto;overflow:visible}.js .stage svg{position:static}}
 `;
@@ -421,6 +430,25 @@ function taskDetailsTable(details: readonly SnapshotTaskDetails[] | undefined): 
   return `<details class="task-details"><summary>Task details (${details.length})</summary><div class="table-wrap"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></details>`;
 }
 
+/** A safe download name for a diagram's source: letters, digits, spaces, dots, dashes and underscores. */
+function sourceFileName(title: string): string {
+  const base =
+    title
+      .replace(/\.(pumlu|puml|plantuml)$/i, "")
+      .replace(/[^\p{L}\p{N} ._-]+/gu, "")
+      .trim() || "diagram";
+  return `${base.slice(0, 80)}.puml`;
+}
+
+/**
+ * The opt-in source of one diagram: a `.puml` download (a `data:` link, so the page still makes no request)
+ * and the text itself in a closed disclosure, so it can be copied into PlantUML Ultimate or any PlantUML tool.
+ */
+function sourceBlock(title: string, source: string): string {
+  const href = `data:text/plain;charset=utf-8,${encodeURIComponent(source)}`;
+  return `<details class="source"><summary>PlantUML source</summary><p><a href="${escapeHtml(href)}" download="${escapeHtml(sourceFileName(title))}">Download source (.puml)</a></p><pre><code>${escapeHtml(source)}</code></pre></details>`;
+}
+
 function renderSection(
   diagram: SnapshotDiagram,
   index: number,
@@ -429,6 +457,7 @@ function renderSection(
   resolveDiagramLink: (href: string) => string | undefined,
   multi: boolean,
   fingerprint: string,
+  includeSource = false,
 ): string {
   const number = index + 1;
   const kind = kindLabels[diagram.kind] ?? diagram.kind;
@@ -451,6 +480,7 @@ function renderSection(
           ? `<div class="task-card" id="snapshot-card-${number}" role="tooltip" hidden></div>`
           : ""
       }</div>${taskDetailsTable(diagram.taskDetails)}`;
+      if (includeSource && diagram.source) body += sourceBlock(diagram.title, diagram.source);
     } catch (cause) {
       // One diagram that cannot be embedded must not sink a whole-document snapshot.
       if (!multi) throw cause;
@@ -527,8 +557,18 @@ export async function buildSnapshotHtml(input: SnapshotInput): Promise<string> {
       details: [
         `<li>${escapeHtml(title)}</li>`,
         `<li>Source SHA-256 <code title="${fingerprint}">${fingerprint.slice(0, 12)}</code></li>`,
+        ...(input.includeSource ? ["<li>Includes PlantUML source</li>"] : []),
       ],
-      sections: renderSection(diagram, 0, [diagram], undefined, () => undefined, false, fingerprint),
+      sections: renderSection(
+        diagram,
+        0,
+        [diagram],
+        undefined,
+        () => undefined,
+        false,
+        fingerprint,
+        input.includeSource,
+      ),
     },
     input.snapshotDate,
     input.versionLabel,
@@ -556,7 +596,16 @@ export async function buildSnapshotDocumentHtml(input: SnapshotDocumentInput): P
 `;
   const sections = diagrams
     .map((diagram, index) =>
-      renderSection(diagram, index, diagrams, input.relations, resolve, true, fingerprints[index]!),
+      renderSection(
+        diagram,
+        index,
+        diagrams,
+        input.relations,
+        resolve,
+        true,
+        fingerprints[index]!,
+        input.includeSource,
+      ),
     )
     .join("\n");
   return buildPage(
@@ -565,6 +614,7 @@ export async function buildSnapshotDocumentHtml(input: SnapshotDocumentInput): P
       details: [
         `<li>${diagrams.length} diagrams</li>`,
         `<li>Source SHA-256 <code title="${combined}">${combined.slice(0, 12)}</code></li>`,
+        ...(input.includeSource ? ["<li>Includes PlantUML source</li>"] : []),
       ],
       contents,
       sections,

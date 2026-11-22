@@ -17,6 +17,7 @@ test("exports a self-contained snapshot that opens offline with pan and zoom", a
   await page.getByRole("menuitem", { name: "Export" }).click();
   const download = page.waitForEvent("download");
   await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Snapshot (HTML)" }).click();
+  await page.getByRole("dialog", { name: "Snapshot (HTML)" }).getByRole("button", { name: "Create snapshot" }).click();
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/\.snapshot\.html$/);
   // Playwright stores downloads under a GUID without an extension, which browsers would show as plain text.
@@ -213,6 +214,7 @@ test("shows Gantt task details on hover, keyboard focus and tap, and lists them 
   await page.getByRole("menuitem", { name: "Export" }).click();
   const download = page.waitForEvent("download");
   await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Snapshot (HTML)" }).click();
+  await page.getByRole("dialog", { name: "Snapshot (HTML)" }).getByRole("button", { name: "Create snapshot" }).click();
   const file = await download;
   const path = testInfo.outputPath(file.suggestedFilename());
   await file.saveAs(path);
@@ -276,4 +278,46 @@ test("shows Gantt task details on hover, keyboard focus and tap, and lists them 
   expect(await viewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(pageErrors).toEqual([]);
   expect(requests.filter((url) => !url.startsWith(fileUrl))).toEqual([]);
+});
+
+test("includes the PlantUML source only when asked, as a copy and a .puml download", async ({
+  page,
+  context,
+}, testInfo) => {
+  await prepareEditor(page);
+  await setSource(page, source("[Design] requires 5 days\n[Build] requires 8 days"));
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export" }).click();
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Snapshot (HTML)" }).click();
+  const dialog = page.getByRole("dialog", { name: "Snapshot (HTML)" });
+  const option = dialog.getByRole("checkbox", { name: "Include PlantUML source" });
+  await expect(option).not.toBeChecked();
+  await option.check();
+  await expect(dialog).toContainText("including notes and comments");
+  const download = page.waitForEvent("download");
+  await dialog.getByRole("button", { name: "Create snapshot" }).click();
+  const file = await download;
+  const path = testInfo.outputPath(file.suggestedFilename());
+  await file.saveAs(path);
+  expect(readFileSync(path, "utf8")).toContain("[Build] requires 8 days");
+
+  const viewer = await context.newPage();
+  const fileUrl = pathToFileURL(path).href;
+  const requests: string[] = [];
+  viewer.on("request", (request) => requests.push(request.url()));
+  await viewer.goto(fileUrl);
+  await expect(viewer.getByText("Includes PlantUML source")).toBeVisible();
+  const block = viewer.locator("details.source");
+  await block.locator("summary").click();
+  await expect(block.locator("pre")).toContainText("@startgantt");
+  await expect(block.locator("pre")).toContainText("[Build] requires 8 days");
+  const saved = viewer.waitForEvent("download");
+  await block.getByRole("link", { name: "Download source (.puml)" }).click();
+  const puml = await saved;
+  expect(puml.suggestedFilename()).toMatch(/\.puml$/);
+  const pumlPath = testInfo.outputPath(puml.suggestedFilename());
+  await puml.saveAs(pumlPath);
+  expect(readFileSync(pumlPath, "utf8")).toContain("[Build] requires 8 days");
+  // The download is a data: link, so nothing leaves the machine.
+  expect(requests.filter((url) => !url.startsWith(fileUrl) && !url.startsWith("data:"))).toEqual([]);
 });

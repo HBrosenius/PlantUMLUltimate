@@ -37,13 +37,13 @@ const shared = {
   })),
 } as unknown as SharedDocument;
 
-const setup = () => {
-  const onThisDiagram = vi.fn(async () => {});
-  const onDocument = vi.fn(async (_rendered: readonly RenderedDiagram[]) => {});
+const setup = (document: SharedDocument | null = shared) => {
+  const onThisDiagram = vi.fn(async (_includeSource: boolean) => {});
+  const onDocument = vi.fn(async (_rendered: readonly RenderedDiagram[], _includeSource: boolean) => {});
   const onClose = vi.fn();
   render(
     <SnapshotDialog
-      document={shared}
+      document={document ?? undefined}
       activeDiagramId="d1"
       activeResult={{
         requestId: 1,
@@ -104,4 +104,30 @@ it("exports only the active diagram when asked to", async () => {
   expect(onDocument).not.toHaveBeenCalled();
   await waitFor(() => expect(onClose).toHaveBeenCalled());
   expect(pending).toHaveLength(0);
+});
+
+it("leaves the source out by default and passes the opt-in on", async () => {
+  const user = userEvent.setup();
+  const { onDocument } = setup();
+  const checkbox = screen.getByRole("checkbox", { name: "Include PlantUML source" }) as HTMLInputElement;
+  expect(checkbox.checked).toBe(false);
+  expect(screen.getByText(/not the source itself/)).toBeTruthy();
+  await user.click(checkbox);
+  expect(screen.getByText(/including notes and comments/)).toBeTruthy();
+  await user.click(screen.getByRole("button", { name: "Create snapshot" }));
+  await waitFor(() => expect(pending).toHaveLength(1));
+  pending[0]!.resolve({ svg: "<svg>two</svg>" });
+  await waitFor(() => expect(pending).toHaveLength(2));
+  pending[1]!.resolve({ svg: "<svg>three</svg>" });
+  await waitFor(() => expect(onDocument).toHaveBeenCalledTimes(1));
+  expect(onDocument.mock.calls[0]![1]).toBe(true);
+});
+
+it("offers only the source option for a single diagram", async () => {
+  const user = userEvent.setup();
+  const { onThisDiagram, onClose } = setup(null);
+  expect(screen.queryByRole("radio")).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Create snapshot" }));
+  await waitFor(() => expect(onThisDiagram).toHaveBeenCalledWith(false));
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
 });
