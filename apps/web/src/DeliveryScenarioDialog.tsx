@@ -778,6 +778,7 @@ export function DeliveryScenarioDialog({
               </h3>
               <div className="scenario-interactive-canvas">
                 <DiagramPreview
+                  showAskAi={false}
                   svg={scenarioRender.result?.svg}
                   tasks={scenarioDocument.tasks}
                   dependencies={scenarioDocument.dependencies}

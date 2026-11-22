@@ -117,3 +117,24 @@ test("asks the user a question before changing the plan, then proposes", async (
   expect(requests[1]!.body.messages[0]!.content).toContain("A: 2");
   expect(await readEditorSource(page)).toBe(ORIGINAL);
 });
+
+test("starts from the toolbar's Ask AI button with the selected task", async ({ page }) => {
+  test.setTimeout(90_000);
+  await mockAnthropic(page, [answer(WITH_REVIEW)]);
+  await enableAi(page);
+  await page.locator("[data-task-id]").nth(1).click({ force: true });
+  await page.locator(".preview-tools").getByRole("button", { name: "Ask AI…", exact: true }).click();
+  await expect(aiDialog(page).getByText(/Selected lines \d+–\d+/)).toBeVisible();
+  await sendAndApply(page, "Add a code review step after Backend");
+  expect(await readEditorSource(page)).toBe(WITH_REVIEW);
+});
+
+test("offers Ask AI in Stage's top bar for the selected task", async ({ page }) => {
+  await mockAnthropic(page, [answer(WITH_REVIEW)]);
+  await enableAi(page);
+  await page.getByRole("navigation", { name: "View mode" }).getByRole("button", { name: "Stage", exact: true }).click();
+  await expect(page.locator(".workspace.mode-stage")).toBeVisible();
+  await page.locator('.diagram [data-task-id="backend"]').first().click();
+  await page.locator(".stage-ask-ai").click();
+  await expect(aiDialog(page).getByText(/Selected lines \d+–\d+/)).toBeVisible();
+});

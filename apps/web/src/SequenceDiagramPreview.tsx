@@ -8,6 +8,7 @@ import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@p
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { ActionMenu } from "./ActionMenu";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
+import { AskAiButton } from "./features/ai-edits/AskAiButton";
 
 export function SequenceDiagramPreview({
   initialFit,
@@ -719,6 +720,7 @@ export function SequenceDiagramPreview({
         >
           Reorder
         </button>
+        <AskAiButton />
         {(selectedParticipant || selectedMessage || selectedStructure) && (
           <span className="sequence-selection-label">
             {selectedParticipant

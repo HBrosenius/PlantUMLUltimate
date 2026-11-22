@@ -15,6 +15,21 @@ export function useAiAssistantEnabled(): boolean {
   return useSyncExternalStore(subscribeAiAssistant, () => getAiAssistantState().enabled);
 }
 
+/**
+ * Picks what "the selection" means when no range is passed explicitly. Selecting an object in the
+ * diagram also highlights part of it in the source, so an editor selection that lies inside the selected
+ * object is that highlight, not a choice: use the whole object then. An editor selection elsewhere wins.
+ */
+export function chooseSelection(
+  editor: AiEditRange | undefined,
+  diagramObject: AiEditRange | undefined,
+): AiEditRange | undefined {
+  const object = diagramObject ? { from: diagramObject.from, to: diagramObject.to } : undefined;
+  if (!editor) return object;
+  if (object && editor.from >= object.from && editor.to <= object.to) return object;
+  return editor;
+}
+
 export interface AiEditLauncherInput {
   kind: DiagramKind;
   source: string;
@@ -47,12 +62,9 @@ export function useAiEditLauncher(input: AiEditLauncherInput) {
       current.openAiSettings();
       return;
     }
-    const fromDiagram = current.selectedObjectRange;
     setOpen({
       selection:
-        explicit ??
-        currentEditorSelection(current.source.length) ??
-        (fromDiagram ? { from: fromDiagram.from, to: fromDiagram.to } : undefined),
+        explicit ?? chooseSelection(currentEditorSelection(current.source.length), current.selectedObjectRange),
     });
   }, []);
 
