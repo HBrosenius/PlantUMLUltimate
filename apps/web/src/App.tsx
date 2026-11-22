@@ -23,6 +23,7 @@ import { WorkspaceMain } from "./app/WorkspaceMain";
 import { StatusBar } from "./app/StatusBar";
 import { DiagramDialogs } from "./app/DiagramDialogs";
 import { DocumentDialogs } from "./app/DocumentDialogs";
+import { SnapshotDialog } from "./features/snapshot/SnapshotDialog";
 import { DiagramInspectors } from "./app/DiagramInspectors";
 import { GanttSideInspectors } from "./app/GanttSideInspectors";
 import { AppOverlays } from "./app/AppOverlays";
@@ -1858,6 +1859,7 @@ export function App() {
     );
   };
 
+  const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
   const {
     exportSource,
     backupWorkspace,
@@ -1874,10 +1876,14 @@ export function App() {
     exportPng,
     exportPdf,
     exportSnapshot,
+    exportSnapshotThisDiagram,
+    exportSnapshotDocument,
     copyImage,
     copyMarkdown,
     copyConfluence,
   } = useExportActions({
+    sharedDocument: singleFileProject.sharedDocument,
+    openSnapshotDialog: () => setSnapshotDialogOpen(true),
     decorateExportSvg,
     activeDocument,
     closeNewDocumentDialog,
@@ -3236,6 +3242,20 @@ export function App() {
           wbsSettingsOpen={wbsSettingsOpen}
           workspace={workspace}
         />
+        {snapshotDialogOpen && singleFileProject.sharedDocument && (
+          <SnapshotDialog
+            document={singleFileProject.sharedDocument}
+            activeDiagramId={
+              singleFileProject.sharedDocument.diagrams.find(
+                (diagram) => diagram.documentId === activeDocument.portableDocumentId,
+              )?.id
+            }
+            activeResult={result}
+            onThisDiagram={exportSnapshotThisDiagram}
+            onDocument={exportSnapshotDocument}
+            onClose={() => setSnapshotDialogOpen(false)}
+          />
+        )}
         <DocumentDialogs
           activeDocument={activeDocument}
           aiEdit={aiEdit}

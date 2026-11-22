@@ -23,7 +23,14 @@ import {
   type WorkspaceSession,
   type WorkspaceSnapshot,
 } from "../workspace-storage";
-import { buildSnapshotHtml, snapshotFileName } from "../features/snapshot/snapshot-html";
+import {
+  buildSnapshotDocumentHtml,
+  buildSnapshotHtml,
+  snapshotFileName,
+  type SnapshotDiagram,
+} from "../features/snapshot/snapshot-html";
+import { snapshotRelations, type RenderedDiagram } from "../features/snapshot/render-queue";
+import type { SharedDocument } from "../shared-document";
 
 export interface useExportActionsInputs {
   decorateExportSvg: (svg: string) => string;
@@ -41,6 +48,9 @@ export interface useExportActionsInputs {
   reportFileError: (error: unknown) => void;
   result: RenderResult | undefined;
   retainHistories: (ids: readonly string[]) => void;
+  /** The open document's diagrams (project or shared document); undefined for a plain single diagram. */
+  sharedDocument: SharedDocument | undefined;
+  openSnapshotDialog: () => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
   setSelectedDependencyIndex: (value: SetStateAction<number | undefined>) => void;
   setSelectedTaskId: (value: SetStateAction<string | undefined>) => void;
@@ -87,6 +97,8 @@ export function useExportActions({
   reportFileError,
   result,
   retainHistories,
+  sharedDocument,
+  openSnapshotDialog,
   setInteractionMessage,
   setSelectedDependencyIndex,
   setSelectedTaskId,
@@ -174,22 +186,25 @@ export function useExportActions({
     setInteractionMessage,
     notifySuccess,
   ]);
-  const exportSnapshot = useCallback(async () => {
+  const snapshotVersionLabel = useCallback(async () => {
+    try {
+      const versions = await loadDocumentVersions(activeDocument.historyId);
+      const match = versions.find(
+        (version) => version.source === workspace.source && (version.pinned || version.label),
+      );
+      if (match) return match.label ?? `Pinned ${match.createdAt.slice(0, 10)}`;
+    } catch {
+      /* The version stamp is optional. */
+    }
+    return undefined;
+  }, [activeDocument.historyId, workspace.source]);
+  const exportSnapshotThisDiagram = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting a snapshot");
       return;
     }
     try {
-      let versionLabel: string | undefined;
-      try {
-        const versions = await loadDocumentVersions(activeDocument.historyId);
-        const match = versions.find(
-          (version) => version.source === workspace.source && (version.pinned || version.label),
-        );
-        if (match) versionLabel = match.label ?? `Pinned ${match.createdAt.slice(0, 10)}`;
-      } catch {
-        /* The version stamp is optional. */
-      }
+      const versionLabel = await snapshotVersionLabel();
       const name = activeDocument.displayName || workspace.fileName.replace(/\.(pumlu|puml|plantuml)$/i, "");
       const html = await buildSnapshotHtml({
         svg: decorateExportSvg(result.svg),
@@ -207,17 +222,63 @@ export function useExportActions({
     }
   }, [
     activeDocument.displayName,
-    activeDocument.historyId,
     decorateExportSvg,
     exportReady,
     notifySuccess,
     reportFileError,
     result,
     setInteractionMessage,
+    snapshotVersionLabel,
     workspace.diagramKind,
     workspace.fileName,
     workspace.source,
   ]);
+  /** Builds and downloads one snapshot from diagrams the snapshot queue has already rendered. */
+  const exportSnapshotDocument = useCallback(
+    async (rendered: readonly RenderedDiagram[]) => {
+      if (!sharedDocument) return;
+      const activeId = sharedDocument.diagrams.find(
+        (diagram) => diagram.documentId === activeDocument.portableDocumentId,
+      )?.id;
+      // Live Jira markers exist only for the active diagram, so only it needs decorating.
+      const diagrams: SnapshotDiagram[] = rendered.map((entry) => ({
+        id: entry.id,
+        title: entry.title,
+        kind: entry.kind,
+        source: entry.source,
+        ...(entry.svg ? { svg: entry.id === activeId ? decorateExportSvg(entry.svg) : entry.svg } : {}),
+        ...(entry.error ? { error: entry.error } : {}),
+      }));
+      const html = await buildSnapshotDocumentHtml({
+        documentName: sharedDocument.name || activeDocument.displayName || "Document",
+        diagrams,
+        relations: snapshotRelations(sharedDocument),
+        snapshotDate: new Date(),
+        versionLabel: await snapshotVersionLabel(),
+      });
+      const failed = diagrams.filter((diagram) => diagram.error).length;
+      downloadText(html, snapshotFileName(workspace.fileName), "text/html;charset=utf-8");
+      notifySuccess(
+        failed
+          ? `Exported snapshot (HTML); ${failed} diagram${failed === 1 ? "" : "s"} could not be rendered`
+          : "Exported snapshot (HTML)",
+      );
+    },
+    [
+      activeDocument.displayName,
+      activeDocument.portableDocumentId,
+      decorateExportSvg,
+      notifySuccess,
+      sharedDocument,
+      snapshotVersionLabel,
+      workspace.fileName,
+    ],
+  );
+  // With several diagrams a dialog offers this diagram or the whole document; otherwise export directly.
+  const exportSnapshot = useCallback(async () => {
+    if (sharedDocument && sharedDocument.diagrams.length > 1) openSnapshotDialog();
+    else await exportSnapshotThisDiagram();
+  }, [exportSnapshotThisDiagram, openSnapshotDialog, sharedDocument]);
   const copyImage = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before copying it");
@@ -266,6 +327,8 @@ export function useExportActions({
     exportPng,
     exportPdf,
     exportSnapshot,
+    exportSnapshotThisDiagram,
+    exportSnapshotDocument,
     copyImage,
     copyMarkdown,
     copyConfluence,
