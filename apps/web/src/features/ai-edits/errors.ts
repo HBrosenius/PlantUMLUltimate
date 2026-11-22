@@ -1,3 +1,5 @@
+import { AI_PROVIDERS, DEFAULT_AI_PROVIDER, type AiProviderId } from "./providers";
+
 export type AiEditErrorCode =
   | "no_key"
   | "bad_key"
@@ -33,7 +35,12 @@ function statusOf(error: unknown): number | undefined {
  * Maps SDK errors (by HTTP status, so the SDK need not be loaded to read them) to plain messages.
  * The raw error text is never shown: it can echo request details.
  */
-export function mapAiError(error: unknown, signal?: AbortSignal): AiEditError {
+export function mapAiError(
+  error: unknown,
+  signal?: AbortSignal,
+  providerId: AiProviderId = DEFAULT_AI_PROVIDER,
+): AiEditError {
+  const console_ = AI_PROVIDERS[providerId].consoleName;
   if (error instanceof AiEditError) return error;
   const name = (error as { name?: unknown } | null)?.name;
   const message = String((error as { message?: unknown } | null)?.message ?? "");
@@ -46,15 +53,23 @@ export function mapAiError(error: unknown, signal?: AbortSignal): AiEditError {
     return new AiEditError("cancelled", "The request was cancelled. Nothing was changed.");
   }
   const status = statusOf(error);
-  if (status === 401)
+  // xAI answers a wrong key with 400 and a message about the key rather than 401.
+  if (status === 401 || (status === 400 && /api key/i.test(message)))
     return new AiEditError("bad_key", "The API key was not accepted. Check it in Settings > AI assistant.");
   if (status === 403)
     return new AiEditError(
       "forbidden",
-      "This API key is not allowed to use that model. Pick another model or check the key in the Claude Console.",
+      `This API key is not allowed to use that model. Pick another model or check the key in the ${console_}.`,
     );
   if (status === 413)
     return new AiEditError("too_large", "The request was too large for the service. Select fewer lines and try again.");
+  if (status === 429 && /quota|credit|balance|billing/i.test(message))
+    return new AiEditError(
+      "invalid_request",
+      `The account behind this key has no credits left. Add credits in the ${console_}.`,
+    );
+  if (status === 404)
+    return new AiEditError("invalid_request", "That model was not found for this key. Pick another model in Settings.");
   if (status === 429)
     return new AiEditError("rate_limited", "The service is rate limiting this key. Wait a moment and try again.");
   if (status === 529 || /overloaded/i.test(message))
@@ -62,8 +77,8 @@ export function mapAiError(error: unknown, signal?: AbortSignal): AiEditError {
   if (status === 400 || status === 422)
     return new AiEditError(
       "invalid_request",
-      /credit balance/i.test(message)
-        ? "The account behind this key has no credits left. Add credits in the Claude Console."
+      /credit balance|insufficient|quota/i.test(message)
+        ? `The account behind this key has no credits left. Add credits in the ${console_}.`
         : "The service rejected the request. Shorten the instruction or the selection and try again.",
     );
   if (status !== undefined && status >= 500)

@@ -148,6 +148,26 @@ export function buildRequestPayload(request: AiEditRequest, model: string = DEFA
   };
 }
 
+/**
+ * What every provider is asked, before it is shaped into that provider's API call: the same system prompt,
+ * user message and output schema, and an output budget for the visible answer.
+ */
+export interface AiProviderRequest {
+  system: string;
+  user: string;
+  schema: Record<string, unknown>;
+  maxOutputTokens: number;
+}
+
+export function buildProviderRequest(request: AiEditRequest): AiProviderRequest {
+  return {
+    system: systemPromptFor(request.kind),
+    user: buildUserMessage(request),
+    schema: AI_OUTPUT_SCHEMA,
+    maxOutputTokens: maxTokensFor(request.source),
+  };
+}
+
 export type SizeCheck = { ok: true } | { ok: false; message: string };
 
 export function checkRequestSize(request: AiEditRequest): SizeCheck {
