@@ -183,8 +183,16 @@ test("mindmap: multi-select, bulk colour, style class, boxless and delete as sin
   };
 
   await selectOneAndTwo();
-  // Mindmap selections have no clipboard.
-  await expect(inspector.getByRole("button", { name: "Copy", exact: true })).toHaveCount(0);
+  // Duplicate copies both branches (One with its child) next to the originals, as one undo step.
+  await activate(inspector.getByRole("button", { name: "Duplicate", exact: true }));
+  await expect(page.locator(".statusbar")).toContainText("Duplicated 3 elements");
+  await expect
+    .poll(() => readEditorSource(page))
+    .toBe(wrap(["* Root", "** One", "*** One A", "** Two", "** Three", "** One", "*** One A", "** Two"]));
+  await undo();
+  await expect.poll(() => readEditorSource(page)).toBe(wrap(["* Root", "** One", "*** One A", "** Two", "** Three"]));
+
+  await selectOneAndTwo();
   await inspector.getByLabel("Color", { exact: true }).fill("Orange");
   await activate(inspector.getByRole("button", { name: "Set color", exact: true }));
   await expect(page.locator(".statusbar")).toContainText("Updated 2 elements");

@@ -34,8 +34,6 @@ export function BulkDiagramInspector({
   const stereotypeCount = items.filter((item) => item.stereotype).length;
   const boxlessCount = items.filter((item) => item.boxless).length;
   const sideCount = items.filter((item) => item.side).length;
-  // Mindmap selections have no clipboard: copy, paste and duplicate only apply to the other kinds.
-  const clipboard = !onBoxless;
   const styleLabel = onBoxless ? "Style class" : "Stereotype";
   return (
     <InspectorPanel className="task-inspector bulk-task-inspector" aria-label="Selected elements inspector">
@@ -104,19 +102,15 @@ export function BulkDiagramInspector({
           )}
         </fieldset>
         <div className="bulk-task-row">
-          {clipboard && (
-            <>
-              <button type="button" onClick={onCopy}>
-                Copy
-              </button>
-              <button type="button" disabled={readOnly} onClick={onPaste}>
-                Paste
-              </button>
-              <button type="button" disabled={readOnly} onClick={onDuplicate}>
-                Duplicate
-              </button>
-            </>
-          )}
+          <button type="button" onClick={onCopy}>
+            Copy
+          </button>
+          <button type="button" disabled={readOnly} onClick={onPaste}>
+            Paste
+          </button>
+          <button type="button" disabled={readOnly} onClick={onDuplicate}>
+            Duplicate
+          </button>
           {onDelete && (
             <button type="button" className="danger" disabled={readOnly} onClick={onDelete}>
               Delete selected
@@ -125,9 +119,9 @@ export function BulkDiagramInspector({
         </div>
       </form>
       <p className="fieldset-help">
-        {clipboard
-          ? "Ctrl/⌘+C copies, Ctrl/⌘+V pastes, Ctrl/⌘+D duplicates. Each edit is one undo step. Paste into the same diagram type; WBS subtrees paste under the selected node."
-          : "Each edit is one undo step. A node selected together with its parent is deleted with that parent, and at least one root stays. Only the direct children of a root have a side."}
+        {onBoxless
+          ? "Ctrl/⌘+C copies, Ctrl/⌘+V pastes under the selected node, Ctrl/⌘+D duplicates next to the originals. Each edit is one undo step. A node selected together with its parent goes with that parent, and at least one root stays. Only the direct children of a root have a side."
+          : "Ctrl/⌘+C copies, Ctrl/⌘+V pastes, Ctrl/⌘+D duplicates. Each edit is one undo step. Paste into the same diagram type; WBS subtrees paste under the selected node."}
       </p>
     </InspectorPanel>
   );

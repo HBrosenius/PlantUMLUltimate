@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
+import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import {
   changeDiagramItems,
   copyDiagramItems,
@@ -212,9 +213,15 @@ export function useDiagramMultiSelection({
     }
   };
   const copy = () => {
-    if (kind === "gantt" || kind === "mindmap") return;
+    if (kind === "gantt") return;
     const currentKeys = selectionKeys();
-    const copied = copyDiagramItems(kind, source, currentKeys);
+    let copied: ReturnType<typeof copyDiagramItems>;
+    try {
+      copied = copyDiagramItems(kind, source, currentKeys);
+    } catch (error) {
+      report(error instanceof Error ? error.message : "Could not copy the selection.");
+      return;
+    }
     if (!copied) return;
     clipboard.current = copied;
     void navigator.clipboard?.writeText(copied.text).catch(() => undefined);
@@ -222,16 +229,19 @@ export function useDiagramMultiSelection({
   };
   const paste = (duplicate = false, duplicateKeys = selectionKeys()) =>
     attempt(() => {
-      if (readOnly || kind === "gantt" || kind === "mindmap") return;
+      if (readOnly || kind === "gantt") return;
       const copied = duplicate ? copyDiagramItems(kind, source, duplicateKeys) : clipboard.current;
       if (!copied) return;
       const selectedNode = (duplicate ? items.filter((item) => duplicateKeys.includes(item.key)) : selected).find(
-        (item) => item.attribute === "data-wbs-node-id",
+        (item) => item.attribute === "data-wbs-node-id" || item.attribute === "data-mindmap-node-id",
       );
+      // A duplicate goes next to the original, under its parent; a paste goes under the selected node.
       const parent =
-        kind === "wbs"
+        kind === "wbs" || kind === "mindmap"
           ? duplicate
-            ? parseWbs(source).nodes.find((node) => node.id === selectedNode?.id)?.parentId
+            ? (kind === "wbs" ? parseWbs(source) : parseMindmap(source)).nodes.find(
+                (node) => node.id === selectedNode?.id,
+              )?.parentId
             : selectedNode?.id
           : undefined;
       const result = pasteDiagramItems(kind, source, copied, parent);
@@ -335,8 +345,6 @@ export function useDiagramMultiSelection({
       const key = event.key.toLowerCase();
       const activeKeys = state.selectionKeys();
       const diagramFocus = target instanceof Element && !!target.closest(".diagram");
-      // Mindmap selections have no clipboard: only select all applies.
-      if (state.kind === "mindmap" && key !== "a") return;
       if (key === "a" && diagramFocus) {
         event.preventDefault();
         event.stopPropagation();
