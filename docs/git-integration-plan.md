@@ -1,6 +1,6 @@
 # B4: Git provider integration — plan
 
-Status: draft for discussion. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
+Status: decided 2026-11-23 (see [section 6](#6-decisions)); G0 + G1 is next. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
 
 ## 0. What this is for
 
@@ -63,9 +63,11 @@ G0 → G1 → G2 is the minimum useful set. G3 can follow G2 quickly.
 - Several files in one PR. One file per PR first.
 - Git hosting other than GitHub until G5.
 
-## 6. Open questions
+## 6. Decisions
 
-1. **Sign-in:** fine-grained token first (A, recommended), or "Sign in with GitHub" through the Worker from the start (B)?
-2. **Token storage:** like AI keys — memory for the session, with an opt-in "remember on this device" (recommended) — or always remembered?
-3. **First PR:** G0 + G1 (connect and open, read-only value), or straight through to G2 (the whole loop) in one PR?
-4. **PR description:** the semantic review plus the patch in a collapsed block (recommended), or also attach a snapshot of the changed diagram?
+Decided on 2026-11-23:
+
+1. **Sign-in starts with a fine-grained personal access token (option A).** The browser calls GitHub directly; "Sign in with GitHub" through the Worker (G4) waits until teams ask.
+2. **The token is kept like AI keys:** in memory for the session, with an opt-in "remember on this device", and never in documents, backups, snapshots or collaboration state.
+3. **The first PR is G0 + G1:** the GitHub client, Settings → GitHub, and Open from GitHub. Propose change (G2) follows in its own PR.
+4. **The PR description is the semantic review plus the patch** in a collapsed block. No rendered images, since GitHub has no API for PR image attachments.
