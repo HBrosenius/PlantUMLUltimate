@@ -1,3 +1,5 @@
+export { refPathCandidates } from "../git/git-provider";
+
 export interface ParsedGitHubFileUrl {
   owner: string;
   repo: string;
@@ -49,18 +51,4 @@ export function parseGitHubFileUrl(input: string): ParsedGitHubFileUrl | undefin
   }
   if (!owner || !repo || rest.length < 2) return undefined;
   return { owner, repo: repo.replace(/\.git$/, ""), segments: rest };
-}
-
-/**
- * The ways to split `segments` into a ref and a file path, longest ref first (a branch `feature/x` wins over
- * `feature` when both could match), keeping at least one segment for the path. A 40-character hex first
- * segment is tried first as a commit.
- */
-export function refPathCandidates(segments: string[]): Array<{ ref: string; path: string }> {
-  const candidates: Array<{ ref: string; path: string }> = [];
-  for (let split = segments.length - 1; split >= 1; split--)
-    candidates.push({ ref: segments.slice(0, split).join("/"), path: segments.slice(split).join("/") });
-  const sha = candidates.findIndex((candidate) => /^[0-9a-f]{40}$/i.test(candidate.ref));
-  if (sha > 0) candidates.unshift(...candidates.splice(sha, 1));
-  return candidates;
 }

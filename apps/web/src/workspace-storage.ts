@@ -1,4 +1,4 @@
-import { normalizeGitHubOrigin, type GitHubOrigin } from "./features/github/github-origin";
+import { normalizeGitOrigin, type GitOrigin } from "./features/git/git-origin";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/diagram-gantt";
 import { normalizeDiagramKind } from "./diagram-kind";
@@ -52,7 +52,7 @@ export interface DocumentSnapshot {
     { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string } | undefined;
   linkedWbsDocumentId?: string | undefined;
   /** Where the file was opened from on GitHub. Not shared with collaborators or written to exported documents. */
-  githubOrigin?: GitHubOrigin | undefined;
+  githubOrigin?: GitOrigin | undefined;
   wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
   wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
 }
@@ -271,9 +271,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
               }
             : {}),
           ...(typeof item.linkedWbsDocumentId === "string" ? { linkedWbsDocumentId: item.linkedWbsDocumentId } : {}),
-          ...(normalizeGitHubOrigin(item.githubOrigin)
-            ? { githubOrigin: normalizeGitHubOrigin(item.githubOrigin)! }
-            : {}),
+          ...(normalizeGitOrigin(item.githubOrigin) ? { githubOrigin: normalizeGitOrigin(item.githubOrigin)! } : {}),
           ...(Array.isArray(item.wbsGanttLinks)
             ? {
                 wbsGanttLinks: item.wbsGanttLinks.filter(
