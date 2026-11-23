@@ -69,7 +69,11 @@ export async function mergeUpstream(
   if (upstream.sha === baseSha) return { kind: "unchanged" };
   const merge = threeWayMerge(lf(base), lf(source), lf(upstream.content));
   if (merge.conflicts.length) return { kind: "conflict", branch: changed.branch, regions: conflictRegions(merge) };
-  const merged = resolveThreeWayMerge(merge, []);
+  // The merge works on LF; the result keeps the line endings of the file on GitHub, so the commit does not
+  // rewrite every line of a CRLF file.
+  const merged = /\r\n/.test(upstream.content)
+    ? resolveThreeWayMerge(merge, []).replace(/\r?\n/g, "\r\n")
+    : resolveThreeWayMerge(merge, []);
   return {
     kind: "merged",
     branch: changed.branch,
@@ -80,6 +84,6 @@ export async function mergeUpstream(
       changed.target === "proposal" && origin.proposal
         ? { ...origin, proposal: { ...origin.proposal, sha: upstream.sha } }
         : { ...origin, sha: upstream.sha },
-    nothingToPropose: merged === lf(upstream.content),
+    nothingToPropose: lf(merged) === lf(upstream.content),
   };
 }

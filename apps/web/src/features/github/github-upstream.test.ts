@@ -170,6 +170,15 @@ describe("merging upstream changes", () => {
     expect(merge).toMatchObject({ kind: "merged", nothingToPropose: true });
   });
 
+  it("keeps the CRLF line endings of the file on GitHub", async () => {
+    const crlf = (text: string) => text.replace(/\n/g, "\r\n");
+    const { client } = fakeGitHub({ main: crlf(UPSTREAM_SOURCE) });
+    const merge = await mergeUpstream(client, origin, LOCAL, { target: "base", branch: "main" });
+    if (merge.kind !== "merged") throw new Error(`expected a clean merge, got ${merge.kind}`);
+    expect(merge.merged).toBe(crlf(BOTH));
+    expect(merge.nothingToPropose).toBe(false);
+  });
+
   it("never exposes the token in the errors", async () => {
     const { client } = fakeGitHub({ main: UPSTREAM_SOURCE });
     const changed = await failure(proposeChange(client, origin, input));
