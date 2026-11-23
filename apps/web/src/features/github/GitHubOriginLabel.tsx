@@ -15,7 +15,13 @@ export function GitHubOriginLabel({ origin, onPropose }: { origin: GitHubOrigin;
         </a>
       )}
       {proposal && safeGitHubUrl(proposal.htmlUrl) && (
-        <a href={proposal.htmlUrl} target="_blank" rel="noopener noreferrer">
+        <a
+          className="github-pr-badge"
+          href={proposal.htmlUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Pull request #${proposal.number} on branch ${proposal.branch}: review and merge it on GitHub`}
+        >
           PR #{proposal.number}
         </a>
       )}

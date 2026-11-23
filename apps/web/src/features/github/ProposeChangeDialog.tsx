@@ -12,6 +12,7 @@ import {
   UpstreamChangedError,
 } from "./github-propose";
 import { mergeUpstream, type UpstreamMerge } from "./github-upstream";
+import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 
 const message = (error: unknown) =>
@@ -53,7 +54,7 @@ export function ProposeChangeDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [upstream, setUpstream] = useState<UpstreamMerge>();
-  const [done, setDone] = useState<{ pullRequest: GitHubPullRequest; updated: boolean }>();
+  const [done, setDone] = useState<{ pullRequest: GitHubPullRequest; updated: boolean; branch: string }>();
   const [branch, setBranch] = useState(() => defaultProposalBranch(fileName));
   const [commitMessage, setCommitMessage] = useState(`Update ${origin.path.split("/").pop() ?? fileName}`);
   const [title, setTitle] = useState(`Update ${origin.path.split("/").pop() ?? fileName}`);
@@ -138,7 +139,11 @@ export function ProposeChangeDialog({
         title: title.trim() || `Update ${fileName}`,
       });
       onProposed(result.origin);
-      setDone({ pullRequest: result.pullRequest, updated: result.updated });
+      setDone({
+        pullRequest: result.pullRequest,
+        updated: result.updated,
+        branch: result.origin.proposal?.branch ?? branch.trim(),
+      });
     } catch (failure) {
       if (failure instanceof UpstreamChangedError) {
         // Read the newer version and try to combine it with the tab's edits; nothing is committed yet.
@@ -191,16 +196,14 @@ export function ProposeChangeDialog({
             </button>
           </>
         ) : done ? (
-          <p role="status">
-            {done.updated
-              ? `Added a commit to pull request #${done.pullRequest.number} and updated its description.`
-              : `Opened pull request #${done.pullRequest.number} in ${repository}.`}{" "}
-            {safeGitHubUrl(done.pullRequest.htmlUrl) && (
-              <a href={done.pullRequest.htmlUrl} target="_blank" rel="noopener noreferrer">
-                View pull request #{done.pullRequest.number}
-              </a>
-            )}
-          </p>
+          <ProposalDone
+            pullRequest={done.pullRequest}
+            repository={repository}
+            branch={done.branch}
+            base={origin.ref}
+            updated={done.updated}
+            newFile={origin.proposal?.newFile === true}
+          />
         ) : upstream?.kind === "conflict" ? (
           <>
             <p role="alert">
@@ -272,6 +275,7 @@ export function ProposeChangeDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {done ? "Close" : "Cancel"}
           </button>
+          {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
           {client && loaded && !done && upstream?.kind === "merged" && (
             <button
               type="button"

@@ -133,7 +133,10 @@ test("proposes a new diagram as a new file, links the tab, then adds a commit to
   await dialog.getByRole("button", { name: "Open pull request" }).click();
 
   await expect(dialog.getByRole("status")).toContainText("Opened pull request #12 in octo-e2e/diagrams.");
-  await expect(dialog.getByRole("link", { name: "View pull request #12" })).toHaveAttribute("href", PR_URL);
+  await expect(dialog.getByRole("status")).toContainText(
+    "Next: review and merge it on GitHub. Until it is merged, the file is only on branch plantuml/new-e2e, not on main.",
+  );
+  await expect(dialog.getByRole("link", { name: "Open pull request #12 on GitHub" })).toHaveAttribute("href", PR_URL);
   expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([
     `GET ${REPO}/contents/docs/new.puml`,
     `GET ${REPO}/git/ref/heads/main`,

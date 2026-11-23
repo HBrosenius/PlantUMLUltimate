@@ -89,3 +89,36 @@
 .github-open-dialog.github-propose-dialog {
   max-height: calc(82vh - 24px);
 }
+.github-origin a.github-pr-badge {
+  align-self: center;
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.github-origin a.github-pr-badge:hover {
+  background: var(--accent);
+  color: white;
+}
+.github-proposal-done p {
+  margin: 0 0 8px;
+}
+.github-proposal-done-title {
+  font-weight: 600;
+}
+.github-open-pr {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+}
+.github-open-pr:hover {
+  filter: brightness(0.95);
+}
