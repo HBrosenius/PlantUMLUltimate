@@ -122,3 +122,26 @@
 .github-open-pr:hover {
   filter: brightness(0.95);
 }
+.github-open-dialog footer button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.github-open-dialog footer button.primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+.github-open-dialog footer button.primary:disabled {
+  opacity: 0.55;
+}
+.github-empty-repository {
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+.github-empty-repository p {
+  margin: 0 0 6px;
+}
+.github-empty-repository p:last-child {
+  margin-bottom: 0;
+}

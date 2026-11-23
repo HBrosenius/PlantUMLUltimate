@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
 import { createGitHubClient, GitHubError, type GitHubClient, type GitHubPullRequest } from "./github-client";
-import { createNewFileMarkdown, defaultNewFilePath, proposeNewFile, validateNewFilePath } from "./github-new-file";
-import type { GitHubOrigin } from "./github-origin";
+import {
+  addFirstFile,
+  createNewFileMarkdown,
+  defaultNewFilePath,
+  proposeNewFile,
+  validateNewFilePath,
+} from "./github-new-file";
+import { safeGitHubUrl, type GitHubOrigin } from "./github-origin";
 import { defaultProposalBranch } from "./github-propose";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
@@ -42,7 +48,17 @@ export function ProposeNewFileDialog({
     branch: string;
     base: string;
   }>();
-  const [selection, setSelection] = useState<GitHubRepositorySelection>();
+  const [selection, setSelectionState] = useState<GitHubRepositorySelection>();
+  /** The chosen repository has no commits, so the file can only become its first commit. */
+  const [emptyRepository, setEmptyRepository] = useState(false);
+  const [firstCommit, setFirstCommit] = useState<{ origin: GitHubOrigin; repository: string }>();
+  // Branch, commit message and title follow the file path until the user edits them.
+  const [edited, setEdited] = useState({ branch: false, commitMessage: false, title: false });
+  const setSelection = (next: GitHubRepositorySelection | undefined) => {
+    setSelectionState(next);
+    setEmptyRepository(false);
+    setError("");
+  };
   const defaultPath = useMemo(() => defaultNewFilePath(fileName), [fileName]);
   const [path, setPath] = useState(defaultPath);
   const [branch, setBranch] = useState(() => defaultProposalBranch(defaultPath));
@@ -75,6 +91,36 @@ export function ProposeNewFileDialog({
   const body = useMemo(() => createNewFileMarkdown(trimmedPath, source), [trimmedPath, source]);
   const justName = trimmedPath.split("/").pop() || defaultPath;
 
+  function changePath(next: string) {
+    setPath(next);
+    const name = next.trim().split("/").pop() || defaultPath;
+    if (!edited.branch) setBranch(defaultProposalBranch(name));
+    if (!edited.commitMessage) setCommitMessage(`Add ${name}`);
+    if (!edited.title) setTitle(`Add ${name}`);
+  }
+
+  async function submitFirstCommit() {
+    if (!client || !selection || pathProblem) return;
+    setBusy(true);
+    setError("");
+    try {
+      const origin = await addFirstFile(client, {
+        owner: selection.repo.owner,
+        repo: selection.repo.name,
+        defaultBranch: selection.repo.defaultBranch,
+        path: trimmedPath,
+        source,
+        commitMessage: commitMessage.trim() || `Add ${justName}`,
+      });
+      onProposed(origin);
+      setFirstCommit({ origin, repository: selection.repo.fullName });
+    } catch (failure) {
+      setError(message(failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit() {
     if (!client || !selection || pathProblem) return;
     setBusy(true);
@@ -99,12 +145,14 @@ export function ProposeNewFileDialog({
         base: selection.branch,
       });
     } catch (failure) {
-      setError(message(failure));
+      if (failure instanceof GitHubError && failure.kind === "empty-repository") setEmptyRepository(true);
+      else setError(message(failure));
     } finally {
       setBusy(false);
     }
   }
 
+  const finished = done !== undefined || firstCommit !== undefined;
   return (
     <div className="modal-backdrop">
       <form
@@ -115,7 +163,8 @@ export function ProposeNewFileDialog({
         aria-label="Propose as new file on GitHub"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!busy && !done) void submit();
+          if (busy || finished) return;
+          void (emptyRepository ? submitFirstCommit() : submit());
         }}
       >
         <header>
@@ -139,6 +188,18 @@ export function ProposeNewFileDialog({
               Open Settings → GitHub
             </button>
           </>
+        ) : firstCommit ? (
+          <div className="github-proposal-done" role="status">
+            <p className="github-proposal-done-title">
+              Added {firstCommit.origin.path} to {firstCommit.repository} as its first commit on{" "}
+              {firstCommit.origin.ref}.
+            </p>
+            <p>
+              The repository was empty, so there was no branch for a pull request. From now on, edit the diagram and
+              choose <strong>Propose change…</strong> next to the GitHub label at the top: changes are proposed as pull
+              requests.
+            </p>
+          </div>
         ) : done ? (
           <ProposalDone
             pullRequest={done.pullRequest}
@@ -164,7 +225,7 @@ export function ProposeNewFileDialog({
                 value={path}
                 maxLength={500}
                 aria-invalid={pathProblem ? true : undefined}
-                onChange={(event) => setPath(event.target.value)}
+                onChange={(event) => changePath(event.target.value)}
               />
             </label>
             {pathProblem && <p role="status">{pathProblem}</p>}
@@ -175,16 +236,33 @@ export function ProposeNewFileDialog({
                 spellCheck={false}
                 value={branch}
                 maxLength={200}
-                onChange={(event) => setBranch(event.target.value)}
+                onChange={(event) => {
+                  setBranch(event.target.value);
+                  setEdited((current) => ({ ...current, branch: true }));
+                }}
               />
             </label>
             <label>
               Commit message
-              <input value={commitMessage} maxLength={500} onChange={(event) => setCommitMessage(event.target.value)} />
+              <input
+                value={commitMessage}
+                maxLength={500}
+                onChange={(event) => {
+                  setCommitMessage(event.target.value);
+                  setEdited((current) => ({ ...current, commitMessage: true }));
+                }}
+              />
             </label>
             <label>
               Pull request title
-              <input value={title} maxLength={250} onChange={(event) => setTitle(event.target.value)} />
+              <input
+                value={title}
+                maxLength={250}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  setEdited((current) => ({ ...current, title: true }));
+                }}
+              />
             </label>
             <details className="github-propose-preview">
               <summary>Description preview</summary>
@@ -192,13 +270,35 @@ export function ProposeNewFileDialog({
             </details>
           </>
         )}
+        {emptyRepository && !finished && selection && (
+          <div className="github-empty-repository" role="alert">
+            <p>
+              <strong>{selection.repo.fullName} is empty.</strong> It has no commits yet, so there is no branch a pull
+              request could go into.
+            </p>
+            <p>
+              You can add this diagram as the repository's first commit, directly on{" "}
+              <code>{selection.repo.defaultBranch}</code>. Later changes are proposed as pull requests as usual.
+            </p>
+          </div>
+        )}
         {error && <p role="alert">{error}</p>}
         <footer>
           <button type="button" disabled={busy} onClick={onClose}>
-            {done ? "Close" : "Cancel"}
+            {finished ? "Close" : "Cancel"}
           </button>
           {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
-          {client && !done && (
+          {firstCommit && safeGitHubUrl(firstCommit.origin.htmlUrl) && (
+            <a className="github-open-pr" href={firstCommit.origin.htmlUrl} target="_blank" rel="noopener noreferrer">
+              Open {firstCommit.origin.path} on GitHub
+            </a>
+          )}
+          {client && !finished && emptyRepository && selection && (
+            <button type="submit" className="primary" disabled={busy || !!pathProblem}>
+              {busy ? "Adding…" : `Add as first commit on ${selection.repo.defaultBranch}`}
+            </button>
+          )}
+          {client && !finished && !emptyRepository && (
             <button type="submit" className="primary" disabled={busy || !selection || !!pathProblem || !branch.trim()}>
               {busy ? "Proposing…" : "Open pull request"}
             </button>
