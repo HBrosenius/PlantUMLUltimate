@@ -43,109 +43,113 @@ export async function mockGitLab(page: Page, options: GitLabMockOptions = {}) {
   const calls: Call[] = [];
   let commits = 0;
   let refused = false;
-  await page.route(`${server}/**`, async (route) => {
-    const request = route.request();
-    if (options.blocked) return route.abort("failed");
-    const url = new URL(request.url());
-    const cors = {
-      "access-control-allow-origin": "*",
-      "access-control-allow-headers": "*",
-      "access-control-allow-methods": "*",
-    };
-    if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    expect(request.headers()["authorization"]).toBe(`Bearer ${token}`);
-    const body = request.postData() ? (JSON.parse(request.postData()!) as Record<string, unknown>) : undefined;
-    calls.push({ method: request.method(), path: url.pathname, query: url.search, body });
-    const reply = (data: unknown, status = 200) =>
-      route.fulfill({ status, contentType: "application/json", headers: cors, body: JSON.stringify(data) });
-    const raw = (text: string) => route.fulfill({ status: 200, contentType: "text/plain", headers: cors, body: text });
-    const ref = url.searchParams.get("ref");
-    const mergeRequest = { iid: 12, web_url: mergeRequestUrl(server), state: "opened" };
-    const file = (path: string, content: string, commit: string, blob: string) =>
-      reply({
-        file_name: path.split("/").pop(),
-        file_path: path,
-        size: content.length,
-        encoding: "base64",
-        content: base64(content),
-        ref,
-        blob_id: blob,
-        last_commit_id: commit,
-      });
+  await page.route(
+    (url) => url.origin === server,
+    async (route) => {
+      const request = route.request();
+      if (options.blocked) return route.abort("failed");
+      const url = new URL(request.url());
+      const cors = {
+        "access-control-allow-origin": "*",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "*",
+      };
+      if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+      expect(request.headers()["authorization"]).toBe(`Bearer ${token}`);
+      const body = request.postData() ? (JSON.parse(request.postData()!) as Record<string, unknown>) : undefined;
+      calls.push({ method: request.method(), path: url.pathname, query: url.search, body });
+      const reply = (data: unknown, status = 200) =>
+        route.fulfill({ status, contentType: "application/json", headers: cors, body: JSON.stringify(data) });
+      const raw = (text: string) =>
+        route.fulfill({ status: 200, contentType: "text/plain", headers: cors, body: text });
+      const ref = url.searchParams.get("ref");
+      const mergeRequest = { iid: 12, web_url: mergeRequestUrl(server), state: "opened" };
+      const file = (path: string, content: string, commit: string, blob: string) =>
+        reply({
+          file_name: path.split("/").pop(),
+          file_path: path,
+          size: content.length,
+          encoding: "base64",
+          content: base64(content),
+          ref,
+          blob_id: blob,
+          last_commit_id: commit,
+        });
 
-    const route_ = `${request.method()} ${url.pathname}`;
-    switch (route_) {
-      case "GET /api/v4/user":
-        return reply({ username: "gl-e2e", name: "GL E2E" });
-      case "GET /api/v4/projects":
-        return reply([
-          {
-            path_with_namespace: PROJECT,
-            default_branch: "main",
-            visibility: "private",
-            web_url: `${server}/${PROJECT}`,
-          },
-        ]);
-      case `GET ${API_PROJECT}`:
-        return reply({ default_branch: "main", empty_repo: options.empty === true });
-      case `GET ${API_PROJECT}/repository/branches`:
-        return reply(options.empty ? [] : [{ name: "main" }, { name: "feature/x" }]);
-      case `GET ${API_PROJECT}/repository/branches/main`:
-        if (options.empty) return reply({ message: "404 Branch Not Found" }, 404);
-        return reply({ name: "main", commit: { id: HEAD } });
-      case `POST ${API_PROJECT}/repository/branches`:
-        return reply({ name: body!.branch }, 201);
-      case `DELETE ${API_PROJECT}/repository/branches/plantuml%2Fflow-e2e`:
-      case `DELETE ${API_PROJECT}/repository/branches/plantuml%2Fnew-e2e`:
-        return route.fulfill({ status: 204, headers: cors });
-      case `GET ${API_PROJECT}/repository/tree`: {
-        if (ref !== "main" && ref !== "feature/x") return reply({ message: "404 Tree Not Found" }, 404);
-        const folder = url.searchParams.get("path");
-        if (!folder)
+      const route_ = `${request.method()} ${url.pathname}`;
+      switch (route_) {
+        case "GET /api/v4/user":
+          return reply({ username: "gl-e2e", name: "GL E2E" });
+        case "GET /api/v4/projects":
           return reply([
-            { name: "README.md", path: "README.md", type: "blob" },
-            { name: "docs", path: "docs", type: "tree" },
+            {
+              path_with_namespace: PROJECT,
+              default_branch: "main",
+              visibility: "private",
+              web_url: `${server}/${PROJECT}`,
+            },
           ]);
-        if (folder === "docs")
-          return reply([
-            { name: "flow.puml", path: "docs/flow.puml", type: "blob" },
-            { name: "notes.txt", path: "docs/notes.txt", type: "blob" },
-          ]);
-        return reply([]);
-      }
-      case `GET ${API_PROJECT}/repository/files/docs%2Fflow.puml`: {
-        if (ref !== "main" && ref !== "feature/x") return reply({ message: "404 File Not Found" }, 404);
-        const newer = options.upstream !== undefined && refused;
-        return newer
-          ? file("docs/flow.puml", options.upstream!, UPSTREAM_COMMIT, "b".repeat(40))
-          : file("docs/flow.puml", SOURCE, OPENED_COMMIT, OPENED_BLOB);
-      }
-      case `GET ${API_PROJECT}/repository/files/docs%2Fnew.puml`:
-        if (!options.exists) return reply({ message: "404 File Not Found" }, 404);
-        return file("docs/new.puml", "abc", "9".repeat(40), "c".repeat(40));
-      case `GET ${API_PROJECT}/repository/files/docs%2Fnew.puml/raw`:
-        return raw(SOURCE);
-      case `GET ${API_PROJECT}/repository/blobs/${OPENED_BLOB}/raw`:
-        return raw(SOURCE);
-      case `POST ${API_PROJECT}/repository/commits`: {
-        if (options.conflict) return reply({ message: "The file has changed since you started editing it" }, 400);
-        const action = (body!.actions as Array<Record<string, unknown>>)[0]!;
-        if (options.upstream !== undefined && action.last_commit_id !== UPSTREAM_COMMIT) {
-          refused = true;
-          return reply({ message: "The file has changed since you started editing it" }, 400);
+        case `GET ${API_PROJECT}`:
+          return reply({ default_branch: "main", empty_repo: options.empty === true });
+        case `GET ${API_PROJECT}/repository/branches`:
+          return reply(options.empty ? [] : [{ name: "main" }, { name: "feature/x" }]);
+        case `GET ${API_PROJECT}/repository/branches/main`:
+          if (options.empty) return reply({ message: "404 Branch Not Found" }, 404);
+          return reply({ name: "main", commit: { id: HEAD } });
+        case `POST ${API_PROJECT}/repository/branches`:
+          return reply({ name: body!.branch }, 201);
+        case `DELETE ${API_PROJECT}/repository/branches/plantuml%2Fflow-e2e`:
+        case `DELETE ${API_PROJECT}/repository/branches/plantuml%2Fnew-e2e`:
+          return route.fulfill({ status: 204, headers: cors });
+        case `GET ${API_PROJECT}/repository/tree`: {
+          if (ref !== "main" && ref !== "feature/x") return reply({ message: "404 Tree Not Found" }, 404);
+          const folder = url.searchParams.get("path");
+          if (!folder)
+            return reply([
+              { name: "README.md", path: "README.md", type: "blob" },
+              { name: "docs", path: "docs", type: "tree" },
+            ]);
+          if (folder === "docs")
+            return reply([
+              { name: "flow.puml", path: "docs/flow.puml", type: "blob" },
+              { name: "notes.txt", path: "docs/notes.txt", type: "blob" },
+            ]);
+          return reply([]);
         }
-        commits += 1;
-        return reply({ id: String(commits + 2).repeat(40) }, 201);
+        case `GET ${API_PROJECT}/repository/files/docs%2Fflow.puml`: {
+          if (ref !== "main" && ref !== "feature/x") return reply({ message: "404 File Not Found" }, 404);
+          const newer = options.upstream !== undefined && refused;
+          return newer
+            ? file("docs/flow.puml", options.upstream!, UPSTREAM_COMMIT, "b".repeat(40))
+            : file("docs/flow.puml", SOURCE, OPENED_COMMIT, OPENED_BLOB);
+        }
+        case `GET ${API_PROJECT}/repository/files/docs%2Fnew.puml`:
+          if (!options.exists) return reply({ message: "404 File Not Found" }, 404);
+          return file("docs/new.puml", "abc", "9".repeat(40), "c".repeat(40));
+        case `GET ${API_PROJECT}/repository/files/docs%2Fnew.puml/raw`:
+          return raw(SOURCE);
+        case `GET ${API_PROJECT}/repository/blobs/${OPENED_BLOB}/raw`:
+          return raw(SOURCE);
+        case `POST ${API_PROJECT}/repository/commits`: {
+          if (options.conflict) return reply({ message: "The file has changed since you started editing it" }, 400);
+          const action = (body!.actions as Array<Record<string, unknown>>)[0]!;
+          if (options.upstream !== undefined && action.last_commit_id !== UPSTREAM_COMMIT) {
+            refused = true;
+            return reply({ message: "The file has changed since you started editing it" }, 400);
+          }
+          commits += 1;
+          return reply({ id: String(commits + 2).repeat(40) }, 201);
+        }
+        case `POST ${API_PROJECT}/merge_requests`:
+          return reply(mergeRequest, 201);
+        case `GET ${API_PROJECT}/merge_requests/12`:
+        case `PUT ${API_PROJECT}/merge_requests/12`:
+          return reply(mergeRequest);
+        default:
+          return reply({ message: "404 Not Found" }, 404);
       }
-      case `POST ${API_PROJECT}/merge_requests`:
-        return reply(mergeRequest, 201);
-      case `GET ${API_PROJECT}/merge_requests/12`:
-      case `PUT ${API_PROJECT}/merge_requests/12`:
-        return reply(mergeRequest);
-      default:
-        return reply({ message: "404 Not Found" }, 404);
-    }
-  });
+    },
+  );
   return calls;
 }
 

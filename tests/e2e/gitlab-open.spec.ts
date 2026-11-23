@@ -81,8 +81,8 @@ test("opens a file from a pasted link in a nested group, with its label, links a
   await expect(origin.getByRole("link", { name: /^MR / })).toHaveCount(0);
 
   await expect
-    .poll(() => page.evaluate(() => Object.values({ ...localStorage }).some((value) => value.includes("gitlab.com"))))
-    .toBe(true);
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("plantuml-studio.gitlab") ?? "{}").server))
+    .toBe("https://gitlab.com");
   await page.reload();
   await tabs(page).last().click();
   await expect(page.getByTestId("github-origin")).toContainText("GitLab · group/sub/diagrams · feature/x");
