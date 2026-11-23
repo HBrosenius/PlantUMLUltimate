@@ -118,6 +118,13 @@ describe("GitHub client files", () => {
     });
   });
 
+  it("refuses dot segments, so a crafted path cannot reach another API endpoint", async () => {
+    const { client, fetchMock } = clientWith(() => reply(fileBody("x")));
+    await expect(client.getFile("o", "r", "main", "docs/../../../user")).rejects.toMatchObject({ kind: "unsupported" });
+    await expect(client.listFolder("o", "r", "main", "./docs")).rejects.toMatchObject({ kind: "unsupported" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("explains folders and non-text files", async () => {
     const folder = clientWith(() => reply([{ name: "a", path: "a", type: "file" }]));
     await expect(folder.client.getFile("o", "r", "main", "docs")).rejects.toMatchObject({ kind: "unsupported" });

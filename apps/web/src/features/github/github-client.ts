@@ -78,7 +78,12 @@ type Json = Record<string, unknown>;
 const asString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
 function encodePath(path: string): string {
-  return path.split("/").filter(Boolean).map(encodeURIComponent).join("/");
+  const segments = path.split("/").filter(Boolean);
+  // URL parsing resolves "." and ".." even when encoded, so a crafted link could otherwise send the token's
+  // request to another api.github.com endpoint. File paths in a repository never need them.
+  if (segments.some((segment) => segment === "." || segment === ".."))
+    throw new GitHubError("unsupported", `${path} is not a file path in a repository.`);
+  return segments.map(encodeURIComponent).join("/");
 }
 
 function describeWait(response: Response): string {
