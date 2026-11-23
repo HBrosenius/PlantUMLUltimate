@@ -14,7 +14,7 @@ const fromBase64 = (text: string) => Buffer.from(text, "base64").toString("utf8"
 
 type Call = { method: string; path: string; body: Record<string, unknown> | undefined };
 
-async function mockGitHub(page: Page, options: { exists?: boolean } = {}) {
+async function mockGitHub(page: Page, options: { exists?: boolean; empty?: boolean } = {}) {
   const calls: Call[] = [];
   let commits = 0;
   await page.route("https://api.github.com/**", async (route) => {
@@ -36,9 +36,11 @@ async function mockGitHub(page: Page, options: { exists?: boolean } = {}) {
       case "GET /user":
         return reply({ login: "octo-e2e" });
       case "GET /user/repos":
-        return reply([{ full_name: "octo-e2e/diagrams", name: "diagrams", owner: { login: "octo-e2e" } }]);
+        return reply([
+          { full_name: "octo-e2e/diagrams", name: "diagrams", owner: { login: "octo-e2e" }, default_branch: "main" },
+        ]);
       case `GET ${REPO}/branches`:
-        return reply([{ name: "main" }, { name: "develop" }]);
+        return reply(options.empty ? [] : [{ name: "main" }, { name: "develop" }]);
       case `GET ${REPO}/contents/docs/new.puml`:
         if (!options.exists) return reply({ message: "Not Found" }, 404);
         return reply({
@@ -53,6 +55,7 @@ async function mockGitHub(page: Page, options: { exists?: boolean } = {}) {
       case `GET ${REPO}/git/blobs/${NEW_BLOB}`:
         return reply({ sha: NEW_BLOB, encoding: "base64", content: Buffer.from(SOURCE).toString("base64") });
       case `GET ${REPO}/git/ref/heads/main`:
+        if (options.empty) return reply({ message: "Git Repository is empty.", status: "409" }, 409);
         return reply({ ref: "refs/heads/main", object: { sha: HEAD } });
       case `POST ${REPO}/git/refs`:
         return reply({ ref: body!.ref }, 201);
@@ -192,4 +195,46 @@ test("a path that already exists is refused and nothing is written", async ({ pa
   await dialog.getByLabel("File path").fill("/docs/new.puml");
   await expect(dialog.getByRole("button", { name: "Open pull request" })).toBeDisabled();
   await expect(dialog).toContainText("remove the slash at the start");
+});
+
+test("an empty repository gets the diagram as its first commit, and the defaults follow the file path", async ({
+  page,
+}) => {
+  const calls = await mockGitHub(page, { empty: true });
+  await prepareEditor(page);
+  await addToken(page);
+  await setSource(page, SOURCE);
+  const dialog = await openNewFileDialog(page);
+  await chooseRepository(page, dialog);
+
+  // Branch, commit message and title follow the path until edited by hand.
+  await dialog.getByLabel("File path").fill("docs/new.puml");
+  await expect(dialog.getByLabel("New branch name")).toHaveValue(/^plantuml\/new-\d{8}$/);
+  await expect(dialog.getByLabel("Commit message")).toHaveValue("Add new.puml");
+  await dialog.getByLabel("Pull request title").fill("My title");
+  await dialog.getByLabel("File path").fill("docs/new.puml ");
+  await expect(dialog.getByLabel("Pull request title")).toHaveValue("My title");
+  await dialog.getByLabel("File path").fill("docs/new.puml");
+
+  await dialog.getByRole("button", { name: "Open pull request" }).click();
+  const notice = dialog.getByRole("alert");
+  await expect(notice).toContainText("octo-e2e/diagrams is empty.");
+  await expect(notice).not.toContainText("changed");
+  expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+
+  await dialog.getByRole("button", { name: "Add as first commit on main" }).click();
+  await expect(dialog.getByRole("status")).toContainText(
+    "Added docs/new.puml to octo-e2e/diagrams as its first commit on main.",
+  );
+  await expect(dialog.getByRole("link", { name: "Open docs/new.puml on GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/octo-e2e/diagrams/blob/main/docs/new.puml",
+  );
+  const writes = calls.filter((call) => call.method !== "GET");
+  expect(writes.map((call) => `${call.method} ${call.path}`)).toEqual([`PUT ${REPO}/contents/docs/new.puml`]);
+  expect(writes[0]!.body).toEqual({ message: "Add new.puml", content: expect.any(String) });
+  expect(fromBase64(String(writes[0]!.body!.content))).toBe(SOURCE);
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByTestId("github-origin")).toContainText("GitHub · octo-e2e/diagrams · main · docs/new.puml");
+  await expect(page.getByTestId("github-origin").getByRole("button", { name: "Propose change…" })).toBeVisible();
 });

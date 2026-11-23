@@ -19,6 +19,8 @@ export type GitHubErrorKind =
   | "invalid-url"
   /** 409: the file changed since it was opened (its blob SHA no longer matches). */
   | "conflict"
+  /** 409 from the Git API: the repository has no commits, so it has no branches yet. */
+  | "empty-repository"
   /** 422: GitHub refused the request, for example because a branch of that name already exists. */
   | "invalid"
   | "http";
@@ -141,8 +143,21 @@ async function failure(response: Response, what: string, write = false): Promise
       `${what[0]!.toUpperCase()}${what.slice(1)} was not found, or the token cannot see it. Fine-grained tokens only reach the repositories selected when the token was created.`,
       status,
     );
-  if (status === 409)
+  if (status === 409) {
+    let detail = "";
+    try {
+      detail = asString(((await response.json()) as Json).message) ?? "";
+    } catch {
+      /* no body */
+    }
+    if (/repository is empty/i.test(detail))
+      return new GitHubError(
+        "empty-repository",
+        "The repository is empty: it has no commits yet, so it has no branch a pull request could go into.",
+        status,
+      );
     return new GitHubError("conflict", `${what[0]!.toUpperCase()}${what.slice(1)} changed on GitHub.`, status);
+  }
   if (status === 422) {
     let detail = "";
     try {
@@ -357,9 +372,10 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
     async putFile(
       owner: string,
       repo: string,
-      change: { path: string; branch: string; message: string; content: string; sha?: string | undefined },
+      change: { path: string; branch?: string | undefined; message: string; content: string; sha?: string | undefined },
     ): Promise<{ sha: string }> {
-      branchRef(change.branch);
+      // Without a branch GitHub commits to the default branch; in an empty repository that creates it.
+      if (change.branch !== undefined) branchRef(change.branch);
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/contents/${encodePath(change.path)}`,
         `${change.path} in ${owner}/${repo}`,
@@ -368,7 +384,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
           message: change.message,
           content: encodeBase64Utf8(change.content),
           ...(change.sha ? { sha: change.sha } : {}),
-          branch: change.branch,
+          ...(change.branch !== undefined ? { branch: change.branch } : {}),
         },
       );
       const sha = asString((data.content as Json | undefined)?.sha);

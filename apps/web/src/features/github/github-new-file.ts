@@ -155,3 +155,36 @@ export async function proposeNewFile(client: GitHubClient, input: ProposeNewFile
     throw error;
   }
 }
+
+export interface AddFirstFileInput {
+  owner: string;
+  repo: string;
+  /** The repository's default branch, which the first commit creates. */
+  defaultBranch: string;
+  path: string;
+  source: string;
+  commitMessage: string;
+}
+
+/**
+ * An empty repository has no branch a pull request could go into, so the diagram becomes its first commit on
+ * the default branch. The tab is then linked to that file; later changes are proposed as pull requests as usual.
+ */
+export async function addFirstFile(client: GitHubClient, input: AddFirstFileInput): Promise<GitHubOrigin> {
+  const { owner, repo, defaultBranch, path } = input;
+  const problem = validateNewFilePath(path);
+  if (problem) throw new GitHubError("invalid", problem);
+  const committed = await client.putFile(owner, repo, {
+    path,
+    message: input.commitMessage,
+    content: input.source,
+  });
+  return {
+    owner,
+    repo,
+    ref: defaultBranch,
+    path,
+    sha: committed.sha,
+    htmlUrl: gitHubFileUrl(owner, repo, defaultBranch, path),
+  };
+}

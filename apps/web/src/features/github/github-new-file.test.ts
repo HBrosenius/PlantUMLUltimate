@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createGitHubClient, GitHubError } from "./github-client";
 import {
+  addFirstFile,
   createNewFileMarkdown,
   defaultNewFilePath,
   proposeNewFile,
@@ -285,5 +286,62 @@ describe("new file description", () => {
     const markdown = createNewFileMarkdown("a.puml", big);
     expect(markdown.length).toBeLessThan(65_536);
     expect(markdown).toContain("The source was cut");
+  });
+});
+
+describe("an empty repository", () => {
+  const empty = {
+    "GET /repos/octo/docs/git/ref/heads/main": () =>
+      reply({ message: "Git Repository is empty.", status: "409" }, 409),
+    [`GET ${FILE}`]: () => reply({ message: "This repository is empty." }, 404),
+  };
+
+  it("is reported as empty, not as a changed branch, and nothing is written", async () => {
+    const { client, calls } = fakeGitHub(empty);
+    const failure = (await proposeNewFile(client, input).catch((error: unknown) => error)) as GitHubError;
+    expect(failure).toBeInstanceOf(GitHubError);
+    expect(failure.kind).toBe("empty-repository");
+    expect(failure.message).toContain("The repository is empty");
+    expect(failure.message).not.toContain("changed");
+    expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+  });
+
+  it("gets the file as its first commit on the default branch, with no branch or sha in the commit", async () => {
+    const { client, calls } = fakeGitHub(empty);
+    const origin = await addFirstFile(client, {
+      owner: "octo",
+      repo: "docs",
+      defaultBranch: "main",
+      path: "docs/new.puml",
+      source,
+      commitMessage: "Add new.puml",
+    });
+    expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([`PUT ${FILE}`]);
+    expect(calls[0]!.body).toEqual({ message: "Add new.puml", content: expect.any(String) });
+    expect(decode(calls[0]!.body!.content)).toBe(source);
+    expect(origin).toEqual({
+      owner: "octo",
+      repo: "docs",
+      ref: "main",
+      path: "docs/new.puml",
+      sha: NEW_BLOB,
+      htmlUrl: "https://github.com/octo/docs/blob/main/docs/new.puml",
+    });
+    expect(normalizeGitHubOrigin(origin)).toEqual(origin);
+  });
+
+  it("checks the path before the first commit", async () => {
+    const { client, calls } = fakeGitHub(empty);
+    await expect(
+      addFirstFile(client, {
+        owner: "octo",
+        repo: "docs",
+        defaultBranch: "main",
+        path: "../x.puml",
+        source,
+        commitMessage: "x",
+      }),
+    ).rejects.toThrow(". or ..");
+    expect(calls).toEqual([]);
   });
 });
