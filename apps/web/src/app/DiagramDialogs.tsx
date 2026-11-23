@@ -3,6 +3,7 @@ import { DiagramOutlineDialog, DiagramOutlinePanel } from "../DiagramOutlineDial
 import { SaveStarterDialog } from "../PersonalStarters";
 import { OpenWorkDialog } from "../OpenWorkDialog";
 import { OpenFromGitHubDialog } from "../features/github/OpenFromGitHubDialog";
+import { ProposeNewFileDialog } from "../features/github/ProposeNewFileDialog";
 import { ProposeChangeDialog } from "../features/github/ProposeChangeDialog";
 import { NewDocumentDialog } from "../NewDocumentDialog";
 import { starterSource } from "../use-workspace-documents";
@@ -162,6 +163,7 @@ export interface DiagramDialogsProps {
   openWorkOpen: boolean;
   openGitHubOpen: boolean;
   proposeGitHubOpen: boolean;
+  proposeNewGitHubOpen: boolean;
   outlineMode: "find" | "dock" | undefined;
   outlineWide: boolean;
   parseResult: DiagramParseResult<GanttDocument>;
@@ -193,6 +195,7 @@ export interface DiagramDialogsProps {
   setOpenWorkOpen: Dispatch<SetStateAction<boolean>>;
   setOpenGitHubOpen: Dispatch<SetStateAction<boolean>>;
   setProposeGitHubOpen: Dispatch<SetStateAction<boolean>>;
+  setProposeNewGitHubOpen: Dispatch<SetStateAction<boolean>>;
   openGitHubSettings: () => void;
   setOutlineMatches: Dispatch<SetStateAction<readonly DiagramOutlineEntry[]>>;
   setOutlineMode: Dispatch<SetStateAction<"find" | "dock" | undefined>>;
@@ -307,6 +310,7 @@ export function DiagramDialogs({
   openWorkOpen,
   openGitHubOpen,
   proposeGitHubOpen,
+  proposeNewGitHubOpen,
   outlineMode,
   outlineWide,
   parseResult,
@@ -332,6 +336,7 @@ export function DiagramDialogs({
   setOpenWorkOpen,
   setOpenGitHubOpen,
   setProposeGitHubOpen,
+  setProposeNewGitHubOpen,
   openGitHubSettings,
   setOutlineMatches,
   setOutlineMode,
@@ -462,6 +467,15 @@ export function DiagramDialogs({
             tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true);
             return true;
           }}
+        />
+      )}
+      {proposeNewGitHubOpen && (
+        <ProposeNewFileDialog
+          source={workspace.source}
+          fileName={workspace.fileName}
+          onClose={() => setProposeNewGitHubOpen(false)}
+          onOpenSettings={openGitHubSettings}
+          onProposed={(origin) => tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true)}
         />
       )}
       {newDocumentOpen && (

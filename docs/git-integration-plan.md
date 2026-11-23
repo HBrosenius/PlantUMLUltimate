@@ -1,6 +1,6 @@
 # B4: Git provider integration — plan
 
-Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1, G2 and G3 (upstream changes) are built. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
+Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1, G2 and G3 (upstream changes) are built, and Propose as new file is added. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
 
 ## 0. What this is for
 
@@ -41,6 +41,7 @@ The first version should close that loop for the common case:
   - The app creates the branch from the base commit, commits the file through the Contents API (with the blob SHA, so GitHub refuses to overwrite a newer file), opens the PR, and shows its link.
   - Proposing again from the same tab while the PR is open adds a commit to the same branch, and the PR description is updated.
 - **When the file changed upstream:** the commit is refused because the SHA no longer matches, and the empty branch is removed. The app fetches the latest version from that branch (the base branch, or the proposal branch when adding a commit) and runs `threeWayMerge` against the version it started from (the opened blob, or the content last proposed). A clean merge is shown in the Propose dialog before anything is committed, with what changed upstream and what the proposal adds on top; "Use merged version and propose" applies it to the tab as one undoable source change, makes the upstream blob the new base, and retries. A real conflict stops with the conflicting line ranges and a suggestion to open the file from GitHub again; there is no interactive conflict resolver.
+- **Propose as new file on GitHub…** (File menu and command palette, for a tab that is not linked to GitHub): for a new diagram or a file from disk. The dialog takes a repository, a base branch, a file path inside the repository (folders allowed; it must end in a PlantUML extension), a new branch name, a commit message and a PR title. The app checks the path is free on the base branch, creates the branch, commits the file through the Contents API without a blob SHA, and opens the PR; if anything fails after the branch exists, the branch is removed again. The description is a short "New diagram file" note with the source in a collapsed block (a semantic review against an empty file would only say everything was added). Afterwards the tab is linked as if opened from the new file (ref is the base branch, SHA is the new blob, with the PR as its proposal), so Propose change adds commits to that PR and the label shows "PR #n". Once that PR is closed: if it was merged, proposing again works as usual against the base branch; if it was closed unmerged, the file is gone from the base branch, so the next proposal adds the file again (new branch, no SHA) instead of failing.
 - **Without write access** (a public repository the user can't push to), the first version says so and offers to download the file. Forking is later.
 
 ## 4. Slices

@@ -9,6 +9,7 @@ import {
   type GitHubFile,
   type GitHubRepository,
 } from "./github-client";
+import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
 import { gitHubFileUrl, type GitHubOrigin } from "./github-origin";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 
@@ -195,149 +196,56 @@ function Browser({
   onOpenFile(load: () => Promise<{ file: GitHubFile; origin: GitHubOrigin }>): void;
   onError(message: string): void;
 }) {
-  const [repositories, setRepositories] = useState<GitHubRepository[]>();
-  const [truncated, setTruncated] = useState(false);
-  const [filter, setFilter] = useState("");
   const [repo, setRepo] = useState<GitHubRepository>();
-  const [branches, setBranches] = useState<string[]>();
   const [branch, setBranch] = useState("");
   const [folder, setFolder] = useState("");
   const [entries, setEntries] = useState<GitHubEntry[]>();
   const [loading, setLoading] = useState("");
   const [localError, setLocalError] = useState("");
-  const requests = useRef({ repos: 0, branches: 0, folder: 0 });
+  const folderRequest = useRef(0);
 
   const fail = (failure: unknown) => {
     setLocalError(message(failure));
     onError("");
   };
 
-  useEffect(() => {
-    const id = ++requests.current.repos;
-    setLoading("repositories");
-    client
-      .listRepositories()
-      .then((list) => {
-        if (id !== requests.current.repos) return;
-        setRepositories(list.items);
-        setTruncated(list.truncated);
-        setLocalError("");
-      })
-      .catch((failure) => id === requests.current.repos && fail(failure))
-      .finally(() => id === requests.current.repos && setLoading(""));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client]);
-
-  function chooseRepository(next: GitHubRepository | undefined) {
-    setRepo(next);
-    setBranches(undefined);
-    setBranch("");
+  function select(selection: GitHubRepositorySelection | undefined) {
+    ++folderRequest.current;
+    setLocalError("");
     setFolder("");
     setEntries(undefined);
-    setLocalError("");
-    ++requests.current.folder;
-    if (!next) return;
-    const id = ++requests.current.branches;
-    setLoading("branches");
-    client
-      .listBranches(next.owner, next.name)
-      .then((list) => {
-        if (id !== requests.current.branches) return;
-        const names = [next.defaultBranch, ...list.items.filter((name) => name !== next.defaultBranch)];
-        setBranches(names);
-        setBranch(next.defaultBranch);
-        void loadFolder(next, next.defaultBranch, "");
-      })
-      .catch((failure) => id === requests.current.branches && fail(failure))
-      .finally(() => id === requests.current.branches && setLoading(""));
+    setRepo(selection?.repo);
+    setBranch(selection?.branch ?? "");
+    if (selection) void loadFolder(selection.repo, selection.branch, "");
   }
 
   function loadFolder(target: GitHubRepository, ref: string, path: string) {
-    const id = ++requests.current.folder;
+    const id = ++folderRequest.current;
     setLoading("folder");
     setLocalError("");
     setFolder(path);
     return client
       .listFolder(target.owner, target.name, ref, path)
       .then((list) => {
-        if (id !== requests.current.folder) return;
+        if (id !== folderRequest.current) return;
         setEntries(
           list.filter((entry) => entry.type === "dir" || (entry.type === "file" && isPlantUmlFileName(entry.name))),
         );
       })
       .catch((failure) => {
-        if (id !== requests.current.folder) return;
+        if (id !== folderRequest.current) return;
         setEntries(undefined);
         fail(failure);
       })
-      .finally(() => id === requests.current.folder && setLoading(""));
+      .finally(() => id === folderRequest.current && setLoading(""));
   }
 
-  const visible = (repositories ?? []).filter((item) =>
-    item.fullName.toLowerCase().includes(filter.trim().toLowerCase()),
-  );
   const segments = folder ? folder.split("/") : [];
 
   return (
     <section className="document-settings-section" aria-labelledby="github-open-browse-heading">
       <h3 id="github-open-browse-heading">Browse your repositories</h3>
-      {loading === "repositories" && <p role="status">Loading repositories…</p>}
-      {repositories && (
-        <>
-          <label>
-            Filter repositories
-            <input
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.preventDefault();
-              }}
-            />
-          </label>
-          <label>
-            Repository
-            <select
-              value={repo?.fullName ?? ""}
-              disabled={busy}
-              onChange={(event) => chooseRepository(repositories.find((item) => item.fullName === event.target.value))}
-            >
-              <option value="">
-                {repositories.length === 0 ? "No repositories reachable by this token" : "Choose a repository…"}
-              </option>
-              {visible.map((item) => (
-                <option key={item.fullName} value={item.fullName}>
-                  {item.fullName}
-                  {item.private ? " (private)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          {truncated && <p>Showing the 1,000 most recently pushed repositories. Use a file link for others.</p>}
-        </>
-      )}
-      {repo && branches && (
-        <label>
-          Branch
-          <select
-            value={branch}
-            disabled={busy}
-            onChange={(event) => {
-              setBranch(event.target.value);
-              void loadFolder(repo, event.target.value, "");
-            }}
-          >
-            {branches.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {loading === "branches" && <p role="status">Loading branches…</p>}
+      <GitHubRepositoryPicker client={client} busy={busy} onChange={select} />
       {repo && branch && (
         <nav className="github-breadcrumb" aria-label="Folder">
           <button type="button" disabled={busy} onClick={() => void loadFolder(repo, branch, "")}>

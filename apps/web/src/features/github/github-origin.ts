@@ -25,14 +25,16 @@ export interface GitHubProposal {
   htmlUrl: string;
   /** The file's blob SHA on the proposal branch after the last commit. */
   sha: string;
+  /** The pull request adds the file, so the file may not exist on the base branch (the pull request was closed). */
+  newFile?: true;
 }
 
 function normalizeProposal(value: unknown): GitHubProposal | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const { branch, number, htmlUrl, sha } = value as Record<string, unknown>;
+  const { branch, number, htmlUrl, sha, newFile } = value as Record<string, unknown>;
   if (!text(branch, 255) || !text(htmlUrl) || !text(sha, 64) || !safeGitHubUrl(htmlUrl)) return undefined;
   if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return undefined;
-  return { branch, number, htmlUrl, sha };
+  return { branch, number, htmlUrl, sha, ...(newFile === true ? { newFile } : {}) };
 }
 
 const text = (value: unknown, max = 2048): value is string =>

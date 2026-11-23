@@ -8,6 +8,7 @@ function FileMenuView({
   onOpen,
   onOpenRecent,
   onOpenGitHub,
+  onProposeNewOnGitHub,
   onOpenProject,
   onProjectConnections,
   projectName,
@@ -36,6 +37,8 @@ function FileMenuView({
   onOpen(): void;
   onOpenRecent?: (() => void) | undefined;
   onOpenGitHub?: (() => void) | undefined;
+  /** Set only for a tab that is not linked to GitHub yet. */
+  onProposeNewOnGitHub?: (() => void) | undefined;
   onOpenProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
@@ -239,6 +242,11 @@ function FileMenuView({
               </div>
             )}
           </div>
+          {onProposeNewOnGitHub && (
+            <button role="menuitem" onClick={() => run(onProposeNewOnGitHub)}>
+              Propose as new file on GitHub…
+            </button>
+          )}
           <button
             role="menuitem"
             disabled={saving}

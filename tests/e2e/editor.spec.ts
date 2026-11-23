@@ -179,6 +179,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(menu.getByRole("menuitem").filter({ hasNotText: /^Document:/ })).toHaveText([
     "New›",
     "Open›",
+    "Propose as new file on GitHub…",
     "SaveCtrl/Cmd+S",
     "Save as…",
     "Save as starter…",
