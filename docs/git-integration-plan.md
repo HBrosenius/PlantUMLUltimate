@@ -1,6 +1,6 @@
 # B4: Git provider integration — plan
 
-Status: decided 2026-11-23 (see [section 6](#6-decisions)); G0 + G1 is next. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
+Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1 and G2 are built; G3 (upstream changes) is next. Until then, a file that changed upstream since it was opened is refused with a message to open it again. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
 
 ## 0. What this is for
 

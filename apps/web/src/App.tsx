@@ -183,6 +183,7 @@ export function App() {
   const editorPreferences = useEditorPreferences();
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
   const [openGitHubOpen, setOpenGitHubOpen] = useState(false);
+  const [proposeGitHubOpen, setProposeGitHubOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const presentationReturnFocus = useRef<HTMLElement | null>(null);
   const openPresentation = () => {
@@ -2240,8 +2241,10 @@ export function App() {
 
   const dependencyTaskCount = parseResult.document.tasks.length;
   const openFromGitHub = useCallback(() => setOpenGitHubOpen(true), []);
+  const proposeOnGitHub = useCallback(() => setProposeGitHubOpen(true), []);
   const { commands } = useAppCommands({
     openFromGitHub,
+    proposeOnGitHub: activeDocument.githubOrigin ? proposeOnGitHub : undefined,
     askAi,
     activateTab,
     activeHistory,
@@ -2838,6 +2841,7 @@ export function App() {
           />
         )}
         <RibbonChrome
+          onProposeOnGitHub={proposeOnGitHub}
           activeDocument={activeDocument}
           activeHistory={activeHistory}
           activeInLegacyProject={activeInLegacyProject}
@@ -3203,6 +3207,7 @@ export function App() {
           openLinkedGanttTask={openLinkedGanttTask}
           openWorkOpen={openWorkOpen}
           openGitHubOpen={openGitHubOpen}
+          proposeGitHubOpen={proposeGitHubOpen}
           openGitHubSettings={() => {
             setSettingsCategory("GitHub");
             setSettingsOpen(true);
@@ -3230,6 +3235,7 @@ export function App() {
           setInteractionMessage={setInteractionMessage}
           setLinkedWorkPreview={setLinkedWorkPreview}
           setOpenWorkOpen={setOpenWorkOpen}
+          setProposeGitHubOpen={setProposeGitHubOpen}
           setOpenGitHubOpen={setOpenGitHubOpen}
           setOutlineMatches={setOutlineMatches}
           setOutlineMode={setOutlineMode}

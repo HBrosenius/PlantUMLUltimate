@@ -14,6 +14,25 @@ export interface GitHubOrigin {
   sha: string;
   /** Link to the file on github.com. */
   htmlUrl: string;
+  /** The pull request proposed from this tab, so proposing again adds a commit to it. */
+  proposal?: GitHubProposal;
+}
+
+export interface GitHubProposal {
+  branch: string;
+  number: number;
+  /** Link to the pull request on github.com. */
+  htmlUrl: string;
+  /** The file's blob SHA on the proposal branch after the last commit. */
+  sha: string;
+}
+
+function normalizeProposal(value: unknown): GitHubProposal | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const { branch, number, htmlUrl, sha } = value as Record<string, unknown>;
+  if (!text(branch, 255) || !text(htmlUrl) || !text(sha, 64) || !safeGitHubUrl(htmlUrl)) return undefined;
+  if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return undefined;
+  return { branch, number, htmlUrl, sha };
 }
 
 const text = (value: unknown, max = 2048): value is string =>
@@ -27,7 +46,8 @@ export function normalizeGitHubOrigin(value: unknown): GitHubOrigin | undefined 
   if (!text(owner, 100) || !text(repo, 100) || !text(ref, 255) || !text(path) || !text(sha, 64) || !text(htmlUrl))
     return undefined;
   if (!safeGitHubUrl(htmlUrl)) return undefined;
-  return { owner, repo, ref, path, sha, htmlUrl };
+  const proposal = normalizeProposal(candidate.proposal);
+  return { owner, repo, ref, path, sha, htmlUrl, ...(proposal ? { proposal } : {}) };
 }
 
 /** Only https links to github.com are shown as links, whatever a stored record says. */

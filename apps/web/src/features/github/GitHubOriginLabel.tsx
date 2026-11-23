@@ -1,8 +1,9 @@
 import { describeGitHubOrigin, safeGitHubUrl, type GitHubOrigin } from "./github-origin";
 
 /** Shown next to the document name for a tab that was opened from GitHub. */
-export function GitHubOriginLabel({ origin }: { origin: GitHubOrigin }) {
+export function GitHubOriginLabel({ origin, onPropose }: { origin: GitHubOrigin; onPropose?: () => void }) {
   const label = describeGitHubOrigin(origin);
+  const proposal = origin.proposal;
   return (
     <span className="github-origin" data-testid="github-origin">
       <span className="github-origin-label" title={label}>
@@ -12,6 +13,16 @@ export function GitHubOriginLabel({ origin }: { origin: GitHubOrigin }) {
         <a href={origin.htmlUrl} target="_blank" rel="noopener noreferrer">
           Open on GitHub
         </a>
+      )}
+      {proposal && safeGitHubUrl(proposal.htmlUrl) && (
+        <a href={proposal.htmlUrl} target="_blank" rel="noopener noreferrer">
+          PR #{proposal.number}
+        </a>
+      )}
+      {onPropose && (
+        <button type="button" className="github-origin-propose" onClick={onPropose}>
+          Propose change…
+        </button>
       )}
     </span>
   );

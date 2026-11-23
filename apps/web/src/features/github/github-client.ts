@@ -17,6 +17,10 @@ export type GitHubErrorKind =
   | "too-large"
   | "unsupported"
   | "invalid-url"
+  /** 409: the file changed since it was opened (its blob SHA no longer matches). */
+  | "conflict"
+  /** 422: GitHub refused the request, for example because a branch of that name already exists. */
+  | "invalid"
   | "http";
 
 /** An error whose message is safe and clear enough to show the user. It never contains the token. */
@@ -96,7 +100,7 @@ function describeWait(response: Response): string {
   return minutes <= 1 ? "Try again in about a minute." : `Try again in about ${minutes} minutes.`;
 }
 
-async function failure(response: Response, what: string): Promise<GitHubError> {
+async function failure(response: Response, what: string, write = false): Promise<GitHubError> {
   const { status } = response;
   if (status === 401)
     return new GitHubError(
@@ -119,6 +123,12 @@ async function failure(response: Response, what: string): Promise<GitHubError> {
     }
     if (/rate limit|abuse|secondary/i.test(detail))
       return new GitHubError("rate-limited", `GitHub's rate limit was reached. ${describeWait(response)}`, status);
+    if (write)
+      return new GitHubError(
+        "forbidden",
+        `The token cannot change ${what}. Proposing a change needs Repository permissions: Contents and Pull requests (read and write) for that repository, and push access to it. You can still save the file locally.`,
+        status,
+      );
     return new GitHubError(
       "forbidden",
       `The token has no access to ${what}. It needs Repository permissions: Contents (read) for that repository.`,
@@ -131,7 +141,41 @@ async function failure(response: Response, what: string): Promise<GitHubError> {
       `${what[0]!.toUpperCase()}${what.slice(1)} was not found, or the token cannot see it. Fine-grained tokens only reach the repositories selected when the token was created.`,
       status,
     );
+  if (status === 409)
+    return new GitHubError("conflict", `${what[0]!.toUpperCase()}${what.slice(1)} changed on GitHub.`, status);
+  if (status === 422) {
+    let detail = "";
+    try {
+      const body = (await response.json()) as Json;
+      const first = Array.isArray(body.errors) ? (body.errors[0] as Json | undefined) : undefined;
+      detail = asString(first?.message) ?? asString(body.message) ?? "";
+    } catch {
+      /* no body */
+    }
+    return new GitHubError(
+      "invalid",
+      `GitHub refused the change to ${what}${detail ? `: ${detail.slice(0, 200)}` : "."}`,
+      status,
+    );
+  }
   return new GitHubError("http", `GitHub returned an unexpected error (HTTP ${status}) for ${what}.`, status);
+}
+
+function encodeBase64Utf8(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  return btoa(binary);
+}
+
+const SHA = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
+
+export interface GitHubPullRequest {
+  number: number;
+  htmlUrl: string;
+  state: "open" | "closed";
+  merged: boolean;
 }
 
 function decodeBase64Utf8(content: string): string {
@@ -143,16 +187,18 @@ function decodeBase64Utf8(content: string): string {
 export function createGitHubClient({ token, fetch: injected }: GitHubClientOptions) {
   const doFetch: typeof fetch = injected ?? ((input, init) => globalThis.fetch(input, init));
 
-  async function get(path: string, what: string): Promise<Response> {
+  async function request(method: string, path: string, what: string, body?: Json): Promise<Response> {
     let response: Response;
     try {
       response = await doFetch(`${API_BASE}${path}`, {
-        method: "GET",
+        method,
         headers: {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
           Authorization: `Bearer ${token}`,
+          ...(body ? { "Content-Type": "application/json" } : {}),
         },
+        ...(body ? { body: JSON.stringify(body) } : {}),
         credentials: "omit",
         cache: "no-store",
       });
@@ -162,12 +208,17 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
         "Could not reach api.github.com. Check your connection, or whether a content blocker or network policy is stopping the request.",
       );
     }
-    if (!response.ok) throw await failure(response, what);
+    if (!response.ok) throw await failure(response, what, method !== "GET");
     return response;
   }
 
-  async function json<T>(path: string, what: string): Promise<{ data: T; response: Response }> {
-    const response = await get(path, what);
+  async function json<T>(
+    path: string,
+    what: string,
+    method = "GET",
+    body?: Json,
+  ): Promise<{ data: T; response: Response }> {
+    const response = await request(method, path, what, body);
     try {
       return { data: (await response.json()) as T, response };
     } catch {
@@ -238,7 +289,119 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
     };
   }
 
+  const branchRef = (branch: string) => {
+    if (!branch || /(^|\/)\.\.?(\/|$)|\.\.|[\s~^:?*[\\]|@\{|^\/|\/$|\.lock(\/|$)/.test(branch))
+      throw new GitHubError("invalid", `"${branch}" is not a valid branch name.`);
+    return branch.split("/").map(encodeURIComponent).join("/");
+  };
+
+  function toPullRequest(raw: Json): GitHubPullRequest {
+    const number = typeof raw.number === "number" ? raw.number : undefined;
+    const htmlUrl = asString(raw.html_url);
+    if (number === undefined || !htmlUrl) throw new GitHubError("http", "GitHub did not describe the pull request.");
+    return { number, htmlUrl, state: raw.state === "open" ? "open" : "closed", merged: raw.merged === true };
+  }
+
   return {
+    /** The exact text of a blob, used to recover the version a tab was opened from. */
+    async getBlobText(owner: string, repo: string, sha: string): Promise<string> {
+      if (!SHA.test(sha)) throw new GitHubError("unsupported", "The file's GitHub version is not a valid SHA.");
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/git/blobs/${sha}`,
+        `the opened version of the file in ${owner}/${repo}`,
+      );
+      const content = asString(data.content);
+      if (content === undefined || data.encoding !== "base64")
+        throw new GitHubError("unsupported", "GitHub did not return the opened version of the file.");
+      try {
+        return decodeBase64Utf8(content);
+      } catch {
+        throw new GitHubError("unsupported", "The opened version of the file is not UTF-8 text.");
+      }
+    },
+
+    /** The commit SHA a branch points at. Fails with not-found for tags and commit SHAs. */
+    async getBranchHead(owner: string, repo: string, branch: string): Promise<string> {
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/git/ref/heads/${branchRef(branch)}`,
+        `branch ${branch} in ${owner}/${repo}`,
+      );
+      const sha = asString((data.object as Json | undefined)?.sha);
+      if (Array.isArray(data) || !sha || !SHA.test(sha))
+        throw new GitHubError("not-found", `${branch} is not a branch in ${owner}/${repo}.`, 404);
+      return sha;
+    },
+
+    async createBranch(owner: string, repo: string, branch: string, fromSha: string): Promise<void> {
+      branchRef(branch);
+      if (!SHA.test(fromSha)) throw new GitHubError("unsupported", "The base commit is not a valid SHA.");
+      await request("POST", `${repositoryBase(owner, repo)}/git/refs`, `branch ${branch} in ${owner}/${repo}`, {
+        ref: `refs/heads/${branch}`,
+        sha: fromSha,
+      });
+    },
+
+    async deleteBranch(owner: string, repo: string, branch: string): Promise<void> {
+      await request(
+        "DELETE",
+        `${repositoryBase(owner, repo)}/git/refs/heads/${branchRef(branch)}`,
+        `branch ${branch} in ${owner}/${repo}`,
+      );
+    },
+
+    /**
+     * Commits one file on a branch. `sha` is the blob the change was made against, so GitHub refuses (409) to
+     * overwrite a file that changed in the meantime. Returns the new blob SHA.
+     */
+    async putFile(
+      owner: string,
+      repo: string,
+      change: { path: string; branch: string; message: string; content: string; sha: string },
+    ): Promise<{ sha: string }> {
+      branchRef(change.branch);
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/contents/${encodePath(change.path)}`,
+        `${change.path} in ${owner}/${repo}`,
+        "PUT",
+        { message: change.message, content: encodeBase64Utf8(change.content), sha: change.sha, branch: change.branch },
+      );
+      const sha = asString((data.content as Json | undefined)?.sha);
+      if (!sha) throw new GitHubError("http", "GitHub did not confirm the commit.");
+      return { sha };
+    },
+
+    async createPullRequest(
+      owner: string,
+      repo: string,
+      pull: { title: string; head: string; base: string; body: string },
+    ): Promise<GitHubPullRequest> {
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/pulls`,
+        `a pull request in ${owner}/${repo}`,
+        "POST",
+        pull,
+      );
+      return toPullRequest(data);
+    },
+
+    async getPullRequest(owner: string, repo: string, number: number): Promise<GitHubPullRequest> {
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/pulls/${Math.trunc(number)}`,
+        `pull request #${number} in ${owner}/${repo}`,
+      );
+      return toPullRequest(data);
+    },
+
+    async updatePullRequest(owner: string, repo: string, number: number, body: string): Promise<GitHubPullRequest> {
+      const { data } = await json<Json>(
+        `${repositoryBase(owner, repo)}/pulls/${Math.trunc(number)}`,
+        `pull request #${number} in ${owner}/${repo}`,
+        "PATCH",
+        { body },
+      );
+      return toPullRequest(data);
+    },
+
     async getUser(): Promise<GitHubUser> {
       const { data } = await json<Json>("/user", "your GitHub account");
       const login = asString(data.login);
