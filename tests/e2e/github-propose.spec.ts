@@ -127,7 +127,10 @@ test("proposes an edit as a pull request with the review as its description, the
   await dialog.getByRole("button", { name: "Open pull request" }).click();
 
   await expect(dialog.getByRole("status")).toContainText("Opened pull request #12 in octo-e2e/diagrams.");
-  await expect(dialog.getByRole("link", { name: "View pull request #12" })).toHaveAttribute("href", PR_URL);
+  await expect(dialog.getByRole("status")).toContainText(
+    "Until it is merged, your change is only on branch plantuml/flow-e2e, not on main.",
+  );
+  await expect(dialog.getByRole("link", { name: "Open pull request #12 on GitHub" })).toHaveAttribute("href", PR_URL);
   const writes = calls.filter((call) => call.method !== "GET");
   expect(writes.map((call) => `${call.method} ${call.path}`)).toEqual([
     "POST /repos/octo-e2e/diagrams/git/refs",

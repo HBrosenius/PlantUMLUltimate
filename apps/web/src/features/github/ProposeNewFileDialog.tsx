@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { useDialogFocus } from "../../use-dialog-focus";
 import { createGitHubClient, GitHubError, type GitHubClient, type GitHubPullRequest } from "./github-client";
 import { createNewFileMarkdown, defaultNewFilePath, proposeNewFile, validateNewFilePath } from "./github-new-file";
-import { safeGitHubUrl, type GitHubOrigin } from "./github-origin";
+import type { GitHubOrigin } from "./github-origin";
 import { defaultProposalBranch } from "./github-propose";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
+import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
 
 const message = (error: unknown) =>
   error instanceof GitHubError ? error.message : "Something went wrong while talking to GitHub.";
@@ -35,7 +36,12 @@ export function ProposeNewFileDialog({
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<{ pullRequest: GitHubPullRequest; repository: string }>();
+  const [done, setDone] = useState<{
+    pullRequest: GitHubPullRequest;
+    repository: string;
+    branch: string;
+    base: string;
+  }>();
   const [selection, setSelection] = useState<GitHubRepositorySelection>();
   const defaultPath = useMemo(() => defaultNewFilePath(fileName), [fileName]);
   const [path, setPath] = useState(defaultPath);
@@ -86,7 +92,12 @@ export function ProposeNewFileDialog({
         title: title.trim() || `Add ${justName}`,
       });
       onProposed(result.origin);
-      setDone({ pullRequest: result.pullRequest, repository: selection.repo.fullName });
+      setDone({
+        pullRequest: result.pullRequest,
+        repository: selection.repo.fullName,
+        branch: result.origin.proposal?.branch ?? branch.trim(),
+        base: selection.branch,
+      });
     } catch (failure) {
       setError(message(failure));
     } finally {
@@ -129,15 +140,14 @@ export function ProposeNewFileDialog({
             </button>
           </>
         ) : done ? (
-          <p role="status">
-            Opened pull request #{done.pullRequest.number} in {done.repository}. This tab is now linked to the file on
-            GitHub, so Propose change adds commits to that pull request.{" "}
-            {safeGitHubUrl(done.pullRequest.htmlUrl) && (
-              <a href={done.pullRequest.htmlUrl} target="_blank" rel="noopener noreferrer">
-                View pull request #{done.pullRequest.number}
-              </a>
-            )}
-          </p>
+          <ProposalDone
+            pullRequest={done.pullRequest}
+            repository={done.repository}
+            branch={done.branch}
+            base={done.base}
+            updated={false}
+            newFile
+          />
         ) : (
           <>
             <p>
@@ -187,6 +197,7 @@ export function ProposeNewFileDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {done ? "Close" : "Cancel"}
           </button>
+          {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
           {client && !done && (
             <button type="submit" className="primary" disabled={busy || !selection || !!pathProblem || !branch.trim()}>
               {busy ? "Proposing…" : "Open pull request"}
