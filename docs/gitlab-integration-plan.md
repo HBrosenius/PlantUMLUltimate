@@ -1,6 +1,6 @@
 # B4 G5: GitLab support — plan
 
-Status: draft 2026-11-23, decisions open (see [section 7](#7-open-decisions)). Builds on [B4: Git provider integration](git-integration-plan.md), where G0–G3 and Propose as new file are built for GitHub.
+Status: decided 2026-11-23 (see [section 7](#7-decisions)); L0 is next. Builds on [B4: Git provider integration](git-integration-plan.md), where G0–G3 and Propose as new file are built for GitHub.
 
 ## 0. What this is for
 
@@ -101,13 +101,15 @@ GitHub Enterprise Server could reuse this later (a server address plus `/api/v3`
 
 L1 and L2 can be built by two agents in parallel once the interface in 3.1 is agreed; L3 follows them.
 
-## 7. Open decisions
+## 7. Decisions
 
-1. **gitlab.com only first, or self-managed from the start?** Self-managed adds the server field, per-server tokens and the CORS message. It's maybe 20% more work, and most GitLab teams in companies are self-managed. _Recommendation: from the start._
-2. **Token type.** A personal access token with `api` scope is the simple path. GitLab has no fine-grained per-repository tokens like GitHub's; project access tokens are the narrow option. _Recommendation: accept either, and explain project access tokens in Settings as the narrower choice._
-3. **Menu items.** Separate items per provider ("From GitHub…", "From GitLab…"), or one "From Git…" item with a provider choice. _Recommendation: separate items, shown only for providers that have a token set, so people who use one provider see no extra items._
-4. **Paste a link from either provider.** Should the GitHub Open dialog accept a GitLab link and switch over? _Recommendation: yes, in L3: a pasted link picks its provider._
-5. **Sign in with GitLab (OAuth through the Worker).** Like G4 for GitHub, it waits until teams ask. _Recommendation: not in this plan._
+Decided on 2026-11-23:
+
+1. **Self-managed GitLab from the start,** not gitlab.com only. Settings takes a server address (default `https://gitlab.com`), tokens are kept per server, and a blocked request (CORS) gets a clear message naming the server.
+2. **Tokens:** a personal access token with the `api` scope, or a project access token. Settings explains that a project access token is the narrower choice.
+3. **Menu items per provider:** "From GitLab…" and "Propose as new file on GitLab…" are separate items, shown once a GitLab token is set. Settings → GitLab is always there as the way in. The GitHub items stay as they are.
+4. **A pasted link picks its provider:** pasting a GitLab link in the Open dialog opens it from GitLab, and a GitHub link from GitHub.
+5. **No Sign in with GitLab (OAuth) for now,** like G4 for GitHub. It waits until teams ask.
 
 ## 8. Out of scope
 
