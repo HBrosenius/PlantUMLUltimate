@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
+import { GitProviderError, isPlantUmlFileName } from "../git/git-provider";
 import {
   createGitHubClient,
-  GitHubError,
-  isPlantUmlFileName,
   type GitHubClient,
   type GitHubEntry,
   type GitHubFile,
@@ -23,7 +22,7 @@ export interface OpenedFromGitHub {
 }
 
 const message = (error: unknown) =>
-  error instanceof GitHubError ? error.message : "Something went wrong while talking to GitHub.";
+  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
 
 /**
  * File > Open > From GitHub. Two ways in: paste a file link, or pick repository, branch and folder (one folder
@@ -73,7 +72,7 @@ export function OpenFromGitHubDialog({
     try {
       const { file, origin } = await load();
       if (file.content.length > MAX_SOURCE_LENGTH)
-        throw new GitHubError("too-large", `${file.path} is larger than the 500 kB the editor opens.`);
+        throw new GitProviderError("too-large", `${file.path} is larger than the 500 kB the editor opens.`);
       await onOpen({ source: file.content, fileName: file.name, origin });
       onClose();
     } catch (failure) {

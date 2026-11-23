@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { GitHubError, type GitHubClient, type GitHubRepository } from "./github-client";
+import { GitProviderError } from "../git/git-provider";
+import type { GitHubClient, GitHubRepository } from "./github-client";
 
 export interface GitHubRepositorySelection {
   repo: GitHubRepository;
@@ -7,7 +8,7 @@ export interface GitHubRepositorySelection {
 }
 
 const message = (error: unknown) =>
-  error instanceof GitHubError ? error.message : "Something went wrong while talking to GitHub.";
+  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
 
 /**
  * Choose one of the token's repositories and one of its branches (the default branch first). `onChange` reports

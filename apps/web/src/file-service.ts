@@ -1,4 +1,4 @@
-import type { GitHubOrigin } from "./features/github/github-origin";
+import type { GitOrigin } from "./features/git/git-origin";
 import { rasterExportError, svgRasterDimensions } from "./raster-export-limits";
 
 export interface WritableFileHandle {
@@ -25,7 +25,7 @@ interface FilePickerWindow extends Window {
 export interface OpenedDocument {
   importedSource?: boolean;
   /** Set when the source was opened from GitHub; the tab remembers it. */
-  githubOrigin?: GitHubOrigin;
+  githubOrigin?: GitOrigin;
   source: string;
   fileName: string;
   handle?: WritableFileHandle;
@@ -43,7 +43,7 @@ export interface FileSnapshot {
 
 export interface OpenedFileBytes {
   importedSource?: boolean;
-  githubOrigin?: GitHubOrigin;
+  githubOrigin?: GitOrigin;
   kind: "native" | "legacy";
   bytes: Uint8Array;
   source?: string;

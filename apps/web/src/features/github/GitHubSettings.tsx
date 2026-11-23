@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { createGitHubClient, GitHubError } from "./github-client";
+import { GitProviderError } from "../git/git-provider";
+import { createGitHubClient } from "./github-client";
 import {
   forgetGitHubToken,
   getGitHubState,
@@ -55,7 +56,10 @@ export function GitHubSettings({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         message: `Connected as ${user.login}. The token reaches ${count} ${repositories.items.length === 1 && !repositories.truncated ? "repository" : "repositories"}.`,
       });
     } catch (error) {
-      setResult({ ok: false, message: error instanceof GitHubError ? error.message : "The connection test failed." });
+      setResult({
+        ok: false,
+        message: error instanceof GitProviderError ? error.message : "The connection test failed.",
+      });
     } finally {
       setTesting(false);
     }

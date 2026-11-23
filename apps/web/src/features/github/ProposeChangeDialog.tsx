@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import type { DiagramKind } from "../../model";
 import { buildReviewGroups } from "../../semantic-review";
 import { useDialogFocus } from "../../use-dialog-focus";
-import { createGitHubClient, GitHubError, type GitHubClient, type GitHubPullRequest } from "./github-client";
-import { safeGitHubUrl, type GitHubOrigin } from "./github-origin";
+import { isSafeOriginLink, originVersion, type GitOrigin } from "../git/git-origin";
+import { GitProviderError } from "../git/git-provider";
+import { createGitHubClient, type GitHubClient, type GitHubPullRequest } from "./github-client";
 import {
   createReviewMarkdown,
   defaultProposalBranch,
@@ -16,7 +17,7 @@ import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 
 const message = (error: unknown) =>
-  error instanceof GitHubError ? error.message : "Something went wrong while talking to GitHub.";
+  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
 
 type Loaded = { base: string; existing: GitHubPullRequest | undefined };
 
@@ -36,13 +37,13 @@ export function ProposeChangeDialog({
   onOpenSettings,
   fetchImpl,
 }: {
-  origin: GitHubOrigin;
+  origin: GitOrigin;
   source: string;
   fileName: string;
   diagramKind: DiagramKind;
-  onProposed(origin: GitHubOrigin): void;
+  onProposed(origin: GitOrigin): void;
   /** Replaces the tab's source with the merged one and moves its origin to the newer version. False if it could not be applied. */
-  onSourceMerged(source: string, origin: GitHubOrigin): boolean;
+  onSourceMerged(source: string, origin: GitOrigin): boolean;
   onClose(): void;
   onOpenSettings(): void;
   fetchImpl?: typeof fetch;
@@ -83,12 +84,16 @@ export function ProposeChangeDialog({
   // Reloaded when the tab's base blob changes (after merging newer upstream changes); proposing alone needs no reload.
   const originRef = useRef(origin);
   originRef.current = origin;
-  const { owner: originOwner, repo: originRepo, sha: originSha } = origin;
+  const { owner: originOwner, repo: originRepo, path: originPath, blob: originBlob } = origin;
+  const originGuard = originVersion(origin) ?? "";
   useEffect(() => {
     if (!client) return;
     let current = true;
     setError("");
-    void Promise.all([client.getBlobText(originOwner, originRepo, originSha), openProposal(client, originRef.current)])
+    void Promise.all([
+      client.getVersionText(originOwner, originRepo, { version: originGuard, blob: originBlob, path: originPath }),
+      openProposal(client, originRef.current),
+    ])
       .then(([base, existing]) => {
         if (current) setLoaded({ base, existing });
       })
@@ -98,7 +103,7 @@ export function ProposeChangeDialog({
     return () => {
       current = false;
     };
-  }, [client, originOwner, originRepo, originSha]);
+  }, [client, originOwner, originRepo, originPath, originBlob, originGuard]);
 
   const body = useMemo(
     () =>
@@ -225,7 +230,7 @@ export function ProposeChangeDialog({
               {existing ? (
                 <>
                   Adds a commit to{" "}
-                  {safeGitHubUrl(existing.htmlUrl) ? (
+                  {isSafeOriginLink(origin, existing.htmlUrl) ? (
                     <a href={existing.htmlUrl} target="_blank" rel="noopener noreferrer">
                       pull request #{existing.number}
                     </a>

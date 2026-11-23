@@ -1,82 +1,70 @@
-import { gitHubFileUrl, type GitHubOrigin } from "./github-origin";
-import { parseGitHubFileUrl, refPathCandidates, type ParsedGitHubFileUrl } from "./github-url";
+import { createOrigin, gitHubFileUrl } from "../git/git-origin";
+import {
+  decodeBase64Utf8,
+  encodeBase64Utf8,
+  GitProviderError,
+  isPlantUmlFileName,
+  MAX_GIT_FILE_BYTES,
+  MAX_GIT_PAGES,
+  PLANTUML_EXTENSIONS,
+  refPathCandidates,
+  type GitEntry,
+  type GitFile,
+  type GitFileLink,
+  type GitList,
+  type GitOpenedFile,
+  type GitProvider,
+  type GitProviderErrorKind,
+  type GitPutChange,
+  type GitRepository,
+  type GitReview,
+  type GitUser,
+  type GitVersionRef,
+} from "../git/git-provider";
+import { parseGitHubFileUrl } from "./github-url";
+
+export { isPlantUmlFileName, PLANTUML_EXTENSIONS };
 
 const API_BASE = "https://api.github.com";
 const PAGE_SIZE = 100;
 /** Largest file the app opens. GitHub's Contents API returns file content inline only up to 1 MB anyway. */
-export const MAX_GITHUB_FILE_BYTES = 1_000_000;
-/** At most this many pages of repositories or branches are read (1,000 entries). */
-const MAX_PAGES = 10;
+export const MAX_GITHUB_FILE_BYTES = MAX_GIT_FILE_BYTES;
+const MAX_PAGES = MAX_GIT_PAGES;
 
-export type GitHubErrorKind =
-  | "unauthorized"
-  | "forbidden"
-  | "rate-limited"
-  | "not-found"
-  | "network"
-  | "too-large"
-  | "unsupported"
-  | "invalid-url"
-  /** 409: the file changed since it was opened (its blob SHA no longer matches). */
-  | "conflict"
-  /** 409 from the Git API: the repository has no commits, so it has no branches yet. */
-  | "empty-repository"
-  /** 422: GitHub refused the request, for example because a branch of that name already exists. */
-  | "invalid"
-  | "http";
+/**
+ * The error kinds, unchanged: 409 is "conflict" (the file's blob SHA no longer matches) or "empty-repository"
+ * (the Git API says the repository has no commits), and 422 is "invalid".
+ */
+export type GitHubErrorKind = GitProviderErrorKind;
 
-/** An error whose message is safe and clear enough to show the user. It never contains the token. */
-export class GitHubError extends Error {
-  constructor(
-    readonly kind: GitHubErrorKind,
-    message: string,
-    readonly status?: number,
-  ) {
-    super(message);
-    this.name = "GitHubError";
-  }
-}
+/**
+ * The error every Git provider throws, kept under its GitHub-era name. It is one class, so a check for
+ * `GitHubError` also catches the errors the shared flows and the GitLab client throw. It never contains the token.
+ */
+export const GitHubError = GitProviderError;
+export type GitHubError = GitProviderError;
 
-export interface GitHubUser {
-  login: string;
-  name: string | undefined;
-}
+export type GitHubUser = GitUser;
+export type GitHubRepository = GitRepository;
+export type GitHubEntry = GitEntry;
+export type GitHubList<T> = GitList<T>;
+export type GitHubPullRequest = GitReview;
 
-export interface GitHubRepository {
-  owner: string;
-  name: string;
-  fullName: string;
-  defaultBranch: string;
-  private: boolean;
-  pushedAt: string | undefined;
-  htmlUrl: string;
-}
-
-export interface GitHubEntry {
-  name: string;
-  path: string;
-  type: "file" | "dir" | "other";
-  size: number;
-}
-
-export interface GitHubFile {
-  name: string;
-  path: string;
+/** A file as GitHub returns it: `sha` is its blob SHA, which is also its `version`. */
+export interface GitHubFile extends GitFile {
   sha: string;
-  size: number;
-  content: string;
-}
-
-export interface GitHubList<T> {
-  items: T[];
-  /** True when more existed than the pages this client reads. */
-  truncated: boolean;
 }
 
 export interface GitHubClientOptions {
   token: string;
   /** Injected so tests never call GitHub. Defaults to the global `fetch`. */
   fetch?: typeof fetch;
+}
+
+/** The GitHub implementation of `GitProvider`; its files also carry the blob SHA as `sha`. */
+export interface GitHubClient extends GitProvider {
+  getFile(owner: string, repo: string, ref: string, path: string): Promise<GitHubFile>;
+  openFileFromUrl(input: string | GitFileLink): Promise<GitOpenedFile & { file: GitHubFile }>;
 }
 
 type Json = Record<string, unknown>;
@@ -176,30 +164,9 @@ async function failure(response: Response, what: string, write = false): Promise
   return new GitHubError("http", `GitHub returned an unexpected error (HTTP ${status}) for ${what}.`, status);
 }
 
-function encodeBase64Utf8(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  for (let index = 0; index < bytes.length; index += 0x8000)
-    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-  return btoa(binary);
-}
-
 const SHA = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
 
-export interface GitHubPullRequest {
-  number: number;
-  htmlUrl: string;
-  state: "open" | "closed";
-  merged: boolean;
-}
-
-function decodeBase64Utf8(content: string): string {
-  const binary = atob(content.replace(/\s/g, ""));
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-}
-
-export function createGitHubClient({ token, fetch: injected }: GitHubClientOptions) {
+export function createGitHubClient({ token, fetch: injected }: GitHubClientOptions): GitHubClient {
   const doFetch: typeof fetch = injected ?? ((input, init) => globalThis.fetch(input, init));
 
   async function request(method: string, path: string, what: string, body?: Json): Promise<Response> {
@@ -299,6 +266,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       name: asString(data.name) ?? path.split("/").pop() ?? path,
       path: asString(data.path) ?? path,
       sha,
+      version: sha,
       size,
       content: text,
     };
@@ -310,16 +278,27 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
     return branch.split("/").map(encodeURIComponent).join("/");
   };
 
-  function toPullRequest(raw: Json): GitHubPullRequest {
+  function toPullRequest(raw: Json): GitReview {
     const number = typeof raw.number === "number" ? raw.number : undefined;
     const htmlUrl = asString(raw.html_url);
     if (number === undefined || !htmlUrl) throw new GitHubError("http", "GitHub did not describe the pull request.");
-    return { number, htmlUrl, state: raw.state === "open" ? "open" : "closed", merged: raw.merged === true };
+    return {
+      number,
+      label: `#${number}`,
+      htmlUrl,
+      state: raw.state === "open" ? "open" : "closed",
+      merged: raw.merged === true,
+    };
   }
 
+  const info = { id: "github", name: "GitHub", reviewName: "pull request", server: "https://github.com" } as const;
+
   return {
-    /** The exact text of a blob, used to recover the version a tab was opened from. */
-    async getBlobText(owner: string, repo: string, sha: string): Promise<string> {
+    info,
+
+    /** The exact text of a blob, used to recover the version a tab was opened from or last proposed. */
+    async getVersionText(owner: string, repo: string, ref: GitVersionRef): Promise<string> {
+      const sha = ref.blob ?? ref.version;
       if (!SHA.test(sha)) throw new GitHubError("unsupported", "The file's GitHub version is not a valid SHA.");
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/git/blobs/${sha}`,
@@ -369,11 +348,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
      * overwrite a file that changed in the meantime. Leave `sha` out to create a file that does not exist yet.
      * Returns the new blob SHA.
      */
-    async putFile(
-      owner: string,
-      repo: string,
-      change: { path: string; branch?: string | undefined; message: string; content: string; sha?: string | undefined },
-    ): Promise<{ sha: string }> {
+    async putFile(owner: string, repo: string, change: GitPutChange): Promise<{ version: string }> {
       // Without a branch GitHub commits to the default branch; in an empty repository that creates it.
       if (change.branch !== undefined) branchRef(change.branch);
       const { data } = await json<Json>(
@@ -383,20 +358,20 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
         {
           message: change.message,
           content: encodeBase64Utf8(change.content),
-          ...(change.sha ? { sha: change.sha } : {}),
+          ...(change.version ? { sha: change.version } : {}),
           ...(change.branch !== undefined ? { branch: change.branch } : {}),
         },
       );
       const sha = asString((data.content as Json | undefined)?.sha);
       if (!sha) throw new GitHubError("http", "GitHub did not confirm the commit.");
-      return { sha };
+      return { version: sha };
     },
 
-    async createPullRequest(
+    async createReview(
       owner: string,
       repo: string,
       pull: { title: string; head: string; base: string; body: string },
-    ): Promise<GitHubPullRequest> {
+    ): Promise<GitReview> {
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/pulls`,
         `a pull request in ${owner}/${repo}`,
@@ -406,7 +381,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       return toPullRequest(data);
     },
 
-    async getPullRequest(owner: string, repo: string, number: number): Promise<GitHubPullRequest> {
+    async getReview(owner: string, repo: string, number: number): Promise<GitReview> {
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/pulls/${Math.trunc(number)}`,
         `pull request #${number} in ${owner}/${repo}`,
@@ -414,7 +389,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       return toPullRequest(data);
     },
 
-    async updatePullRequest(owner: string, repo: string, number: number, body: string): Promise<GitHubPullRequest> {
+    async updateReview(owner: string, repo: string, number: number, body: string): Promise<GitReview> {
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/pulls/${Math.trunc(number)}`,
         `pull request #${number} in ${owner}/${repo}`,
@@ -424,7 +399,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       return toPullRequest(data);
     },
 
-    async getUser(): Promise<GitHubUser> {
+    async getUser(): Promise<GitUser> {
       const { data } = await json<Json>("/user", "your GitHub account");
       const login = asString(data.login);
       if (!login) throw new GitHubError("http", "GitHub did not say who this token belongs to.");
@@ -432,7 +407,7 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
     },
 
     /** Repositories the token can reach, most recently pushed first. */
-    listRepositories(): Promise<GitHubList<GitHubRepository>> {
+    listRepositories(): Promise<GitList<GitRepository>> {
       return paginate(
         "/user/repos?sort=pushed&direction=desc&affiliation=owner,collaborator,organization_member",
         "your repositories",
@@ -454,14 +429,14 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       );
     },
 
-    listBranches(owner: string, repo: string): Promise<GitHubList<string>> {
+    listBranches(owner: string, repo: string): Promise<GitList<string>> {
       return paginate(`${repositoryBase(owner, repo)}/branches`, `the branches of ${owner}/${repo}`, (raw) =>
         asString(raw.name),
       );
     },
 
     /** One folder's entries (lazy loading; the Contents API lists a single level). Folders first, then by name. */
-    async listFolder(owner: string, repo: string, ref: string, path = ""): Promise<GitHubEntry[]> {
+    async listFolder(owner: string, repo: string, ref: string, path = ""): Promise<GitEntry[]> {
       const { data } = await json<Json[] | Json>(
         `${repositoryBase(owner, repo)}/contents/${encodePath(path)}?ref=${encodeURIComponent(ref)}`,
         `${path || "the top folder"} in ${owner}/${repo} at ${ref}`,
@@ -475,12 +450,18 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
 
     getFile,
 
+    parseFileUrl(input: string): GitFileLink | undefined {
+      return parseGitHubFileUrl(input);
+    },
+
+    fileUrl: gitHubFileUrl,
+
     /**
      * Opens a file from a pasted link. The ref and path run together in the link and branch names can contain
      * slashes, so the splits are tried longest ref first (`feature/x` before `feature`) until the API finds the
      * file. A 404 for one split just means it was the wrong split; any other failure stops at once.
      */
-    async openFileFromUrl(input: string | ParsedGitHubFileUrl): Promise<{ file: GitHubFile; origin: GitHubOrigin }> {
+    async openFileFromUrl(input: string | GitFileLink): Promise<GitOpenedFile & { file: GitHubFile }> {
       const parsed = typeof input === "string" ? parseGitHubFileUrl(input) : input;
       if (!parsed)
         throw new GitHubError(
@@ -492,14 +473,14 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
           const file = await getFile(parsed.owner, parsed.repo, ref, path);
           return {
             file,
-            origin: {
+            origin: createOrigin(info, {
               owner: parsed.owner,
               repo: parsed.repo,
               ref,
               path: file.path,
-              sha: file.sha,
+              version: file.sha,
               htmlUrl: gitHubFileUrl(parsed.owner, parsed.repo, ref, file.path),
-            },
+            }),
           };
         } catch (error) {
           if (!(error instanceof GitHubError && error.kind === "not-found")) throw error;
@@ -512,13 +493,4 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
       );
     },
   };
-}
-
-export type GitHubClient = ReturnType<typeof createGitHubClient>;
-
-export const PLANTUML_EXTENSIONS = [".puml", ".plantuml", ".pu", ".iuml", ".wsd"] as const;
-
-export function isPlantUmlFileName(name: string): boolean {
-  const lower = name.toLowerCase();
-  return PLANTUML_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }

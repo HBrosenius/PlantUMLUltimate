@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
-import { createGitHubClient, GitHubError, type GitHubClient, type GitHubPullRequest } from "./github-client";
+import { GitProviderError } from "../git/git-provider";
+import { createGitHubClient, type GitHubClient, type GitHubPullRequest } from "./github-client";
 import {
   addFirstFile,
   createNewFileMarkdown,
@@ -8,14 +9,14 @@ import {
   proposeNewFile,
   validateNewFilePath,
 } from "./github-new-file";
-import { safeGitHubUrl, type GitHubOrigin } from "./github-origin";
+import { isSafeOriginLink, type GitOrigin } from "../git/git-origin";
 import { defaultProposalBranch } from "./github-propose";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
 import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
 
 const message = (error: unknown) =>
-  error instanceof GitHubError ? error.message : "Something went wrong while talking to GitHub.";
+  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
 
 /**
  * Propose as new file: for a diagram that is not on GitHub yet. Commits it to a new branch of a repository the
@@ -32,7 +33,7 @@ export function ProposeNewFileDialog({
 }: {
   source: string;
   fileName: string;
-  onProposed(origin: GitHubOrigin): void;
+  onProposed(origin: GitOrigin): void;
   onClose(): void;
   onOpenSettings(): void;
   fetchImpl?: typeof fetch;
@@ -51,7 +52,7 @@ export function ProposeNewFileDialog({
   const [selection, setSelectionState] = useState<GitHubRepositorySelection>();
   /** The chosen repository has no commits, so the file can only become its first commit. */
   const [emptyRepository, setEmptyRepository] = useState(false);
-  const [firstCommit, setFirstCommit] = useState<{ origin: GitHubOrigin; repository: string }>();
+  const [firstCommit, setFirstCommit] = useState<{ origin: GitOrigin; repository: string }>();
   // Branch, commit message and title follow the file path until the user edits them.
   const [edited, setEdited] = useState({ branch: false, commitMessage: false, title: false });
   const setSelection = (next: GitHubRepositorySelection | undefined) => {
@@ -145,7 +146,7 @@ export function ProposeNewFileDialog({
         base: selection.branch,
       });
     } catch (failure) {
-      if (failure instanceof GitHubError && failure.kind === "empty-repository") setEmptyRepository(true);
+      if (failure instanceof GitProviderError && failure.kind === "empty-repository") setEmptyRepository(true);
       else setError(message(failure));
     } finally {
       setBusy(false);
@@ -288,7 +289,7 @@ export function ProposeNewFileDialog({
             {finished ? "Close" : "Cancel"}
           </button>
           {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
-          {firstCommit && safeGitHubUrl(firstCommit.origin.htmlUrl) && (
+          {firstCommit && isSafeOriginLink(firstCommit.origin, firstCommit.origin.htmlUrl) && (
             <a className="github-open-pr" href={firstCommit.origin.htmlUrl} target="_blank" rel="noopener noreferrer">
               Open {firstCommit.origin.path} on GitHub
             </a>
