@@ -3,7 +3,7 @@ import { FileMenu } from "../FileMenu";
 import { FileSaveStatus, type FileSaveState } from "../FileSaveStatus";
 import { HistoryMenu } from "../HistoryMenu";
 import { AddMenu } from "../AddMenu";
-import { GitHubOriginLabel } from "../features/github/GitHubOriginLabel";
+import { GitOriginLabel } from "../features/git/GitOriginLabel";
 import { useStableHandlers, useStableList } from "../use-stable-handlers";
 
 /** A stable empty list so the memoised history menu is not re-rendered by a fresh [] each time. */
@@ -22,8 +22,11 @@ import type { Dispatch, SetStateAction } from "react";
 import type { useSingleFileProject } from "../projects/use-single-file-project";
 
 export interface RibbonChromeProps {
-  onProposeOnGitHub: () => void;
+  onProposeOnGit: () => void;
   onProposeNewOnGitHub: () => void;
+  onProposeNewOnGitLab: () => void;
+  /** A GitLab token is set, so the GitLab menu items are shown. */
+  gitLabEnabled: boolean;
   activeDocument: DocumentSnapshot;
   activeHistory: SourceHistory;
   activeInLegacyProject: boolean;
@@ -86,6 +89,7 @@ export interface RibbonChromeProps {
   setLegendInspectorOpen: Dispatch<SetStateAction<boolean>>;
   setOpenWorkOpen: Dispatch<SetStateAction<boolean>>;
   setOpenGitHubOpen: Dispatch<SetStateAction<boolean>>;
+  setOpenGitLabOpen: Dispatch<SetStateAction<boolean>>;
   setOutlineMode: Dispatch<SetStateAction<"find" | "dock" | undefined>>;
   setProblemsOpen: (value: SetStateAction<boolean>) => void;
   setSettingsCategory: Dispatch<SetStateAction<string>>;
@@ -184,6 +188,7 @@ export function RibbonChrome({
   setLegendInspectorOpen,
   setOpenWorkOpen,
   setOpenGitHubOpen,
+  setOpenGitLabOpen,
   setOutlineMode,
   setProblemsOpen,
   setSettingsCategory,
@@ -197,8 +202,10 @@ export function RibbonChrome({
   undo,
   viewMode,
   workspace,
-  onProposeOnGitHub,
+  onProposeOnGit,
   onProposeNewOnGitHub,
+  onProposeNewOnGitLab,
+  gitLabEnabled,
 }: RibbonChromeProps) {
   // Stable identities let the memoised menus skip re-rendering on every edit.
   const addMenuHandlers = useStableHandlers({
@@ -244,7 +251,9 @@ export function RibbonChrome({
     onNewProject: () => openDialog({ kind: "new-project" }),
     onOpenRecent: () => setOpenWorkOpen(true),
     onOpenGitHub: () => setOpenGitHubOpen(true),
+    onOpenGitLab: gitLabEnabled ? () => setOpenGitLabOpen(true) : undefined,
     onProposeNewOnGitHub: activeDocument.githubOrigin ? undefined : onProposeNewOnGitHub,
+    onProposeNewOnGitLab: activeDocument.githubOrigin || !gitLabEnabled ? undefined : onProposeNewOnGitLab,
     onOpen: () => void openDocument(),
     onOpenProject: () => void singleFileProject.openProject(),
     onProjectConnections: project ? showDocumentNavigator : undefined,
@@ -355,7 +364,7 @@ export function RibbonChrome({
                 onRetry={statusHandlers.onRetrySave}
               />
               {activeDocument.githubOrigin && (
-                <GitHubOriginLabel origin={activeDocument.githubOrigin} onPropose={onProposeOnGitHub} />
+                <GitOriginLabel origin={activeDocument.githubOrigin} onPropose={onProposeOnGit} />
               )}
             </div>
           </>

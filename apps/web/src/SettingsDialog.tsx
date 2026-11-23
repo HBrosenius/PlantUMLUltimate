@@ -6,6 +6,7 @@ import { PlantUmlUltimateLogo } from "./NewDocumentDialog";
 import type { Theme } from "./model";
 import { AiAssistantSettings } from "./features/ai-edits/AiAssistantSettings";
 import { GitHubSettings } from "./features/github/GitHubSettings";
+import { GitLabSettings } from "./features/git/GitLabSettings";
 
 export interface AppSettings {
   startupMode?: "restore" | "chooser" | undefined;
@@ -145,11 +146,13 @@ export function SettingsDialog({
         )}
         {mode === "settings" && (
           <nav className="settings-categories" aria-label="Settings categories">
-            {["Appearance", "Editor & navigation", "New diagrams", "Gantt", "AI assistant", "GitHub"].map((name) => (
-              <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>
-                {name}
-              </button>
-            ))}
+            {["Appearance", "Editor & navigation", "New diagrams", "Gantt", "AI assistant", "GitHub", "GitLab"].map(
+              (name) => (
+                <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>
+                  {name}
+                </button>
+              ),
+            )}
           </nav>
         )}
         <section
@@ -418,6 +421,15 @@ export function SettingsDialog({
             aria-labelledby="settings-github-heading"
           >
             <GitHubSettings />
+          </section>
+        )}
+        {mode === "settings" && (
+          <section
+            hidden={category !== "GitLab"}
+            className="document-settings-section github-settings gitlab-settings"
+            aria-labelledby="settings-gitlab-heading"
+          >
+            <GitLabSettings />
           </section>
         )}
         <footer>

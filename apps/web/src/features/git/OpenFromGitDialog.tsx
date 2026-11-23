@@ -1,72 +1,67 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
-import { GitProviderError, isPlantUmlFileName } from "../git/git-provider";
+import { createOrigin, type GitOrigin } from "./git-origin";
 import {
-  createGitHubClient,
-  type GitHubClient,
-  type GitHubEntry,
-  type GitHubFile,
-  type GitHubRepository,
-} from "./github-client";
-import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
-import { gitHubFileUrl, type GitHubOrigin } from "./github-origin";
-import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
+  describeGitError,
+  detectLinkTarget,
+  providerForTarget,
+  targetKey,
+  useGitProvider,
+  useHostTarget,
+  wordingFor,
+  type GitHostTarget,
+} from "./git-hosts";
+import {
+  GitProviderError,
+  isPlantUmlFileName,
+  type GitEntry,
+  type GitFile,
+  type GitProvider,
+  type GitProviderId,
+  type GitRepository,
+} from "./git-provider";
+import { GitRepositoryPicker, type GitRepositorySelection } from "./GitRepositoryPicker";
 
-/** The local file path caps source at 500 kB; GitHub files are held to the same limit once decoded. */
+/** The local file path caps source at 500 kB; files from a Git host are held to the same limit once decoded. */
 const MAX_SOURCE_LENGTH = 500_000;
 
-export interface OpenedFromGitHub {
+export interface OpenedFromGit {
   source: string;
   fileName: string;
-  origin: GitHubOrigin;
+  origin: GitOrigin;
 }
 
-const message = (error: unknown) =>
-  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
+type Loader = () => Promise<{ file: GitFile; origin: GitOrigin }>;
 
 /**
- * File > Open > From GitHub. Two ways in: paste a file link, or pick repository, branch and folder (one folder
- * is listed at a time, so large repositories stay fast). Only PlantUML files and folders are shown.
+ * File > Open > From GitHub or From GitLab. Two ways in: paste a file link, or pick repository, branch and folder
+ * (one folder is listed at a time, so large repositories stay fast). Only PlantUML files and folders are shown.
+ * A pasted link picks its own host, whichever dialog it is pasted into.
  */
-export function OpenFromGitHubDialog({
+export function OpenFromGitDialog({
+  provider = "github",
   onOpen,
   onClose,
   onOpenSettings,
   fetchImpl,
 }: {
-  onOpen(opened: OpenedFromGitHub): Promise<void>;
+  provider?: GitProviderId;
+  onOpen(opened: OpenedFromGit): Promise<void>;
   onClose(): void;
   onOpenSettings(): void;
   fetchImpl?: typeof fetch;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
-  const state = useSyncExternalStore(subscribeGitHub, getGitHubState);
-  const [ready, setReady] = useState(false);
+  const { target, servers, server, chooseServer } = useHostTarget(provider);
+  const words = wordingFor(provider);
+  const { ready, provider: client } = useGitProvider(target, fetchImpl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useDialogFocus(dialog, () => {
     if (!busy) onClose();
   });
 
-  useEffect(() => {
-    let current = true;
-    void loadRememberedGitHubToken().then(() => {
-      if (current) setReady(true);
-    });
-    return () => {
-      current = false;
-    };
-  }, []);
-
-  const client = useMemo<GitHubClient | undefined>(
-    () =>
-      state.hasToken
-        ? createGitHubClient({ token: getGitHubToken() ?? "", ...(fetchImpl ? { fetch: fetchImpl } : {}) })
-        : undefined,
-    [state.hasToken, fetchImpl],
-  );
-
-  async function open(load: () => Promise<{ file: GitHubFile; origin: GitHubOrigin }>) {
+  async function open(load: Loader) {
     setBusy(true);
     setError("");
     try {
@@ -76,7 +71,7 @@ export function OpenFromGitHubDialog({
       await onOpen({ source: file.content, fileName: file.name, origin });
       onClose();
     } catch (failure) {
-      setError(message(failure));
+      setError(describeGitError(failure, words.name));
       setBusy(false);
     }
   }
@@ -88,19 +83,18 @@ export function OpenFromGitHubDialog({
         className="document-settings-dialog open-work-dialog github-open-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Open from GitHub"
+        aria-label={`Open from ${words.name}`}
         onSubmit={(event) => event.preventDefault()}
       >
         <header>
-          <h2>Open from GitHub</h2>
+          <h2>Open from {words.name}</h2>
         </header>
         {!ready ? (
           <p role="status">Checking for a saved token…</p>
         ) : !client ? (
           <>
             <p>
-              To open files from GitHub, add a fine-grained personal access token with read access to your repositories.
-              It stays in this browser.
+              To open files from {words.name}, {words.tokenAdvice.read}. It stays in this browser.
             </p>
             <button
               type="button"
@@ -109,12 +103,17 @@ export function OpenFromGitHubDialog({
                 onOpenSettings();
               }}
             >
-              Open Settings → GitHub
+              Open Settings → {words.name}
             </button>
           </>
         ) : (
-          <GitHubSources
+          <GitSources
             client={client}
+            target={target}
+            servers={servers}
+            server={server}
+            onServer={chooseServer}
+            fetchImpl={fetchImpl}
             busy={busy}
             onOpenFile={(load) => void open(load)}
             error={error}
@@ -131,23 +130,55 @@ export function OpenFromGitHubDialog({
   );
 }
 
-function GitHubSources({
+function GitSources({
   client,
+  target,
+  servers,
+  server,
+  onServer,
+  fetchImpl,
   busy,
   error,
   onError,
   onOpenFile,
 }: {
-  client: GitHubClient;
+  client: GitProvider;
+  target: GitHostTarget;
+  servers: string[];
+  server: string;
+  onServer(server: string): void;
+  fetchImpl: typeof fetch | undefined;
   busy: boolean;
   error: string;
   onError(message: string): void;
-  onOpenFile(load: () => Promise<{ file: GitHubFile; origin: GitHubOrigin }>): void;
+  onOpenFile(load: Loader): void;
 }) {
   const [url, setUrl] = useState("");
 
+  /**
+   * A pasted link picks its host: a link to the other host (or to another GitLab server) is opened through that
+   * host's own client and token, not this dialog's.
+   */
+  const openLink: Loader = () => {
+    const linkTarget = detectLinkTarget(url);
+    if (!linkTarget || targetKey(linkTarget) === targetKey(target)) return client.openFileFromUrl(url);
+    return providerForTarget(linkTarget, fetchImpl).then((other) => other.openFileFromUrl(url));
+  };
+
   return (
     <>
+      {servers.length > 1 && (
+        <label>
+          GitLab server
+          <select value={server} disabled={busy} onChange={(event) => onServer(event.target.value)}>
+            {servers.map((item) => (
+              <option key={item} value={item}>
+                {new URL(item).host}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <section className="document-settings-section" aria-labelledby="github-open-link-heading">
         <h3 id="github-open-link-heading">Paste a link</h3>
         <label>
@@ -157,27 +188,27 @@ function GitHubSources({
             inputMode="url"
             autoComplete="off"
             spellCheck={false}
-            placeholder="https://github.com/owner/repo/blob/main/diagrams/system.puml"
+            placeholder={
+              client.info.id === "gitlab"
+                ? `${client.info.server}/group/project/-/blob/main/diagrams/system.puml`
+                : "https://github.com/owner/repo/blob/main/diagrams/system.puml"
+            }
             value={url}
             disabled={busy}
             onChange={(event) => setUrl(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                if (url.trim() && !busy) onOpenFile(() => client.openFileFromUrl(url));
+                if (url.trim() && !busy) onOpenFile(openLink);
               }
             }}
           />
         </label>
-        <button
-          type="button"
-          disabled={busy || !url.trim()}
-          onClick={() => onOpenFile(() => client.openFileFromUrl(url))}
-        >
+        <button type="button" disabled={busy || !url.trim()} onClick={() => onOpenFile(openLink)}>
           Open link
         </button>
       </section>
-      <Browser client={client} busy={busy} onOpenFile={onOpenFile} onError={onError} />
+      <Browser key={targetKey(target)} client={client} busy={busy} onOpenFile={onOpenFile} onError={onError} />
       {busy && <p role="status">Opening…</p>}
       {error && <p role="alert">{error}</p>}
     </>
@@ -190,25 +221,26 @@ function Browser({
   onOpenFile,
   onError,
 }: {
-  client: GitHubClient;
+  client: GitProvider;
   busy: boolean;
-  onOpenFile(load: () => Promise<{ file: GitHubFile; origin: GitHubOrigin }>): void;
+  onOpenFile(load: Loader): void;
   onError(message: string): void;
 }) {
-  const [repo, setRepo] = useState<GitHubRepository>();
+  const words = wordingFor(client.info.id);
+  const [repo, setRepo] = useState<GitRepository>();
   const [branch, setBranch] = useState("");
   const [folder, setFolder] = useState("");
-  const [entries, setEntries] = useState<GitHubEntry[]>();
+  const [entries, setEntries] = useState<GitEntry[]>();
   const [loading, setLoading] = useState("");
   const [localError, setLocalError] = useState("");
   const folderRequest = useRef(0);
 
   const fail = (failure: unknown) => {
-    setLocalError(message(failure));
+    setLocalError(describeGitError(failure, words.name));
     onError("");
   };
 
-  function select(selection: GitHubRepositorySelection | undefined) {
+  function select(selection: GitRepositorySelection | undefined) {
     ++folderRequest.current;
     setLocalError("");
     setFolder("");
@@ -218,7 +250,7 @@ function Browser({
     if (selection) void loadFolder(selection.repo, selection.branch, "");
   }
 
-  function loadFolder(target: GitHubRepository, ref: string, path: string) {
+  function loadFolder(target: GitRepository, ref: string, path: string) {
     const id = ++folderRequest.current;
     setLoading("folder");
     setLocalError("");
@@ -243,8 +275,8 @@ function Browser({
 
   return (
     <section className="document-settings-section" aria-labelledby="github-open-browse-heading">
-      <h3 id="github-open-browse-heading">Browse your repositories</h3>
-      <GitHubRepositoryPicker client={client} busy={busy} onChange={select} />
+      <h3 id="github-open-browse-heading">Browse your {words.repositories}</h3>
+      <GitRepositoryPicker client={client} busy={busy} onChange={select} />
       {repo && branch && (
         <nav className="github-breadcrumb" aria-label="Folder">
           <button type="button" disabled={busy} onClick={() => void loadFolder(repo, branch, "")}>
@@ -289,14 +321,15 @@ function Browser({
                       const file = await client.getFile(repo!.owner, repo!.name, branch, entry.path);
                       return {
                         file,
-                        origin: {
+                        origin: createOrigin(client.info, {
                           owner: repo!.owner,
                           repo: repo!.name,
                           ref: branch,
                           path: file.path,
-                          sha: file.sha,
-                          htmlUrl: gitHubFileUrl(repo!.owner, repo!.name, branch, file.path),
-                        },
+                          version: file.version,
+                          blob: file.blob,
+                          htmlUrl: client.fileUrl(repo!.owner, repo!.name, branch, file.path),
+                        }),
                       };
                     })
                   }

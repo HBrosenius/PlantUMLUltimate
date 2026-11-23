@@ -1,39 +1,37 @@
 import { useEffect, useRef, useState } from "react";
-import { GitProviderError } from "../git/git-provider";
-import type { GitHubClient, GitHubRepository } from "./github-client";
+import { describeGitError, wordingFor } from "./git-hosts";
+import type { GitProvider, GitRepository } from "./git-provider";
 
-export interface GitHubRepositorySelection {
-  repo: GitHubRepository;
+export interface GitRepositorySelection {
+  repo: GitRepository;
   branch: string;
 }
-
-const message = (error: unknown) =>
-  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
 
 /**
  * Choose one of the token's repositories and one of its branches (the default branch first). `onChange` reports
  * `undefined` while nothing usable is chosen (no repository, or its branches are still loading) and the
  * repository with its branch once both are known.
  */
-export function GitHubRepositoryPicker({
+export function GitRepositoryPicker({
   client,
   busy,
   branchLabel = "Branch",
   onChange,
 }: {
-  client: GitHubClient;
+  client: GitProvider;
   busy: boolean;
   branchLabel?: string;
-  onChange(selection: GitHubRepositorySelection | undefined): void;
+  onChange(selection: GitRepositorySelection | undefined): void;
 }) {
-  const [repositories, setRepositories] = useState<GitHubRepository[]>();
+  const [repositories, setRepositories] = useState<GitRepository[]>();
   const [truncated, setTruncated] = useState(false);
   const [filter, setFilter] = useState("");
-  const [repo, setRepo] = useState<GitHubRepository>();
+  const [repo, setRepo] = useState<GitRepository>();
   const [branches, setBranches] = useState<string[]>();
   const [branch, setBranch] = useState("");
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
+  const words = wordingFor(client.info.id);
   const requests = useRef({ repos: 0, branches: 0 });
   const report = useRef(onChange);
   report.current = onChange;
@@ -49,11 +47,11 @@ export function GitHubRepositoryPicker({
         setTruncated(list.truncated);
         setError("");
       })
-      .catch((failure) => id === requests.current.repos && setError(message(failure)))
+      .catch((failure) => id === requests.current.repos && setError(describeGitError(failure, client.info.name)))
       .finally(() => id === requests.current.repos && setLoading(""));
   }, [client]);
 
-  function chooseRepository(next: GitHubRepository | undefined) {
+  function chooseRepository(next: GitRepository | undefined) {
     setRepo(next);
     setBranches(undefined);
     setBranch("");
@@ -70,7 +68,7 @@ export function GitHubRepositoryPicker({
         setBranch(next.defaultBranch);
         report.current({ repo: next, branch: next.defaultBranch });
       })
-      .catch((failure) => id === requests.current.branches && setError(message(failure)))
+      .catch((failure) => id === requests.current.branches && setError(describeGitError(failure, client.info.name)))
       .finally(() => id === requests.current.branches && setLoading(""));
   }
 
@@ -84,7 +82,7 @@ export function GitHubRepositoryPicker({
       {repositories && (
         <>
           <label>
-            Filter repositories
+            Filter {words.repositories}
             <input
               type="text"
               autoComplete="off"
@@ -97,7 +95,7 @@ export function GitHubRepositoryPicker({
             />
           </label>
           <label>
-            Repository
+            {words.repository[0]!.toUpperCase() + words.repository.slice(1)}
             <select
               value={repo?.fullName ?? ""}
               disabled={busy}
@@ -114,7 +112,12 @@ export function GitHubRepositoryPicker({
               ))}
             </select>
           </label>
-          {truncated && <p>Showing the 1,000 most recently pushed repositories. Use a file link for others.</p>}
+          {truncated && (
+            <p>
+              Showing the 1,000 most recently {client.info.id === "gitlab" ? "active" : "pushed"} {words.repositories}.
+              Use a file link for others.
+            </p>
+          )}
         </>
       )}
       {repo && branches && (

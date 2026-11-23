@@ -8,7 +8,9 @@ function FileMenuView({
   onOpen,
   onOpenRecent,
   onOpenGitHub,
+  onOpenGitLab,
   onProposeNewOnGitHub,
+  onProposeNewOnGitLab,
   onOpenProject,
   onProjectConnections,
   projectName,
@@ -37,8 +39,12 @@ function FileMenuView({
   onOpen(): void;
   onOpenRecent?: (() => void) | undefined;
   onOpenGitHub?: (() => void) | undefined;
-  /** Set only for a tab that is not linked to GitHub yet. */
+  /** Set only once a GitLab token is set. */
+  onOpenGitLab?: (() => void) | undefined;
+  /** Set only for a tab that is not linked to a Git host yet. */
   onProposeNewOnGitHub?: (() => void) | undefined;
+  /** Set only for such a tab once a GitLab token is set. */
+  onProposeNewOnGitLab?: (() => void) | undefined;
   onOpenProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
@@ -234,6 +240,11 @@ function FileMenuView({
                     From GitHub…
                   </button>
                 )}
+                {onOpenGitLab && (
+                  <button role="menuitem" onClick={() => run(onOpenGitLab)}>
+                    From GitLab…
+                  </button>
+                )}
                 {onOpenProject && (
                   <button role="menuitem" onClick={() => run(onOpenProject)}>
                     Document…
@@ -245,6 +256,11 @@ function FileMenuView({
           {onProposeNewOnGitHub && (
             <button role="menuitem" onClick={() => run(onProposeNewOnGitHub)}>
               Propose as new file on GitHub…
+            </button>
+          )}
+          {onProposeNewOnGitLab && (
+            <button role="menuitem" onClick={() => run(onProposeNewOnGitLab)}>
+              Propose as new file on GitLab…
             </button>
           )}
           <button

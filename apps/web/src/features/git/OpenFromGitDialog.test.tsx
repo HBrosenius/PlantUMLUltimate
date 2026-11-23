@@ -3,9 +3,9 @@ import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { OpenFromGitHubDialog } from "./OpenFromGitHubDialog";
-import { GitHubSettings } from "./GitHubSettings";
-import { forgetGitHubToken, resetGitHubForTests, saveGitHubToken } from "./github-settings";
+import { OpenFromGitDialog } from "./OpenFromGitDialog";
+import { GitHubSettings } from "../github/GitHubSettings";
+import { forgetGitHubToken, resetGitHubForTests, saveGitHubToken } from "../github/github-settings";
 
 const b64 = (text: string) => btoa(unescape(encodeURIComponent(text)));
 const json = (body: unknown, status = 200) =>
@@ -72,7 +72,7 @@ function renderDialog(fetchImpl: ReturnType<typeof fakeGitHub>) {
   const onClose = vi.fn();
   const onOpenSettings = vi.fn();
   render(
-    <OpenFromGitHubDialog
+    <OpenFromGitDialog
       onOpen={onOpen}
       onClose={onClose}
       onOpenSettings={onOpenSettings}

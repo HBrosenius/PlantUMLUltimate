@@ -1,30 +1,26 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DiagramKind } from "../../model";
 import { buildReviewGroups } from "../../semantic-review";
 import { useDialogFocus } from "../../use-dialog-focus";
-import { isSafeOriginLink, originVersion, type GitOrigin } from "../git/git-origin";
-import { GitProviderError } from "../git/git-provider";
-import { createGitHubClient, type GitHubClient, type GitHubPullRequest } from "./github-client";
+import { describeGitError, targetOfOrigin, useGitProvider, wordingFor } from "./git-hosts";
+import { isSafeOriginLink, originVersion, type GitOrigin } from "./git-origin";
+import type { GitReview } from "./git-provider";
 import {
   createReviewMarkdown,
   defaultProposalBranch,
   openProposal,
   proposeChange,
   UpstreamChangedError,
-} from "./github-propose";
-import { mergeUpstream, type UpstreamMerge } from "./github-upstream";
-import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
-import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
+} from "./git-propose";
+import { mergeUpstream, type UpstreamMerge } from "./git-upstream";
+import { OpenReviewLink, ProposalDone } from "./ProposalDone";
 
-const message = (error: unknown) =>
-  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
-
-type Loaded = { base: string; existing: GitHubPullRequest | undefined };
+type Loaded = { base: string; existing: GitReview | undefined };
 
 /**
- * Propose change: commits the tab's source to a new branch and opens a pull request against the branch the file
- * came from, with the semantic review as its description. Proposing again while that pull request is open adds
- * a commit to it.
+ * Propose change: commits the tab's source to a new branch and opens a pull request (GitHub) or merge request
+ * (GitLab) against the branch the file came from, with the semantic review as its description. Proposing again
+ * while that request is open adds a commit to it. The host is the tab origin's own.
  */
 export function ProposeChangeDialog({
   origin,
@@ -49,37 +45,21 @@ export function ProposeChangeDialog({
   fetchImpl?: typeof fetch;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
-  const state = useSyncExternalStore(subscribeGitHub, getGitHubState);
-  const [ready, setReady] = useState(false);
+  const host = useMemo(() => targetOfOrigin(origin), [origin]);
+  const { ready, provider: client } = useGitProvider(host, fetchImpl);
+  const words = wordingFor(host.provider);
+  const message = (error: unknown) => describeGitError(error, words.name);
   const [loaded, setLoaded] = useState<Loaded>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [upstream, setUpstream] = useState<UpstreamMerge>();
-  const [done, setDone] = useState<{ pullRequest: GitHubPullRequest; updated: boolean; branch: string }>();
+  const [done, setDone] = useState<{ review: GitReview; updated: boolean; branch: string }>();
   const [branch, setBranch] = useState(() => defaultProposalBranch(fileName));
   const [commitMessage, setCommitMessage] = useState(`Update ${origin.path.split("/").pop() ?? fileName}`);
   const [title, setTitle] = useState(`Update ${origin.path.split("/").pop() ?? fileName}`);
   useDialogFocus(dialog, () => {
     if (!busy) onClose();
   });
-
-  useEffect(() => {
-    let current = true;
-    void loadRememberedGitHubToken().then(() => {
-      if (current) setReady(true);
-    });
-    return () => {
-      current = false;
-    };
-  }, []);
-
-  const client = useMemo<GitHubClient | undefined>(
-    () =>
-      state.hasToken
-        ? createGitHubClient({ token: getGitHubToken() ?? "", ...(fetchImpl ? { fetch: fetchImpl } : {}) })
-        : undefined,
-    [state.hasToken, fetchImpl],
-  );
 
   // Reloaded when the tab's base blob changes (after merging newer upstream changes); proposing alone needs no reload.
   const originRef = useRef(origin);
@@ -98,7 +78,7 @@ export function ProposeChangeDialog({
         if (current) setLoaded({ base, existing });
       })
       .catch((failure: unknown) => {
-        if (current) setError(message(failure));
+        if (current) setError(describeGitError(failure, client.info.name));
       });
     return () => {
       current = false;
@@ -145,7 +125,7 @@ export function ProposeChangeDialog({
       });
       onProposed(result.origin);
       setDone({
-        pullRequest: result.pullRequest,
+        review: result.pullRequest,
         updated: result.updated,
         branch: result.origin.proposal?.branch ?? branch.trim(),
       });
@@ -173,23 +153,20 @@ export function ProposeChangeDialog({
         className="document-settings-dialog github-open-dialog github-propose-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Propose change on GitHub"
+        aria-label={`Propose change on ${words.name}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!busy && !done && !unchanged && !upstream) void submit();
         }}
       >
         <header>
-          <h2>Propose change on GitHub</h2>
+          <h2>Propose change on {words.name}</h2>
         </header>
         {!ready ? (
           <p role="status">Checking for a saved token…</p>
         ) : !client ? (
           <>
-            <p>
-              To propose changes, add a fine-grained personal access token with Contents and Pull requests set to Read
-              and write. It stays in this browser.
-            </p>
+            <p>To propose changes, {words.tokenAdvice.write}. It stays in this browser.</p>
             <button
               type="button"
               onClick={() => {
@@ -197,12 +174,13 @@ export function ProposeChangeDialog({
                 onOpenSettings();
               }}
             >
-              Open Settings → GitHub
+              Open Settings → {words.name}
             </button>
           </>
         ) : done ? (
           <ProposalDone
-            pullRequest={done.pullRequest}
+            provider={client.info}
+            review={done.review}
             repository={repository}
             branch={done.branch}
             base={origin.ref}
@@ -216,8 +194,8 @@ export function ProposeChangeDialog({
               places: {upstream.regions.join(", ")} of your version. Nothing was committed.
             </p>
             <p>
-              Open the file from GitHub again to start from the latest version, then make your changes there. Copy your
-              edits first if you want to keep them.
+              Open the file from {words.name} again to start from the latest version, then make your changes there. Copy
+              your edits first if you want to keep them.
             </p>
           </>
         ) : upstream?.kind === "merged" ? (
@@ -232,16 +210,16 @@ export function ProposeChangeDialog({
                   Adds a commit to{" "}
                   {isSafeOriginLink(origin, existing.htmlUrl) ? (
                     <a href={existing.htmlUrl} target="_blank" rel="noopener noreferrer">
-                      pull request #{existing.number}
+                      {words.reviewName} {existing.label}
                     </a>
                   ) : (
-                    `pull request #${existing.number}`
+                    `${words.reviewName} ${existing.label}`
                   )}{" "}
                   on branch <code>{origin.proposal?.branch}</code>, and updates its description.
                 </>
               ) : (
                 <>
-                  Commits <code>{origin.path}</code> to a new branch and opens a pull request into{" "}
+                  Commits <code>{origin.path}</code> to a new branch and opens a {words.reviewName} into{" "}
                   <code>{origin.ref}</code> in {repository}.
                 </>
               )}
@@ -265,7 +243,7 @@ export function ProposeChangeDialog({
             </label>
             {!existing && (
               <label>
-                Pull request title
+                {words.reviewTitle} title
                 <input value={title} maxLength={250} onChange={(event) => setTitle(event.target.value)} />
               </label>
             )}
@@ -280,7 +258,7 @@ export function ProposeChangeDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {done ? "Close" : "Cancel"}
           </button>
-          {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
+          {client && done && <OpenReviewLink provider={client.info} review={done.review} />}
           {client && loaded && !done && upstream?.kind === "merged" && (
             <button
               type="button"
@@ -293,7 +271,7 @@ export function ProposeChangeDialog({
           )}
           {client && loaded && !done && !upstream && (
             <button type="submit" className="primary" disabled={busy || (unchanged && !existing)}>
-              {busy ? "Proposing…" : existing ? "Add commit" : "Open pull request"}
+              {busy ? "Proposing…" : existing ? "Add commit" : `Open ${words.reviewName}`}
             </button>
           )}
         </footer>
