@@ -456,6 +456,12 @@ export function DiagramDialogs({
           onClose={() => setProposeGitHubOpen(false)}
           onOpenSettings={openGitHubSettings}
           onProposed={(origin) => tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true)}
+          onSourceMerged={(merged, origin) => {
+            // Through the usual source commit, so Undo restores the tab's source from before the merge.
+            if (!commitSource(merged, "Merge upstream changes from GitHub", false)) return false;
+            tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true);
+            return true;
+          }}
         />
       )}
       {newDocumentOpen && (

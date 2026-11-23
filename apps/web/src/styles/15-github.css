@@ -76,6 +76,16 @@
   word-break: break-word;
   font-size: 12px;
 }
+.github-upstream-review h3 {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+.github-upstream-review ul {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 140px;
+  overflow: auto;
+}
 .github-open-dialog.github-propose-dialog {
   max-height: calc(82vh - 24px);
 }

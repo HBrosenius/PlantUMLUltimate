@@ -4,7 +4,14 @@ import { buildReviewGroups } from "../../semantic-review";
 import { useDialogFocus } from "../../use-dialog-focus";
 import { createGitHubClient, GitHubError, type GitHubClient, type GitHubPullRequest } from "./github-client";
 import { safeGitHubUrl, type GitHubOrigin } from "./github-origin";
-import { createReviewMarkdown, defaultProposalBranch, openProposal, proposeChange } from "./github-propose";
+import {
+  createReviewMarkdown,
+  defaultProposalBranch,
+  openProposal,
+  proposeChange,
+  UpstreamChangedError,
+} from "./github-propose";
+import { mergeUpstream, type UpstreamMerge } from "./github-upstream";
 import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
 
 const message = (error: unknown) =>
@@ -23,6 +30,7 @@ export function ProposeChangeDialog({
   fileName,
   diagramKind,
   onProposed,
+  onSourceMerged,
   onClose,
   onOpenSettings,
   fetchImpl,
@@ -32,6 +40,8 @@ export function ProposeChangeDialog({
   fileName: string;
   diagramKind: DiagramKind;
   onProposed(origin: GitHubOrigin): void;
+  /** Replaces the tab's source with the merged one and moves its origin to the newer version. False if it could not be applied. */
+  onSourceMerged(source: string, origin: GitHubOrigin): boolean;
   onClose(): void;
   onOpenSettings(): void;
   fetchImpl?: typeof fetch;
@@ -42,6 +52,7 @@ export function ProposeChangeDialog({
   const [loaded, setLoaded] = useState<Loaded>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [upstream, setUpstream] = useState<UpstreamMerge>();
   const [done, setDone] = useState<{ pullRequest: GitHubPullRequest; updated: boolean }>();
   const [branch, setBranch] = useState(() => defaultProposalBranch(fileName));
   const [commitMessage, setCommitMessage] = useState(`Update ${origin.path.split("/").pop() ?? fileName}`);
@@ -68,16 +79,15 @@ export function ProposeChangeDialog({
     [state.hasToken, fetchImpl],
   );
 
-  // Loaded once for the origin the dialog opened with; proposing updates the tab's origin but needs no reload.
-  const [openedOrigin] = useState(origin);
+  // Reloaded when the tab's base blob changes (after merging newer upstream changes); proposing alone needs no reload.
+  const originRef = useRef(origin);
+  originRef.current = origin;
+  const { owner: originOwner, repo: originRepo, sha: originSha } = origin;
   useEffect(() => {
     if (!client) return;
     let current = true;
     setError("");
-    void Promise.all([
-      client.getBlobText(openedOrigin.owner, openedOrigin.repo, openedOrigin.sha),
-      openProposal(client, openedOrigin),
-    ])
+    void Promise.all([client.getBlobText(originOwner, originRepo, originSha), openProposal(client, originRef.current)])
       .then(([base, existing]) => {
         if (current) setLoaded({ base, existing });
       })
@@ -87,7 +97,7 @@ export function ProposeChangeDialog({
     return () => {
       current = false;
     };
-  }, [client, openedOrigin]);
+  }, [client, originOwner, originRepo, originSha]);
 
   const body = useMemo(
     () =>
@@ -99,14 +109,30 @@ export function ProposeChangeDialog({
   const unchanged = loaded !== undefined && loaded.base.replace(/\r\n/g, "\n") === source.replace(/\r\n/g, "\n");
   const existing = loaded?.existing;
 
-  async function submit() {
+  async function submit(merge?: Extract<UpstreamMerge, { kind: "merged" }>) {
     if (!client || !loaded) return;
     setBusy(true);
     setError("");
     try {
-      const result = await proposeChange(client, origin, {
-        source,
-        body,
+      const target = merge?.origin ?? origin;
+      const proposalSource = merge?.merged ?? source;
+      if (merge && !onSourceMerged(merge.merged, merge.origin)) {
+        setError("The merged version could not be applied to the tab.");
+        return;
+      }
+      setUpstream(undefined);
+      // After a merge into a new proposal the newer upstream version is the base of the review.
+      const reviewBase = merge && !origin.proposal ? merge.upstream : loaded.base;
+      const result = await proposeChange(client, target, {
+        source: proposalSource,
+        body: merge
+          ? createReviewMarkdown(
+              origin.path,
+              reviewBase,
+              proposalSource,
+              buildReviewGroups(reviewBase, proposalSource, diagramKind),
+            )
+          : body,
         commitMessage: commitMessage.trim() || `Update ${fileName}`,
         branch: branch.trim(),
         title: title.trim() || `Update ${fileName}`,
@@ -114,7 +140,16 @@ export function ProposeChangeDialog({
       onProposed(result.origin);
       setDone({ pullRequest: result.pullRequest, updated: result.updated });
     } catch (failure) {
-      setError(message(failure));
+      if (failure instanceof UpstreamChangedError) {
+        // Read the newer version and try to combine it with the tab's edits; nothing is committed yet.
+        try {
+          const result = await mergeUpstream(client, merge?.origin ?? origin, merge?.merged ?? source, failure);
+          if (result.kind === "unchanged") setError(failure.message);
+          else setUpstream(result);
+        } catch (lookup) {
+          setError(message(lookup));
+        }
+      } else setError(message(failure));
     } finally {
       setBusy(false);
     }
@@ -131,7 +166,7 @@ export function ProposeChangeDialog({
         aria-label="Propose change on GitHub"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!busy && !done && !unchanged) void submit();
+          if (!busy && !done && !unchanged && !upstream) void submit();
         }}
       >
         <header>
@@ -166,6 +201,19 @@ export function ProposeChangeDialog({
               </a>
             )}
           </p>
+        ) : upstream?.kind === "conflict" ? (
+          <>
+            <p role="alert">
+              {origin.path} changed on {upstream.branch} since you opened it, and the same parts were edited in both
+              places: {upstream.regions.join(", ")} of your version. Nothing was committed.
+            </p>
+            <p>
+              Open the file from GitHub again to start from the latest version, then make your changes there. Copy your
+              edits first if you want to keep them.
+            </p>
+          </>
+        ) : upstream?.kind === "merged" ? (
+          <UpstreamReview merge={upstream} path={origin.path} diagramKind={diagramKind} />
         ) : !loaded ? (
           !error && <p role="status">Comparing with the version you opened…</p>
         ) : (
@@ -224,7 +272,17 @@ export function ProposeChangeDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {done ? "Close" : "Cancel"}
           </button>
-          {client && loaded && !done && (
+          {client && loaded && !done && upstream?.kind === "merged" && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || upstream.nothingToPropose}
+              onClick={() => void submit(upstream)}
+            >
+              {busy ? "Proposing…" : "Use merged version and propose"}
+            </button>
+          )}
+          {client && loaded && !done && !upstream && (
             <button type="submit" className="primary" disabled={busy || (unchanged && !existing)}>
               {busy ? "Proposing…" : existing ? "Add commit" : "Open pull request"}
             </button>
@@ -232,5 +290,54 @@ export function ProposeChangeDialog({
         </footer>
       </form>
     </div>
+  );
+}
+
+function ReviewList({ title, groups }: { title: string; groups: ReturnType<typeof buildReviewGroups> }) {
+  return (
+    <section className="github-upstream-review">
+      <h3>{title}</h3>
+      {groups.length ? (
+        <ul>
+          {groups.map((group, index) => (
+            <li key={index}>
+              {group.title}
+              {group.detail ? ` — ${group.detail}` : ""}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No changes.</p>
+      )}
+    </section>
+  );
+}
+
+/** A clean merge of the tab's edits and the newer version, shown before anything is committed. */
+function UpstreamReview({
+  merge,
+  path,
+  diagramKind,
+}: {
+  merge: Extract<UpstreamMerge, { kind: "merged" }>;
+  path: string;
+  diagramKind: DiagramKind;
+}) {
+  const upstreamChanges = useMemo(
+    () => buildReviewGroups(merge.base, merge.upstream, diagramKind),
+    [merge, diagramKind],
+  );
+  const yourChanges = useMemo(() => buildReviewGroups(merge.upstream, merge.merged, diagramKind), [merge, diagramKind]);
+  return (
+    <>
+      <p role="status">
+        {path} changed on {merge.branch} since you opened it. Your changes were merged with the newer version.
+      </p>
+      <ReviewList title={`What changed on ${merge.branch}`} groups={upstreamChanges} />
+      <ReviewList title="What your proposal will add on top" groups={yourChanges} />
+      {merge.nothingToPropose && (
+        <p>The newer version already contains your changes, so there is nothing to propose.</p>
+      )}
+    </>
   );
 }
