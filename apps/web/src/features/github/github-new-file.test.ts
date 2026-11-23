@@ -291,8 +291,7 @@ describe("new file description", () => {
 
 describe("an empty repository", () => {
   const empty = {
-    "GET /repos/octo/docs/git/ref/heads/main": () =>
-      reply({ message: "Git Repository is empty.", status: "409" }, 409),
+    "GET /repos/octo/docs/git/ref/heads/main": () => reply({ message: "Git Repository is empty.", status: "409" }, 409),
     [`GET ${FILE}`]: () => reply({ message: "This repository is empty." }, 404),
   };
 
