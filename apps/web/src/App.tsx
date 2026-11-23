@@ -182,6 +182,7 @@ export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const editorPreferences = useEditorPreferences();
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
+  const [openGitHubOpen, setOpenGitHubOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const presentationReturnFocus = useRef<HTMLElement | null>(null);
   const openPresentation = () => {
@@ -2238,7 +2239,9 @@ export function App() {
     !commandReadOnly && !!renameCommandOccurrence && !!symbolProvider.renameRequest(renameCommandOccurrence);
 
   const dependencyTaskCount = parseResult.document.tasks.length;
+  const openFromGitHub = useCallback(() => setOpenGitHubOpen(true), []);
   const { commands } = useAppCommands({
+    openFromGitHub,
     askAi,
     activateTab,
     activeHistory,
@@ -2894,6 +2897,7 @@ export function App() {
           setJiraDialogOpen={setJiraDialogOpen}
           setLegendInspectorOpen={setLegendInspectorOpen}
           setOpenWorkOpen={setOpenWorkOpen}
+          setOpenGitHubOpen={setOpenGitHubOpen}
           setOutlineMode={setOutlineMode}
           setProblemsOpen={setProblemsOpen}
           setSettingsCategory={setSettingsCategory}
@@ -3198,6 +3202,11 @@ export function App() {
           openDocument={openDocument}
           openLinkedGanttTask={openLinkedGanttTask}
           openWorkOpen={openWorkOpen}
+          openGitHubOpen={openGitHubOpen}
+          openGitHubSettings={() => {
+            setSettingsCategory("GitHub");
+            setSettingsOpen(true);
+          }}
           outlineMode={outlineMode}
           outlineWide={outlineWide}
           parseResult={parseResult}
@@ -3221,6 +3230,7 @@ export function App() {
           setInteractionMessage={setInteractionMessage}
           setLinkedWorkPreview={setLinkedWorkPreview}
           setOpenWorkOpen={setOpenWorkOpen}
+          setOpenGitHubOpen={setOpenGitHubOpen}
           setOutlineMatches={setOutlineMatches}
           setOutlineMode={setOutlineMode}
           setPendingGanttDeleteTaskId={setPendingGanttDeleteTaskId}

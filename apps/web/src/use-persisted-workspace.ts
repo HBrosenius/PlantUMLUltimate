@@ -168,6 +168,7 @@ export function usePersistedWorkspace() {
       deliveryScenarios: input?.deliveryScenarios ?? [],
       ...(input?.progressForecast ? { progressForecast: input.progressForecast } : {}),
       ...(input?.linkedWbsDocumentId ? { linkedWbsDocumentId: input.linkedWbsDocumentId } : {}),
+      ...(input?.githubOrigin ? { githubOrigin: input.githubOrigin } : {}),
       ...(input?.wbsGanttLinks ? { wbsGanttLinks: input.wbsGanttLinks } : {}),
       ...(input?.wbsGanttDependencies ? { wbsGanttDependencies: input.wbsGanttDependencies } : {}),
     };
@@ -221,6 +222,8 @@ export function usePersistedWorkspace() {
         fileCopy: "new",
         dirty: true,
       };
+      // A copy is a new file: it is not the one on GitHub.
+      delete copy.githubOrigin;
       if (copy.encrypted) startMemoryOnlyHistory(copy.historyId);
       const documents = [...current.documents];
       documents.splice(index + 1, 0, copy);

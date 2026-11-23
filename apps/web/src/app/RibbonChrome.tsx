@@ -3,6 +3,7 @@ import { FileMenu } from "../FileMenu";
 import { FileSaveStatus, type FileSaveState } from "../FileSaveStatus";
 import { HistoryMenu } from "../HistoryMenu";
 import { AddMenu } from "../AddMenu";
+import { GitHubOriginLabel } from "../features/github/GitHubOriginLabel";
 import { useStableHandlers, useStableList } from "../use-stable-handlers";
 
 /** A stable empty list so the memoised history menu is not re-rendered by a fresh [] each time. */
@@ -82,6 +83,7 @@ export interface RibbonChromeProps {
   setJiraDialogOpen: Dispatch<SetStateAction<boolean>>;
   setLegendInspectorOpen: Dispatch<SetStateAction<boolean>>;
   setOpenWorkOpen: Dispatch<SetStateAction<boolean>>;
+  setOpenGitHubOpen: Dispatch<SetStateAction<boolean>>;
   setOutlineMode: Dispatch<SetStateAction<"find" | "dock" | undefined>>;
   setProblemsOpen: (value: SetStateAction<boolean>) => void;
   setSettingsCategory: Dispatch<SetStateAction<string>>;
@@ -179,6 +181,7 @@ export function RibbonChrome({
   setJiraDialogOpen,
   setLegendInspectorOpen,
   setOpenWorkOpen,
+  setOpenGitHubOpen,
   setOutlineMode,
   setProblemsOpen,
   setSettingsCategory,
@@ -236,6 +239,7 @@ export function RibbonChrome({
     onNew: newDocument,
     onNewProject: () => openDialog({ kind: "new-project" }),
     onOpenRecent: () => setOpenWorkOpen(true),
+    onOpenGitHub: () => setOpenGitHubOpen(true),
     onOpen: () => void openDocument(),
     onOpenProject: () => void singleFileProject.openProject(),
     onProjectConnections: project ? showDocumentNavigator : undefined,
@@ -345,6 +349,7 @@ export function RibbonChrome({
                 state={currentFileSaveState}
                 onRetry={statusHandlers.onRetrySave}
               />
+              {activeDocument.githubOrigin && <GitHubOriginLabel origin={activeDocument.githubOrigin} />}
             </div>
           </>
         }
