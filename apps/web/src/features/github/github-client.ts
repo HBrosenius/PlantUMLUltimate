@@ -351,19 +351,25 @@ export function createGitHubClient({ token, fetch: injected }: GitHubClientOptio
 
     /**
      * Commits one file on a branch. `sha` is the blob the change was made against, so GitHub refuses (409) to
-     * overwrite a file that changed in the meantime. Returns the new blob SHA.
+     * overwrite a file that changed in the meantime. Leave `sha` out to create a file that does not exist yet.
+     * Returns the new blob SHA.
      */
     async putFile(
       owner: string,
       repo: string,
-      change: { path: string; branch: string; message: string; content: string; sha: string },
+      change: { path: string; branch: string; message: string; content: string; sha?: string | undefined },
     ): Promise<{ sha: string }> {
       branchRef(change.branch);
       const { data } = await json<Json>(
         `${repositoryBase(owner, repo)}/contents/${encodePath(change.path)}`,
         `${change.path} in ${owner}/${repo}`,
         "PUT",
-        { message: change.message, content: encodeBase64Utf8(change.content), sha: change.sha, branch: change.branch },
+        {
+          message: change.message,
+          content: encodeBase64Utf8(change.content),
+          ...(change.sha ? { sha: change.sha } : {}),
+          branch: change.branch,
+        },
       );
       const sha = asString((data.content as Json | undefined)?.sha);
       if (!sha) throw new GitHubError("http", "GitHub did not confirm the commit.");

@@ -65,8 +65,8 @@ export function GitHubSettings({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <>
       <h3 id="settings-github-heading">GitHub</h3>
       <p>
-        Connect GitHub to open diagram files straight from your repositories. Your browser talks to GitHub directly; no
-        PlantUML Ultimate server is involved.
+        Connect GitHub to open diagram files from your repositories and to propose changes or new files as pull
+        requests. Your browser talks to GitHub directly; no PlantUML Ultimate server is involved.
       </p>
       <p>Create a fine-grained personal access token:</p>
       <ol>

@@ -184,6 +184,7 @@ export function App() {
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
   const [openGitHubOpen, setOpenGitHubOpen] = useState(false);
   const [proposeGitHubOpen, setProposeGitHubOpen] = useState(false);
+  const [proposeNewGitHubOpen, setProposeNewGitHubOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const presentationReturnFocus = useRef<HTMLElement | null>(null);
   const openPresentation = () => {
@@ -2242,9 +2243,11 @@ export function App() {
   const dependencyTaskCount = parseResult.document.tasks.length;
   const openFromGitHub = useCallback(() => setOpenGitHubOpen(true), []);
   const proposeOnGitHub = useCallback(() => setProposeGitHubOpen(true), []);
+  const proposeNewOnGitHub = useCallback(() => setProposeNewGitHubOpen(true), []);
   const { commands } = useAppCommands({
     openFromGitHub,
     proposeOnGitHub: activeDocument.githubOrigin ? proposeOnGitHub : undefined,
+    proposeNewOnGitHub: activeDocument.githubOrigin ? undefined : proposeNewOnGitHub,
     askAi,
     activateTab,
     activeHistory,
@@ -2842,6 +2845,7 @@ export function App() {
         )}
         <RibbonChrome
           onProposeOnGitHub={proposeOnGitHub}
+          onProposeNewOnGitHub={proposeNewOnGitHub}
           activeDocument={activeDocument}
           activeHistory={activeHistory}
           activeInLegacyProject={activeInLegacyProject}
@@ -3208,6 +3212,7 @@ export function App() {
           openWorkOpen={openWorkOpen}
           openGitHubOpen={openGitHubOpen}
           proposeGitHubOpen={proposeGitHubOpen}
+          proposeNewGitHubOpen={proposeNewGitHubOpen}
           openGitHubSettings={() => {
             setSettingsCategory("GitHub");
             setSettingsOpen(true);
@@ -3236,6 +3241,7 @@ export function App() {
           setLinkedWorkPreview={setLinkedWorkPreview}
           setOpenWorkOpen={setOpenWorkOpen}
           setProposeGitHubOpen={setProposeGitHubOpen}
+          setProposeNewGitHubOpen={setProposeNewGitHubOpen}
           setOpenGitHubOpen={setOpenGitHubOpen}
           setOutlineMatches={setOutlineMatches}
           setOutlineMode={setOutlineMode}

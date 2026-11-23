@@ -23,6 +23,7 @@ import type { useSingleFileProject } from "../projects/use-single-file-project";
 
 export interface RibbonChromeProps {
   onProposeOnGitHub: () => void;
+  onProposeNewOnGitHub: () => void;
   activeDocument: DocumentSnapshot;
   activeHistory: SourceHistory;
   activeInLegacyProject: boolean;
@@ -197,6 +198,7 @@ export function RibbonChrome({
   viewMode,
   workspace,
   onProposeOnGitHub,
+  onProposeNewOnGitHub,
 }: RibbonChromeProps) {
   // Stable identities let the memoised menus skip re-rendering on every edit.
   const addMenuHandlers = useStableHandlers({
@@ -242,6 +244,7 @@ export function RibbonChrome({
     onNewProject: () => openDialog({ kind: "new-project" }),
     onOpenRecent: () => setOpenWorkOpen(true),
     onOpenGitHub: () => setOpenGitHubOpen(true),
+    onProposeNewOnGitHub: activeDocument.githubOrigin ? undefined : onProposeNewOnGitHub,
     onOpen: () => void openDocument(),
     onOpenProject: () => void singleFileProject.openProject(),
     onProjectConnections: project ? showDocumentNavigator : undefined,

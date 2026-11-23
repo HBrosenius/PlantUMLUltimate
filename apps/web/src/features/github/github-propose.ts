@@ -26,7 +26,7 @@ export function escapeMarkdown(value: string): string {
 }
 
 /** A code fence longer than any run of backticks in the text, so the text cannot close it. */
-function fenceFor(text: string): string {
+export function fenceFor(text: string): string {
   const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
   return "`".repeat(Math.max(3, longest + 1));
 }
@@ -127,6 +127,16 @@ const upstreamChanged = (origin: GitHubOrigin) =>
     `${origin.path} changed on ${origin.ref} since you opened it, so it was not overwritten. Open the file from GitHub again to start from the latest version.`,
   );
 
+async function fileOnBranch(client: GitHubClient, origin: GitHubOrigin, branch: string): Promise<boolean> {
+  try {
+    await client.getFile(origin.owner, origin.repo, branch, origin.path);
+    return true;
+  } catch (error) {
+    if (error instanceof GitHubError && error.kind === "not-found") return false;
+    throw error;
+  }
+}
+
 /** Whether proposing from this tab will add to its open pull request. */
 export async function openProposal(client: GitHubClient, origin: GitHubOrigin): Promise<GitHubPullRequest | undefined> {
   if (!origin.proposal) return undefined;
@@ -179,6 +189,11 @@ export async function proposeChange(
     };
   }
 
+  // The earlier pull request added this file and is closed. If it was merged the file is on the base branch and
+  // the opened blob still guards the commit; if it was closed unmerged the file is gone, so it is added again.
+  let guard: string | undefined = origin.sha;
+  if (origin.proposal?.newFile && !(await fileOnBranch(client, origin, origin.ref))) guard = undefined;
+
   let head: string;
   try {
     head = await client.getBranchHead(owner, repo, origin.ref);
@@ -204,7 +219,7 @@ export async function proposeChange(
       branch: input.branch,
       message: input.commitMessage,
       content: input.source,
-      sha: origin.sha,
+      sha: guard,
     });
   } catch (error) {
     // Nothing was committed: remove the empty branch again, best effort.
@@ -221,7 +236,13 @@ export async function proposeChange(
   return {
     origin: {
       ...origin,
-      proposal: { branch: input.branch, number: pullRequest.number, htmlUrl: pullRequest.htmlUrl, sha: committed.sha },
+      proposal: {
+        branch: input.branch,
+        number: pullRequest.number,
+        htmlUrl: pullRequest.htmlUrl,
+        sha: committed.sha,
+        ...(origin.proposal?.newFile ? { newFile: true as const } : {}),
+      },
     },
     pullRequest,
     updated: false,
