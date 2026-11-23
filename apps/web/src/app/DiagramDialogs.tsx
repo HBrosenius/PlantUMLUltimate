@@ -2,6 +2,7 @@ import { CommandPalette } from "../CommandPalette";
 import { DiagramOutlineDialog, DiagramOutlinePanel } from "../DiagramOutlineDialog";
 import { SaveStarterDialog } from "../PersonalStarters";
 import { OpenWorkDialog } from "../OpenWorkDialog";
+import { OpenFromGitHubDialog } from "../features/github/OpenFromGitHubDialog";
 import { NewDocumentDialog } from "../NewDocumentDialog";
 import { starterSource } from "../use-workspace-documents";
 import { setPlantUmlTheme } from "../plantuml-theme";
@@ -158,6 +159,7 @@ export interface DiagramDialogsProps {
   openDocument: () => Promise<void>;
   openLinkedGanttTask: (alias: string) => void;
   openWorkOpen: boolean;
+  openGitHubOpen: boolean;
   outlineMode: "find" | "dock" | undefined;
   outlineWide: boolean;
   parseResult: DiagramParseResult<GanttDocument>;
@@ -187,6 +189,8 @@ export interface DiagramDialogsProps {
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
   setLinkedWorkPreview: Dispatch<SetStateAction<LinkedWorkPreview | undefined>>;
   setOpenWorkOpen: Dispatch<SetStateAction<boolean>>;
+  setOpenGitHubOpen: Dispatch<SetStateAction<boolean>>;
+  openGitHubSettings: () => void;
   setOutlineMatches: Dispatch<SetStateAction<readonly DiagramOutlineEntry[]>>;
   setOutlineMode: Dispatch<SetStateAction<"find" | "dock" | undefined>>;
   setPendingGanttDeleteTaskId: Dispatch<SetStateAction<string | undefined>>;
@@ -298,6 +302,7 @@ export function DiagramDialogs({
   openDocument,
   openLinkedGanttTask,
   openWorkOpen,
+  openGitHubOpen,
   outlineMode,
   outlineWide,
   parseResult,
@@ -321,6 +326,8 @@ export function DiagramDialogs({
   setInteractionMessage,
   setLinkedWorkPreview,
   setOpenWorkOpen,
+  setOpenGitHubOpen,
+  openGitHubSettings,
   setOutlineMatches,
   setOutlineMode,
   setPendingGanttDeleteTaskId,
@@ -415,6 +422,24 @@ export function DiagramDialogs({
           onOpen={async (file, destination) =>
             destination === "document" ? singleFileProject.openOpenedProject(file) : importDocumentFile(file)
           }
+        />
+      )}
+      {openGitHubOpen && (
+        <OpenFromGitHubDialog
+          onClose={() => setOpenGitHubOpen(false)}
+          onOpenSettings={openGitHubSettings}
+          onOpen={async ({ source, fileName, origin }) => {
+            await importDocumentFile({
+              kind: "legacy",
+              importedSource: true,
+              githubOrigin: origin,
+              source,
+              bytes: new TextEncoder().encode(source),
+              fileName,
+              size: new Blob([source]).size,
+              lastModified: Date.now(),
+            });
+          }}
         />
       )}
       {newDocumentOpen && (

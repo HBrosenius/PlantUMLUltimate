@@ -177,6 +177,7 @@ export function useDocumentFiles({
         dirty: Boolean(opened.importedSource),
         fileCopy: opened.importedSource ? "new" : "file",
         cursor: { line: 1, column: 1 },
+        ...(opened.githubOrigin ? { githubOrigin: opened.githubOrigin } : {}),
       });
       if (opened.handle) {
         fileHandles.current.set(id, opened.handle);
@@ -202,6 +203,7 @@ export function useDocumentFiles({
           ...(opened.importedSource ? { importedSource: true } : {}),
           fileName: opened.fileName,
           ...(opened.handle ? { handle: opened.handle } : {}),
+          ...(opened.githubOrigin ? { githubOrigin: opened.githubOrigin } : {}),
           lastModified: opened.lastModified,
           size: opened.size,
         });

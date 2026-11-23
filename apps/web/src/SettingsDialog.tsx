@@ -5,6 +5,7 @@ import { ThemeGallery } from "./ThemeGallery";
 import { PlantUmlUltimateLogo } from "./NewDocumentDialog";
 import type { Theme } from "./model";
 import { AiAssistantSettings } from "./features/ai-edits/AiAssistantSettings";
+import { GitHubSettings } from "./features/github/GitHubSettings";
 
 export interface AppSettings {
   startupMode?: "restore" | "chooser" | undefined;
@@ -144,7 +145,7 @@ export function SettingsDialog({
         )}
         {mode === "settings" && (
           <nav className="settings-categories" aria-label="Settings categories">
-            {["Appearance", "Editor & navigation", "New diagrams", "Gantt", "AI assistant"].map((name) => (
+            {["Appearance", "Editor & navigation", "New diagrams", "Gantt", "AI assistant", "GitHub"].map((name) => (
               <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>
                 {name}
               </button>
@@ -408,6 +409,15 @@ export function SettingsDialog({
             aria-labelledby="settings-ai-heading"
           >
             <AiAssistantSettings />
+          </section>
+        )}
+        {mode === "settings" && (
+          <section
+            hidden={category !== "GitHub"}
+            className="document-settings-section github-settings"
+            aria-labelledby="settings-github-heading"
+          >
+            <GitHubSettings />
           </section>
         )}
         <footer>

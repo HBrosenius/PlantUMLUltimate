@@ -34,6 +34,7 @@ export interface useAppCommandsInputs {
   openClassSettingsFromToolbar: () => void;
   openDialog: (next: AppDialog) => void;
   openDocument: () => Promise<void>;
+  openFromGitHub: () => void;
   openFormatSource: () => void;
   openProjectInspector: () => void;
   openReports: () => void;
@@ -114,6 +115,7 @@ export function useAppCommands({
   openClassSettingsFromToolbar,
   openDialog,
   openDocument,
+  openFromGitHub,
   openFormatSource,
   openProjectInspector,
   openReports,
@@ -400,6 +402,7 @@ export function useAppCommands({
       ...creationCommands.map((command) => ({ ...command, enabled: !commandReadOnly })),
       { id: "file.new", label: "New diagram", category: "File", shortcut: modShortcut("N"), run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: modShortcut("O"), run: openDocument },
+      { id: "file.open-github", label: "Open from GitHub…", category: "File", run: openFromGitHub },
       { id: "file.save", label: "Save", category: "File", shortcut: modShortcut("S"), run: saveCurrentDocument },
       {
         id: "settings.open",
@@ -566,6 +569,7 @@ export function useAppCommands({
     exportSvg,
     newDocument,
     openDocument,
+    openFromGitHub,
     openDialog,
     openWbsSettings,
     openMindmapSettings,

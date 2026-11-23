@@ -7,6 +7,7 @@ function FileMenuView({
   onNewProject,
   onOpen,
   onOpenRecent,
+  onOpenGitHub,
   onOpenProject,
   onProjectConnections,
   projectName,
@@ -34,6 +35,7 @@ function FileMenuView({
   onNewProject?: (() => void) | undefined;
   onOpen(): void;
   onOpenRecent?: (() => void) | undefined;
+  onOpenGitHub?: (() => void) | undefined;
   onOpenProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
@@ -222,6 +224,11 @@ function FileMenuView({
                 {onOpenRecent && (
                   <button role="menuitem" onClick={() => run(onOpenRecent)}>
                     Recent files & import…
+                  </button>
+                )}
+                {onOpenGitHub && (
+                  <button role="menuitem" onClick={() => run(onOpenGitHub)}>
+                    From GitHub…
                   </button>
                 )}
                 {onOpenProject && (

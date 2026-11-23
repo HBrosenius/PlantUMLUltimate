@@ -1,3 +1,4 @@
+import { withCredentialStore } from "../../credential-store";
 import { savePreference } from "../../browser-preferences";
 import { storageGet } from "../../safe-storage";
 import { DEFAULT_AI_MODELS, isKnownAiModel, isValidModelId } from "./models";
@@ -176,37 +177,7 @@ function withKeyStore<T>(
   action: (store: IDBObjectStore) => IDBRequest<T>,
   mode: IDBTransactionMode,
 ): Promise<T | undefined> {
-  return new Promise((resolve) => {
-    try {
-      const open = indexedDB.open(KEY_DATABASE, 1);
-      open.onupgradeneeded = () => open.result.createObjectStore(KEY_STORE);
-      open.onerror = open.onblocked = () => resolve(undefined);
-      open.onsuccess = () => {
-        const db = open.result;
-        try {
-          const transaction = db.transaction(KEY_STORE, mode);
-          const request = action(transaction.objectStore(KEY_STORE));
-          let result: T | undefined;
-          request.onsuccess = () => {
-            result = request.result;
-          };
-          transaction.oncomplete = () => {
-            db.close();
-            resolve(result);
-          };
-          transaction.onerror = transaction.onabort = () => {
-            db.close();
-            resolve(undefined);
-          };
-        } catch {
-          db.close();
-          resolve(undefined);
-        }
-      };
-    } catch {
-      resolve(undefined);
-    }
-  });
+  return withCredentialStore(KEY_DATABASE, KEY_STORE, action, mode);
 }
 
 /**
