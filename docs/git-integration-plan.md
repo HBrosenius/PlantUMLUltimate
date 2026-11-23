@@ -1,6 +1,6 @@
 # B4: Git provider integration — plan
 
-Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1 and G2 are built; G3 (upstream changes) is next. Until then, a file that changed upstream since it was opened is refused with a message to open it again. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
+Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1, G2 and G3 (upstream changes) are built. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
 
 ## 0. What this is for
 
@@ -40,7 +40,7 @@ The first version should close that loop for the common case:
   - The description is the semantic review in Markdown: change groups with confidence, then the unified patch in a collapsed `<details>` block, and a line saying it was made with PlantUML Ultimate.
   - The app creates the branch from the base commit, commits the file through the Contents API (with the blob SHA, so GitHub refuses to overwrite a newer file), opens the PR, and shows its link.
   - Proposing again from the same tab while the PR is open adds a commit to the same branch, and the PR description is updated.
-- **When the file changed upstream:** the commit is refused because the SHA no longer matches. The app fetches the new version, runs `threeWayMerge` against the version it opened, and shows the result in the existing review panel before trying again. A real conflict stops with a clear message.
+- **When the file changed upstream:** the commit is refused because the SHA no longer matches, and the empty branch is removed. The app fetches the latest version from that branch (the base branch, or the proposal branch when adding a commit) and runs `threeWayMerge` against the version it started from (the opened blob, or the content last proposed). A clean merge is shown in the Propose dialog before anything is committed, with what changed upstream and what the proposal adds on top; "Use merged version and propose" applies it to the tab as one undoable source change, makes the upstream blob the new base, and retries. A real conflict stops with the conflicting line ranges and a suggestion to open the file from GitHub again; there is no interactive conflict resolver.
 - **Without write access** (a public repository the user can't push to), the first version says so and offers to download the file. Forking is later.
 
 ## 4. Slices

@@ -104,11 +104,27 @@ export interface ProposeResult {
   updated: boolean;
 }
 
+/**
+ * The file changed on GitHub since the tab last saw it, so nothing was committed. `target` says which branch moved:
+ * the base branch (a new proposal) or the proposal branch (adding a commit). `mergeUpstream` can try to combine
+ * the tab's edits with the newer version.
+ */
+export class UpstreamChangedError extends GitHubError {
+  constructor(
+    readonly target: "base" | "proposal",
+    readonly branch: string,
+    message: string,
+  ) {
+    super("conflict", message, 409);
+    this.name = "UpstreamChangedError";
+  }
+}
+
 const upstreamChanged = (origin: GitHubOrigin) =>
-  new GitHubError(
-    "conflict",
+  new UpstreamChangedError(
+    "base",
+    origin.ref,
     `${origin.path} changed on ${origin.ref} since you opened it, so it was not overwritten. Open the file from GitHub again to start from the latest version.`,
-    409,
   );
 
 /** Whether proposing from this tab will add to its open pull request. */
@@ -148,10 +164,10 @@ export async function proposeChange(
       });
     } catch (error) {
       if (error instanceof GitHubError && error.kind === "conflict")
-        throw new GitHubError(
-          "conflict",
+        throw new UpstreamChangedError(
+          "proposal",
+          origin.proposal.branch,
           `${origin.path} changed on ${origin.proposal.branch} since your last proposal, so it was not overwritten.`,
-          409,
         );
       throw error;
     }
