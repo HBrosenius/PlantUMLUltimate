@@ -35,6 +35,8 @@ export interface useAppCommandsInputs {
   openDialog: (next: AppDialog) => void;
   openDocument: () => Promise<void>;
   openFromGitHub: () => void;
+  /** Set only for a tab opened from GitHub. */
+  proposeOnGitHub: (() => void) | undefined;
   openFormatSource: () => void;
   openProjectInspector: () => void;
   openReports: () => void;
@@ -116,6 +118,7 @@ export function useAppCommands({
   openDialog,
   openDocument,
   openFromGitHub,
+  proposeOnGitHub,
   openFormatSource,
   openProjectInspector,
   openReports,
@@ -403,6 +406,9 @@ export function useAppCommands({
       { id: "file.new", label: "New diagram", category: "File", shortcut: modShortcut("N"), run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: modShortcut("O"), run: openDocument },
       { id: "file.open-github", label: "Open from GitHub…", category: "File", run: openFromGitHub },
+      ...(proposeOnGitHub
+        ? [{ id: "file.propose-github", label: "Propose change on GitHub…", category: "File", run: proposeOnGitHub }]
+        : []),
       { id: "file.save", label: "Save", category: "File", shortcut: modShortcut("S"), run: saveCurrentDocument },
       {
         id: "settings.open",
@@ -570,6 +576,7 @@ export function useAppCommands({
     newDocument,
     openDocument,
     openFromGitHub,
+    proposeOnGitHub,
     openDialog,
     openWbsSettings,
     openMindmapSettings,

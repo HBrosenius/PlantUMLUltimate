@@ -83,8 +83,8 @@ export function GitHubSettings({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </li>
       </ol>
       <p>
-        Proposing a change as a pull request will later also need Contents: Read and write and Pull requests: Read and
-        write. Grant those only when that feature is available.
+        To propose changes as pull requests, set <strong>Contents</strong> and <strong>Pull requests</strong> to Read
+        and write instead. Read-only is enough for opening files.
       </p>
       <label>
         GitHub token

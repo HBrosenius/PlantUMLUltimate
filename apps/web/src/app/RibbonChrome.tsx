@@ -22,6 +22,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { useSingleFileProject } from "../projects/use-single-file-project";
 
 export interface RibbonChromeProps {
+  onProposeOnGitHub: () => void;
   activeDocument: DocumentSnapshot;
   activeHistory: SourceHistory;
   activeInLegacyProject: boolean;
@@ -195,6 +196,7 @@ export function RibbonChrome({
   undo,
   viewMode,
   workspace,
+  onProposeOnGitHub,
 }: RibbonChromeProps) {
   // Stable identities let the memoised menus skip re-rendering on every edit.
   const addMenuHandlers = useStableHandlers({
@@ -349,7 +351,9 @@ export function RibbonChrome({
                 state={currentFileSaveState}
                 onRetry={statusHandlers.onRetrySave}
               />
-              {activeDocument.githubOrigin && <GitHubOriginLabel origin={activeDocument.githubOrigin} />}
+              {activeDocument.githubOrigin && (
+                <GitHubOriginLabel origin={activeDocument.githubOrigin} onPropose={onProposeOnGitHub} />
+              )}
             </div>
           </>
         }
