@@ -1,0 +1,136 @@
+# B7: Includes and C4 diagrams — plan
+
+Status: proposal, 2026-11-24. Nothing is implemented. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
+
+## 0. Why
+
+Two things that are very common in real PlantUML don't work in the app today:
+
+1. **C4 diagrams.** C4-PlantUML is one of the most used ways to draw software architecture in PlantUML. Every C4 file starts with an include:
+
+   ```plantuml
+   @startuml
+   !include <C4/C4_Container>
+   Person(user, "Customer")
+   System_Boundary(shop, "Web shop") {
+     Container(web, "Web app", "React")
+     ContainerDb(db, "Database", "PostgreSQL")
+   }
+   Rel(user, web, "Uses", "HTTPS")
+   Rel(web, db, "Reads and writes")
+   @enduml
+   ```
+
+2. **Shared files.** Teams keep common styles, skin parameters and procedures in one file and include it everywhere: `!include ../common/style.puml`.
+
+The renderer replaces **every** include with a "blocked" comment (`render/plantuml-source.ts`, `RESOURCE_DIRECTIVE`). That is deliberate: the engine runs in a sandbox with no network and no file access, so nothing leaves the device. But the bundled `@plantuml/core` build has no copy of PlantUML's standard library, so `<C4/...>` has nothing to read either. The result: a C4 file renders as a list of unknown functions, and a file with a shared style renders without it.
+
+This also undercuts the Git integration: many repositories that someone opens from GitHub or GitLab will look broken.
+
+I found no editor that renders C4-PlantUML in the browser while offline; the usual offline route is the Java JAR. Doing it locally, with no server, fits the app's local-first promise.
+
+**Goal:** C4 and include-based diagrams render exactly as PlantUML renders them, still with nothing sent anywhere, and with errors pointing at the right file and line.
+
+## 1. What exists to build on
+
+- **Bundled themes:** `!theme <name>` is already expanded locally before rendering. The 44 official themes (~390 KB) are loaded on demand with `import.meta.glob(..., { query: "?raw" })` and inlined by `expandBundledTheme`. Includes can work the same way.
+- **The render pipeline** (`render/use-renderer.ts`): source → `sourceForPlantUmlRenderer` → sandboxed worker. Preparing a theme is already an async step before queueing.
+- **Multi-diagram `.pumlu` documents:** every diagram has a name, so one diagram can include another by name.
+- **Git origins** (`features/git/git-origin.ts`): provider, server, project, ref and path, and the provider clients can read any file in the repository with the user's own token.
+- **Syntax errors** are mapped to a line (`render/syntax-error.ts`).
+- **Diagram detection** (`diagram-kind.ts`): C4 sources match no keyword today, so they get no diagram kind.
+
+## 2. How includes will work
+
+The rule stays: **the engine never reads files or the network.** Instead, the app expands includes into the source **before** it reaches the sandbox, using only text it already has or has explicitly been allowed to read.
+
+### 2.1 Where included text can come from
+
+| Include                                                                                          | Resolved from                                                                                        | Network                                   |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `!include <C4/C4_Container>` (standard library)                                                  | A copy bundled with the app, loaded on demand like themes                                            | None                                      |
+| `!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/<ref>/C4_Container.puml` | The same bundled copy. These well-known C4 links are common in the wild and are mapped, not fetched. | None                                      |
+| `!include style.puml` in a `.pumlu` document                                                     | Another diagram in the same document with that name                                                  | None                                      |
+| `!include ../common/style.puml` in a file opened from GitHub or GitLab                           | The same repository, at the same branch, read with the user's token                                  | Only to the user's own Git host, as today |
+| `!include` in a file opened from a local folder                                                  | The same folder, through the existing folder access                                                  | None                                      |
+| Any other URL (`!includeurl`, `http…`), `%load_json`, `%getenv`, …                               | Still blocked, with a clear message                                                                  | None                                      |
+
+### 2.2 The expander
+
+A new module `render/includes.ts`, run before `sourceForPlantUmlRenderer`'s other steps:
+
+- Follows PlantUML's own preprocessor rules for the include forms: `!include`, `!include_once`, `!include_many`, `!includesub file!NAME` with `!startsub`/`!endsub`, and `!include file!N` (the Nth `@start…` block). Only the body between `@start…` and `@end…` of an included file is inlined.
+- Recurses: C4 files include each other (`C4_Container` → `C4_Context` → `C4`).
+- Limits: depth 16, 2 MB of expanded text, and cycle detection. A cycle or an exceeded limit is a clear error, not a hang.
+- Async like themes: a `prepareIncludes(source, context)` step loads what is missing (bundled library parts, Git files), then the synchronous expansion runs. Results are cached per document and invalidated when an included diagram changes.
+- **Line map:** the expanded source carries a map from each line back to its file and line. Syntax errors then say "`common/style.puml`, line 4" instead of a wrong line in the open diagram. Theme expansion moves onto the same mechanism, which also fixes line numbers after an expanded `!theme`.
+
+### 2.3 What the user sees
+
+- **Status bar / diagnostics:** "2 includes" with a list: where each came from (library, this document, repository) and whether it loaded.
+- **Missing include:** a diagnostic on the `!include` line: "`style.puml` isn't in this document." It offers quick fixes: add it as a new diagram, or open the file from the repository or folder.
+- **Blocked include:** "This include reads from the internet, which PlantUML Ultimate never does." Where a bundled copy exists (C4 links), the include works and a note says it came from the bundled copy.
+- **Ctrl/Cmd-click on an include** opens the included diagram or file.
+
+## 3. C4 in the app
+
+Rendering is the first win. On top of it:
+
+- **Detection:** a source that includes a C4 file or calls C4 macros (`Person`, `System`, `Container`, `Rel`, …) is a **C4 diagram**. A new diagram kind, `c4`, with its own icon.
+- **New diagram chooser:** C4 Context, Container, Component, Dynamic and Deployment starters, plus examples.
+- **Outline:** people, systems, containers, components and boundaries as a tree, and relationships. Selecting one highlights its line and its shape.
+- **Help and completion:** macro names and their parameters (`Container(alias, label, techn, descr)`), as snippets.
+- **Semantic review** (version history, AI edits, propose): elements and relationships added, removed, renamed or re-pointed, instead of a line diff.
+- **Visual editing** (later slice): select an element on the canvas, rename it, change its technology or description, add a relationship by dragging, and add elements from a palette. Every edit is a source edit of the macro call, like the other diagram types.
+
+## 4. The standard library
+
+- **C4 first.** C4-PlantUML is MIT-licensed. Bundle the version that matches the PlantUML engine version (`@plantuml/core` 1.2026.6), about 250 KB, loaded only when a diagram uses it.
+- **Other libraries later, on demand:** icon sets (`tupadr3` Font Awesome, Material), AWS, Azure, Kubernetes. Some are several MB, so they are loaded per file, not per library, and only when used. Each library's licence is checked before bundling.
+- **Updates:** a script copies the library from the matching `plantuml-stdlib` release, records the version, and a test checks the bundled copy is the one the engine expects.
+
+## 5. Security and privacy
+
+- The sandbox, its CSP and its "no network" rule do not change. Expansion happens in the app, on text.
+- Git includes use the same provider client, token and server checks as Open from GitHub/GitLab: only the origin's own repository and server, paths normalised and kept inside the repository (no `..` above the root), read-only.
+- Included text from Git is held in memory for the session. Whether it is also stored in the document is a decision (section 7, question 2).
+- Arbitrary URLs stay blocked. The C4 URL mapping recognises only exact `raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/<ref>/<known file>` links, and serves the bundled copy whatever the `<ref>`.
+- Limits on depth, size and cycles protect against include bombs.
+
+## 6. Slices
+
+Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
+
+| Slice                                 | Delivers                                                                                                                                      | Effort | Gate                                                                                                  |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| **I0. Spike**                         | Inline the C4 library by hand and render the five C4 diagram types in the bundled engine. Measure the time.                                   | S      | All five render like the official PlantUML server, in under 2 s on a warm worker.                     |
+| **I1. Expander and C4 library**       | `render/includes.ts` with the line map; bundled C4 loaded on demand; C4 links mapped; themes on the same mechanism; blocked-include messages. | M      | C4 examples render; errors in included text point at the right file and line; nothing new is fetched. |
+| **I2. Includes in a document**        | Include another diagram of the same `.pumlu` by name; missing-include diagnostic with "add as diagram"; Ctrl-click to open.                   | S–M    | A shared style diagram updates every diagram that includes it.                                        |
+| **I3. Includes from Git and folders** | Resolve relative includes from the origin repository (GitHub, GitLab) or the opened folder; cached; listed in the includes panel.             | M      | A real repository with shared includes opens and renders without changes.                             |
+| **I4. C4 kind**                       | Detection, icon, chooser starters and examples, outline, help and macro completion.                                                           | M      | A new user can create a Container diagram from the chooser and find each element in the outline.      |
+| **I5. C4 semantic review**            | Element and relationship changes in version history, AI edits and the propose description.                                                    | M      | Known fixture edits give the expected review groups.                                                  |
+| **I6. C4 visual editing**             | Select, rename, edit fields, add relationships and elements on the canvas.                                                                    | M–L    | The C4 edits round-trip without touching unrelated source.                                            |
+| **I7. More libraries**                | Icon sets and cloud libraries, per file and on demand.                                                                                        | S each | Size budget kept; licences checked.                                                                   |
+
+**Suggested order:** I0 → I1 → I2 → I3 → I4, then decide on I5–I7 from use. After I1, every C4 file in the world that uses the standard library renders in the app. After I3, whole repositories do.
+
+## 7. Open questions
+
+1. **C4 as its own diagram kind** (recommended, with its own outline and starters), or render-only for now?
+2. **Included text from Git:** keep it in memory for the session only (recommended: the repository stays the source of truth, nothing extra is saved), or also store a copy in the document so snapshots and offline use keep working?
+3. **Which libraries after C4:** icons (`tupadr3`, Material) first (recommended: small and common in C4), or the cloud libraries (AWS, Azure, Kubernetes)?
+4. **C4 visual editing (I6):** plan it now, or wait until the C4 kind is in use?
+
+## 8. Out of scope
+
+- Fetching includes from arbitrary URLs.
+- Editing an included file from inside the diagram that includes it (open it instead).
+- Structurizr DSL, or a C4 model shared across diagrams (connected diagrams may come later).
+- Rendering libraries the bundled engine doesn't support.
+
+## 9. How to know it works
+
+- The C4-PlantUML sample diagrams render the same as on the official PlantUML server.
+- A repository with shared include files (a fixture, plus one real repository of yours) opens from GitHub and renders every diagram.
+- Syntax errors inside an included file name that file and line.
+- Network logs show no new requests, except reads from the origin's own Git host.
