@@ -1,6 +1,6 @@
 # B6: Diagram review in pull requests — plan
 
-Status: proposal, 2026-11-24. Nothing is implemented. Builds on [feature strategy, set 5](feature-strategy.md#5-repository-checks-and-drift-detection), [semantic review](semantic-review.md), [snapshots](snapshots-plan.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
+Status: decided 2026-11-24 (see [section 7](#7-decisions)); R0 is next. Nothing is implemented. Builds on [feature strategy, set 5](feature-strategy.md#5-repository-checks-and-drift-detection), [semantic review](semantic-review.md), [snapshots](snapshots-plan.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
 
 ## 0. Why this, and why now
 
@@ -127,7 +127,7 @@ One comment per PR, updated in place on each push (found by a hidden marker), ne
 …
 ```
 
-- **Images:** GitHub and GitLab comments can't embed artifact files directly. Options: commit nothing and link the HTML report only; upload images to a branch the action owns (`plantuml-ultimate-images`); or GitHub's job summary. Decided in R2 (section 7, question 3).
+- **Images:** GitHub and GitLab comments can't embed artifact files directly. The first comment links to the HTML report only and writes nothing to the repository (section 7, decision 3). Inline images from a branch the action owns (`plantuml-ultimate-images`) may follow as an opt-in.
 - **Open in the app:** a link with the provider, server, project, branch and path only. No source, no token. The app opens it through the existing Open from GitHub/GitLab flow, so the user's own token is used and nothing new is trusted.
 - Text from diagrams is escaped with the existing `escapeMarkdown` and fenced code.
 
@@ -139,13 +139,15 @@ One comment per PR, updated in place on each push (found by a hidden marker), ne
 - **Untrusted diagrams:** the renderer runs with network blocked, as in the app. A `.puml` file in a PR is untrusted input: no `!include` from URLs, a time limit per diagram and a size limit per file.
 - **Reports** contain only what the repository already contains. Source is included only when asked, like snapshots.
 
-## 7. Open questions
+## 7. Decisions
 
-1. **Name and package.** `@plantuml-ultimate/cli` and `plantuml-ultimate/review-action`, or something under your own GitHub account?
-2. **Renderer:** headless Chromium as the default (recommended), or the JAR?
-3. **Images in the comment:** link to the HTML report only (simplest, nothing written to the repository), or keep rendered images on a branch the action owns (pictures inline, but it writes to the repository)?
-4. **Which provider first:** GitHub (recommended: the Action is the bigger audience and the app's GitHub flow has been checked on a real repository), or both at once?
-5. **Licence and release:** the CLI and Action are public npm/Marketplace releases, so they need a licence and a release process. Is the repository's current licence right for that?
+Decided on 2026-11-24:
+
+1. **Names:** the npm package `@plantuml-ultimate/cli` (command `plantuml-ultimate`) and the Action `plantuml-ultimate/review-action`. Neither name was taken on npm on 2026-11-24. The npm organisation and the GitHub organisation have to be created by the owner before R4; until then everything builds and runs from this repository.
+2. **Renderer:** headless Chromium with the app's own `@plantuml/core` renderer is the default. The official JAR is a fallback (`--renderer jar`), added only if the R0 spike or users need it.
+3. **Images:** the first comment links to the offline HTML report (an artifact) and writes nothing to the repository. Inline images from a branch the action owns can come later, as an opt-in.
+4. **GitHub first.** The GitLab CI template (R5) follows once GitLab L0 is done.
+5. **Licence:** MIT, the repository's current licence, covers the CLI and the Action. Releases are versioned and published from CI, with provenance, once R4 is ready.
 
 ## 8. Slices
 
