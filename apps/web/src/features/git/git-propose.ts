@@ -10,7 +10,7 @@ import {
 } from "./git-origin";
 import { GitProviderError, type GitProvider, type GitReview } from "./git-provider";
 
-/** GitHub refuses pull request bodies over 65,536 characters; stay well below. */
+/** GitHub refuses pull request bodies over 65,536 characters (GitLab allows more); stay well below. */
 const MAX_BODY = 60_000;
 
 const CONFIDENCE: Record<ReviewGroup["confidence"], string> = {
@@ -63,7 +63,7 @@ export function createReviewMarkdown(
   const room = MAX_BODY - head.length - footer.length - 200;
   if (patch.length > room) {
     patch = patch.slice(0, Math.max(0, room));
-    cut = "\n_The patch was cut to fit GitHub's limit; see the Files changed tab for the whole change._\n";
+    cut = "\n_The patch was cut to fit the description limit; see the request's changes for the whole change._\n";
   }
   const fence = fenceFor(patch);
   return (

@@ -2,7 +2,7 @@ import { createOrigin, createProposal, type GitOrigin } from "./git-origin";
 import { GitProviderError, isPlantUmlFileName, type GitProvider, type GitReview } from "./git-provider";
 import { fenceFor } from "./git-propose";
 
-/** GitHub refuses pull request bodies over 65,536 characters; stay well below. */
+/** GitHub refuses pull request bodies over 65,536 characters (GitLab allows more); stay well below. */
 const MAX_BODY = 60_000;
 
 /** The tab's file name with a PlantUML extension: `flow.puml` stays, `notes.txt` becomes `notes.puml`. */
@@ -24,7 +24,7 @@ export function validateNewFilePath(path: string): string | undefined {
   if (segments.some((segment) => segment === "." || segment === ".."))
     return "The path cannot contain . or .. folders.";
   if ([...path].some((character) => character.charCodeAt(0) < 32 || character === "\u007f"))
-    return "The path contains characters GitHub does not allow.";
+    return "The path contains characters Git hosts do not allow.";
   if (!isPlantUmlFileName(path))
     return "The file name must end in a PlantUML extension: .puml, .plantuml, .pu, .iuml or .wsd.";
   return undefined;
@@ -48,7 +48,7 @@ export function createNewFileMarkdown(path: string, source: string): string {
   const room = MAX_BODY - head.length - footer.length - 200;
   if (text.length > room) {
     text = text.slice(0, Math.max(0, room));
-    cut = "\n_The source was cut to fit GitHub's limit; see the Files changed tab for the whole file._\n";
+    cut = "\n_The source was cut to fit the description limit; see the request's changes for the whole file._\n";
   }
   const fence = fenceFor(text);
   return (

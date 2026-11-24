@@ -1,6 +1,6 @@
 # B4: Git provider integration — plan
 
-Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1, G2 and G3 (upstream changes) are built, and Propose as new file is added. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
+Status: decided 2026-11-23 (see [section 6](#6-decisions)). G0 + G1, G2 and G3 (upstream changes) are built, and Propose as new file is added. G5 for GitLab is built (see [GitLab support](gitlab-integration-plan.md)): open, propose and propose-as-new-file work for gitlab.com and self-managed servers. Source: [next steps, B4](next-steps-2026-11-20.md#b4-git-provider-integration--value-high-for-the-stated-primary-user-effort-l).
 
 ## 0. What this is for
 

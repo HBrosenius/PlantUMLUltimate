@@ -2,9 +2,10 @@ import { CommandPalette } from "../CommandPalette";
 import { DiagramOutlineDialog, DiagramOutlinePanel } from "../DiagramOutlineDialog";
 import { SaveStarterDialog } from "../PersonalStarters";
 import { OpenWorkDialog } from "../OpenWorkDialog";
-import { OpenFromGitHubDialog } from "../features/github/OpenFromGitHubDialog";
-import { ProposeNewFileDialog } from "../features/github/ProposeNewFileDialog";
-import { ProposeChangeDialog } from "../features/github/ProposeChangeDialog";
+import { originProvider } from "../features/git/git-origin";
+import { OpenFromGitDialog } from "../features/git/OpenFromGitDialog";
+import { ProposeNewFileDialog } from "../features/git/ProposeNewFileDialog";
+import { ProposeChangeDialog } from "../features/git/ProposeChangeDialog";
 import { NewDocumentDialog } from "../NewDocumentDialog";
 import { starterSource } from "../use-workspace-documents";
 import { setPlantUmlTheme } from "../plantuml-theme";
@@ -162,8 +163,10 @@ export interface DiagramDialogsProps {
   openLinkedGanttTask: (alias: string) => void;
   openWorkOpen: boolean;
   openGitHubOpen: boolean;
-  proposeGitHubOpen: boolean;
+  openGitLabOpen: boolean;
+  proposeGitOpen: boolean;
   proposeNewGitHubOpen: boolean;
+  proposeNewGitLabOpen: boolean;
   outlineMode: "find" | "dock" | undefined;
   outlineWide: boolean;
   parseResult: DiagramParseResult<GanttDocument>;
@@ -194,9 +197,12 @@ export interface DiagramDialogsProps {
   setLinkedWorkPreview: Dispatch<SetStateAction<LinkedWorkPreview | undefined>>;
   setOpenWorkOpen: Dispatch<SetStateAction<boolean>>;
   setOpenGitHubOpen: Dispatch<SetStateAction<boolean>>;
-  setProposeGitHubOpen: Dispatch<SetStateAction<boolean>>;
+  setOpenGitLabOpen: Dispatch<SetStateAction<boolean>>;
+  setProposeGitOpen: Dispatch<SetStateAction<boolean>>;
   setProposeNewGitHubOpen: Dispatch<SetStateAction<boolean>>;
+  setProposeNewGitLabOpen: Dispatch<SetStateAction<boolean>>;
   openGitHubSettings: () => void;
+  openGitLabSettings: () => void;
   setOutlineMatches: Dispatch<SetStateAction<readonly DiagramOutlineEntry[]>>;
   setOutlineMode: Dispatch<SetStateAction<"find" | "dock" | undefined>>;
   setPendingGanttDeleteTaskId: Dispatch<SetStateAction<string | undefined>>;
@@ -309,8 +315,10 @@ export function DiagramDialogs({
   openLinkedGanttTask,
   openWorkOpen,
   openGitHubOpen,
-  proposeGitHubOpen,
+  openGitLabOpen,
+  proposeGitOpen,
   proposeNewGitHubOpen,
+  proposeNewGitLabOpen,
   outlineMode,
   outlineWide,
   parseResult,
@@ -335,9 +343,12 @@ export function DiagramDialogs({
   setLinkedWorkPreview,
   setOpenWorkOpen,
   setOpenGitHubOpen,
-  setProposeGitHubOpen,
+  setOpenGitLabOpen,
+  setProposeGitOpen,
   setProposeNewGitHubOpen,
+  setProposeNewGitLabOpen,
   openGitHubSettings,
+  openGitLabSettings,
   setOutlineMatches,
   setOutlineMode,
   setPendingGanttDeleteTaskId,
@@ -434,10 +445,11 @@ export function DiagramDialogs({
           }
         />
       )}
-      {openGitHubOpen && (
-        <OpenFromGitHubDialog
-          onClose={() => setOpenGitHubOpen(false)}
-          onOpenSettings={openGitHubSettings}
+      {(openGitHubOpen || openGitLabOpen) && (
+        <OpenFromGitDialog
+          provider={openGitLabOpen ? "gitlab" : "github"}
+          onClose={() => (openGitLabOpen ? setOpenGitLabOpen(false) : setOpenGitHubOpen(false))}
+          onOpenSettings={openGitLabOpen ? openGitLabSettings : openGitHubSettings}
           onOpen={async ({ source, fileName, origin }) => {
             await importDocumentFile({
               kind: "legacy",
@@ -452,29 +464,33 @@ export function DiagramDialogs({
           }}
         />
       )}
-      {proposeGitHubOpen && activeDocument.githubOrigin && (
+      {proposeGitOpen && activeDocument.githubOrigin && (
         <ProposeChangeDialog
           origin={activeDocument.githubOrigin}
           source={workspace.source}
           fileName={workspace.fileName}
           diagramKind={workspace.diagramKind}
-          onClose={() => setProposeGitHubOpen(false)}
-          onOpenSettings={openGitHubSettings}
+          onClose={() => setProposeGitOpen(false)}
+          onOpenSettings={
+            originProvider(activeDocument.githubOrigin) === "gitlab" ? openGitLabSettings : openGitHubSettings
+          }
           onProposed={(origin) => tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true)}
           onSourceMerged={(merged, origin) => {
             // Through the usual source commit, so Undo restores the tab's source from before the merge.
-            if (!commitSource(merged, "Merge upstream changes from GitHub", false)) return false;
+            const host = originProvider(origin) === "gitlab" ? "GitLab" : "GitHub";
+            if (!commitSource(merged, `Merge upstream changes from ${host}`, false)) return false;
             tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true);
             return true;
           }}
         />
       )}
-      {proposeNewGitHubOpen && (
+      {(proposeNewGitHubOpen || proposeNewGitLabOpen) && (
         <ProposeNewFileDialog
+          provider={proposeNewGitLabOpen ? "gitlab" : "github"}
           source={workspace.source}
           fileName={workspace.fileName}
-          onClose={() => setProposeNewGitHubOpen(false)}
-          onOpenSettings={openGitHubSettings}
+          onClose={() => (proposeNewGitLabOpen ? setProposeNewGitLabOpen(false) : setProposeNewGitHubOpen(false))}
+          onOpenSettings={proposeNewGitLabOpen ? openGitLabSettings : openGitHubSettings}
           onProposed={(origin) => tabs.updateDocumentFormat(activeDocument.id, { githubOrigin: origin }, true)}
         />
       )}

@@ -35,10 +35,16 @@ export interface useAppCommandsInputs {
   openDialog: (next: AppDialog) => void;
   openDocument: () => Promise<void>;
   openFromGitHub: () => void;
-  /** Set only for a tab opened from GitHub. */
-  proposeOnGitHub: (() => void) | undefined;
-  /** Set only for a tab that is not linked to GitHub yet. */
+  /** Set only once a GitLab token is set. */
+  openFromGitLab: (() => void) | undefined;
+  /** Set only for a tab opened from a Git host. */
+  proposeOnGit: (() => void) | undefined;
+  /** The name of that host, "GitHub" or "GitLab". */
+  gitHostName: string;
+  /** Set only for a tab that is not linked to a Git host yet. */
   proposeNewOnGitHub: (() => void) | undefined;
+  /** Set only for such a tab once a GitLab token is set. */
+  proposeNewOnGitLab: (() => void) | undefined;
   openFormatSource: () => void;
   openProjectInspector: () => void;
   openReports: () => void;
@@ -120,8 +126,11 @@ export function useAppCommands({
   openDialog,
   openDocument,
   openFromGitHub,
-  proposeOnGitHub,
+  openFromGitLab,
+  proposeOnGit,
+  gitHostName,
   proposeNewOnGitHub,
+  proposeNewOnGitLab,
   openFormatSource,
   openProjectInspector,
   openReports,
@@ -409,8 +418,18 @@ export function useAppCommands({
       { id: "file.new", label: "New diagram", category: "File", shortcut: modShortcut("N"), run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: modShortcut("O"), run: openDocument },
       { id: "file.open-github", label: "Open from GitHub…", category: "File", run: openFromGitHub },
-      ...(proposeOnGitHub
-        ? [{ id: "file.propose-github", label: "Propose change on GitHub…", category: "File", run: proposeOnGitHub }]
+      ...(openFromGitLab
+        ? [{ id: "file.open-gitlab", label: "Open from GitLab…", category: "File", run: openFromGitLab }]
+        : []),
+      ...(proposeOnGit
+        ? [
+            {
+              id: gitHostName === "GitLab" ? "file.propose-gitlab" : "file.propose-github",
+              label: `Propose change on ${gitHostName}…`,
+              category: "File",
+              run: proposeOnGit,
+            },
+          ]
         : []),
       ...(proposeNewOnGitHub
         ? [
@@ -419,6 +438,16 @@ export function useAppCommands({
               label: "Propose as new file on GitHub…",
               category: "File",
               run: proposeNewOnGitHub,
+            },
+          ]
+        : []),
+      ...(proposeNewOnGitLab
+        ? [
+            {
+              id: "file.propose-new-gitlab",
+              label: "Propose as new file on GitLab…",
+              category: "File",
+              run: proposeNewOnGitLab,
             },
           ]
         : []),
@@ -589,8 +618,11 @@ export function useAppCommands({
     newDocument,
     openDocument,
     openFromGitHub,
-    proposeOnGitHub,
+    openFromGitLab,
+    proposeOnGit,
+    gitHostName,
     proposeNewOnGitHub,
+    proposeNewOnGitLab,
     openDialog,
     openWbsSettings,
     openMindmapSettings,

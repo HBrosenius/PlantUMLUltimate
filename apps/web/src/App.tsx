@@ -56,6 +56,7 @@ import { useResourceWarningPreference } from "./use-resource-warning-preference"
 import type { RepairCategory } from "./remaining-repair-summary";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useGitLabEnabled } from "./features/git/git-hosts";
 import { type SourceRepairRequest } from "./CodeEditor";
 import { taskHoverDetails } from "./DiagramPreview";
 import {
@@ -183,8 +184,10 @@ export function App() {
   const editorPreferences = useEditorPreferences();
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
   const [openGitHubOpen, setOpenGitHubOpen] = useState(false);
-  const [proposeGitHubOpen, setProposeGitHubOpen] = useState(false);
+  const [openGitLabOpen, setOpenGitLabOpen] = useState(false);
+  const [proposeGitOpen, setProposeGitOpen] = useState(false);
   const [proposeNewGitHubOpen, setProposeNewGitHubOpen] = useState(false);
+  const [proposeNewGitLabOpen, setProposeNewGitLabOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const presentationReturnFocus = useRef<HTMLElement | null>(null);
   const openPresentation = () => {
@@ -2242,12 +2245,19 @@ export function App() {
 
   const dependencyTaskCount = parseResult.document.tasks.length;
   const openFromGitHub = useCallback(() => setOpenGitHubOpen(true), []);
-  const proposeOnGitHub = useCallback(() => setProposeGitHubOpen(true), []);
+  const proposeOnGit = useCallback(() => setProposeGitOpen(true), []);
   const proposeNewOnGitHub = useCallback(() => setProposeNewGitHubOpen(true), []);
+  const openFromGitLab = useCallback(() => setOpenGitLabOpen(true), []);
+  const proposeNewOnGitLab = useCallback(() => setProposeNewGitLabOpen(true), []);
+  // GitLab menu items appear once a GitLab token is set; remembered tokens are loaded at startup.
+  const gitLabEnabled = useGitLabEnabled();
   const { commands } = useAppCommands({
     openFromGitHub,
-    proposeOnGitHub: activeDocument.githubOrigin ? proposeOnGitHub : undefined,
+    openFromGitLab: gitLabEnabled ? openFromGitLab : undefined,
+    proposeOnGit: activeDocument.githubOrigin ? proposeOnGit : undefined,
+    gitHostName: activeDocument.githubOrigin?.provider === "gitlab" ? "GitLab" : "GitHub",
     proposeNewOnGitHub: activeDocument.githubOrigin ? undefined : proposeNewOnGitHub,
+    proposeNewOnGitLab: activeDocument.githubOrigin || !gitLabEnabled ? undefined : proposeNewOnGitLab,
     askAi,
     activateTab,
     activeHistory,
@@ -2844,8 +2854,10 @@ export function App() {
           />
         )}
         <RibbonChrome
-          onProposeOnGitHub={proposeOnGitHub}
+          onProposeOnGit={proposeOnGit}
           onProposeNewOnGitHub={proposeNewOnGitHub}
+          onProposeNewOnGitLab={proposeNewOnGitLab}
+          gitLabEnabled={gitLabEnabled}
           activeDocument={activeDocument}
           activeHistory={activeHistory}
           activeInLegacyProject={activeInLegacyProject}
@@ -2906,6 +2918,7 @@ export function App() {
           setLegendInspectorOpen={setLegendInspectorOpen}
           setOpenWorkOpen={setOpenWorkOpen}
           setOpenGitHubOpen={setOpenGitHubOpen}
+          setOpenGitLabOpen={setOpenGitLabOpen}
           setOutlineMode={setOutlineMode}
           setProblemsOpen={setProblemsOpen}
           setSettingsCategory={setSettingsCategory}
@@ -3211,10 +3224,16 @@ export function App() {
           openLinkedGanttTask={openLinkedGanttTask}
           openWorkOpen={openWorkOpen}
           openGitHubOpen={openGitHubOpen}
-          proposeGitHubOpen={proposeGitHubOpen}
+          openGitLabOpen={openGitLabOpen}
+          proposeGitOpen={proposeGitOpen}
           proposeNewGitHubOpen={proposeNewGitHubOpen}
+          proposeNewGitLabOpen={proposeNewGitLabOpen}
           openGitHubSettings={() => {
             setSettingsCategory("GitHub");
+            setSettingsOpen(true);
+          }}
+          openGitLabSettings={() => {
+            setSettingsCategory("GitLab");
             setSettingsOpen(true);
           }}
           outlineMode={outlineMode}
@@ -3240,9 +3259,11 @@ export function App() {
           setInteractionMessage={setInteractionMessage}
           setLinkedWorkPreview={setLinkedWorkPreview}
           setOpenWorkOpen={setOpenWorkOpen}
-          setProposeGitHubOpen={setProposeGitHubOpen}
+          setProposeGitOpen={setProposeGitOpen}
           setProposeNewGitHubOpen={setProposeNewGitHubOpen}
           setOpenGitHubOpen={setOpenGitHubOpen}
+          setOpenGitLabOpen={setOpenGitLabOpen}
+          setProposeNewGitLabOpen={setProposeNewGitLabOpen}
           setOutlineMatches={setOutlineMatches}
           setOutlineMode={setOutlineMode}
           setPendingGanttDeleteTaskId={setPendingGanttDeleteTaskId}

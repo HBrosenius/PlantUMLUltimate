@@ -1,6 +1,6 @@
 # B4 G5: GitLab support — plan
 
-Status: decided 2026-11-23 (see [section 7](#7-decisions)); L0 is next. Builds on [B4: Git provider integration](git-integration-plan.md), where G0–G3 and Propose as new file are built for GitHub.
+Status: decided 2026-11-23 (see [section 7](#7-decisions)). L1 (provider refactor), L2 (GitLab client) and L3 (GitLab in the app: Settings, Open, Propose change, Propose as new file, label and MR badge) are built. L0 (checking CORS, the stale-guard error text and the empty-project commit against a real server) is still open: the client works from documented assumptions that tests pin with mocks only. Builds on [B4: Git provider integration](git-integration-plan.md), where G0–G3 and Propose as new file are built for GitHub.
 
 ## 0. What this is for
 

@@ -1,29 +1,26 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
-import { GitProviderError } from "../git/git-provider";
-import { createGitHubClient, type GitHubClient, type GitHubPullRequest } from "./github-client";
+import { describeGitError, targetKey, useGitProvider, useHostTarget, wordingFor } from "./git-hosts";
+import { isSafeOriginLink, type GitOrigin } from "./git-origin";
+import { GitProviderError, type GitProviderId, type GitReview } from "./git-provider";
 import {
   addFirstFile,
   createNewFileMarkdown,
   defaultNewFilePath,
   proposeNewFile,
   validateNewFilePath,
-} from "./github-new-file";
-import { isSafeOriginLink, type GitOrigin } from "../git/git-origin";
-import { defaultProposalBranch } from "./github-propose";
-import { getGitHubState, getGitHubToken, loadRememberedGitHubToken, subscribeGitHub } from "./github-settings";
-import { GitHubRepositoryPicker, type GitHubRepositorySelection } from "./GitHubRepositoryPicker";
-import { OpenPullRequestLink, ProposalDone } from "./ProposalDone";
-
-const message = (error: unknown) =>
-  error instanceof GitProviderError ? error.message : "Something went wrong while talking to GitHub.";
+} from "./git-new-file";
+import { defaultProposalBranch } from "./git-propose";
+import { GitRepositoryPicker, type GitRepositorySelection } from "./GitRepositoryPicker";
+import { OpenReviewLink, ProposalDone } from "./ProposalDone";
 
 /**
- * Propose as new file: for a diagram that is not on GitHub yet. Commits it to a new branch of a repository the
- * token can write to and opens a pull request. The tab then counts as opened from that file, so Propose change
- * adds further commits to the same pull request.
+ * Propose as new file: for a diagram that is not on a Git host yet. Commits it to a new branch of a repository
+ * (GitHub) or project (GitLab) the token can write to and opens a pull or merge request. The tab then counts as
+ * opened from that file, so Propose change adds further commits to the same request.
  */
 export function ProposeNewFileDialog({
+  provider = "github",
   source,
   fileName,
   onProposed,
@@ -31,6 +28,7 @@ export function ProposeNewFileDialog({
   onOpenSettings,
   fetchImpl,
 }: {
+  provider?: GitProviderId;
   source: string;
   fileName: string;
   onProposed(origin: GitOrigin): void;
@@ -39,23 +37,24 @@ export function ProposeNewFileDialog({
   fetchImpl?: typeof fetch;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
-  const state = useSyncExternalStore(subscribeGitHub, getGitHubState);
-  const [ready, setReady] = useState(false);
+  const { target, servers, server, chooseServer } = useHostTarget(provider);
+  const { ready, provider: client } = useGitProvider(target, fetchImpl);
+  const words = wordingFor(provider);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<{
-    pullRequest: GitHubPullRequest;
+    review: GitReview;
     repository: string;
     branch: string;
     base: string;
   }>();
-  const [selection, setSelectionState] = useState<GitHubRepositorySelection>();
+  const [selection, setSelectionState] = useState<GitRepositorySelection>();
   /** The chosen repository has no commits, so the file can only become its first commit. */
   const [emptyRepository, setEmptyRepository] = useState(false);
   const [firstCommit, setFirstCommit] = useState<{ origin: GitOrigin; repository: string }>();
   // Branch, commit message and title follow the file path until the user edits them.
   const [edited, setEdited] = useState({ branch: false, commitMessage: false, title: false });
-  const setSelection = (next: GitHubRepositorySelection | undefined) => {
+  const setSelection = (next: GitRepositorySelection | undefined) => {
     setSelectionState(next);
     setEmptyRepository(false);
     setError("");
@@ -68,24 +67,6 @@ export function ProposeNewFileDialog({
   useDialogFocus(dialog, () => {
     if (!busy) onClose();
   });
-
-  useEffect(() => {
-    let current = true;
-    void loadRememberedGitHubToken().then(() => {
-      if (current) setReady(true);
-    });
-    return () => {
-      current = false;
-    };
-  }, []);
-
-  const client = useMemo<GitHubClient | undefined>(
-    () =>
-      state.hasToken
-        ? createGitHubClient({ token: getGitHubToken() ?? "", ...(fetchImpl ? { fetch: fetchImpl } : {}) })
-        : undefined,
-    [state.hasToken, fetchImpl],
-  );
 
   const trimmedPath = path.trim();
   const pathProblem = validateNewFilePath(trimmedPath);
@@ -116,7 +97,7 @@ export function ProposeNewFileDialog({
       onProposed(origin);
       setFirstCommit({ origin, repository: selection.repo.fullName });
     } catch (failure) {
-      setError(message(failure));
+      setError(describeGitError(failure, words.name));
     } finally {
       setBusy(false);
     }
@@ -140,14 +121,14 @@ export function ProposeNewFileDialog({
       });
       onProposed(result.origin);
       setDone({
-        pullRequest: result.pullRequest,
+        review: result.pullRequest,
         repository: selection.repo.fullName,
         branch: result.origin.proposal?.branch ?? branch.trim(),
         base: selection.branch,
       });
     } catch (failure) {
       if (failure instanceof GitProviderError && failure.kind === "empty-repository") setEmptyRepository(true);
-      else setError(message(failure));
+      else setError(describeGitError(failure, words.name));
     } finally {
       setBusy(false);
     }
@@ -161,7 +142,7 @@ export function ProposeNewFileDialog({
         className="document-settings-dialog github-open-dialog github-propose-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Propose as new file on GitHub"
+        aria-label={`Propose as new file on ${words.name}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (busy || finished) return;
@@ -169,16 +150,13 @@ export function ProposeNewFileDialog({
         }}
       >
         <header>
-          <h2>Propose as new file on GitHub</h2>
+          <h2>Propose as new file on {words.name}</h2>
         </header>
         {!ready ? (
           <p role="status">Checking for a saved token…</p>
         ) : !client ? (
           <>
-            <p>
-              To propose a file, add a fine-grained personal access token with Contents and Pull requests set to Read
-              and write. It stays in this browser.
-            </p>
+            <p>To propose a file, {words.tokenAdvice.write}. It stays in this browser.</p>
             <button
               type="button"
               onClick={() => {
@@ -186,7 +164,7 @@ export function ProposeNewFileDialog({
                 onOpenSettings();
               }}
             >
-              Open Settings → GitHub
+              Open Settings → {words.name}
             </button>
           </>
         ) : firstCommit ? (
@@ -196,14 +174,15 @@ export function ProposeNewFileDialog({
               {firstCommit.origin.ref}.
             </p>
             <p>
-              The repository was empty, so there was no branch for a pull request. From now on, edit the diagram and
-              choose <strong>Propose change…</strong> next to the GitHub label at the top: changes are proposed as pull
-              requests.
+              The {words.repository} was empty, so there was no branch for a {words.reviewName}. From now on, edit the
+              diagram and choose <strong>Propose change…</strong> next to the {words.name} label at the top: changes are
+              proposed as {words.reviewName}s.
             </p>
           </div>
         ) : done ? (
           <ProposalDone
-            pullRequest={done.pullRequest}
+            provider={client.info}
+            review={done.review}
             repository={done.repository}
             branch={done.branch}
             base={done.base}
@@ -213,10 +192,35 @@ export function ProposeNewFileDialog({
         ) : (
           <>
             <p>
-              Adds this diagram to a repository as a new file: it is committed to a new branch and a pull request is
-              opened into the base branch.
+              Adds this diagram to a {words.repository} as a new file: it is committed to a new branch and a{" "}
+              {words.reviewName} is opened into the base branch.
             </p>
-            <GitHubRepositoryPicker client={client} busy={busy} branchLabel="Base branch" onChange={setSelection} />
+            {servers.length > 1 && (
+              <label>
+                GitLab server
+                <select
+                  value={server}
+                  disabled={busy}
+                  onChange={(event) => {
+                    chooseServer(event.target.value);
+                    setSelection(undefined);
+                  }}
+                >
+                  {servers.map((item) => (
+                    <option key={item} value={item}>
+                      {new URL(item).host}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <GitRepositoryPicker
+              key={targetKey(target)}
+              client={client}
+              busy={busy}
+              branchLabel="Base branch"
+              onChange={setSelection}
+            />
             <label>
               File path
               <input
@@ -255,7 +259,7 @@ export function ProposeNewFileDialog({
               />
             </label>
             <label>
-              Pull request title
+              {words.reviewTitle} title
               <input
                 value={title}
                 maxLength={250}
@@ -274,12 +278,12 @@ export function ProposeNewFileDialog({
         {emptyRepository && !finished && selection && (
           <div className="github-empty-repository" role="alert">
             <p>
-              <strong>{selection.repo.fullName} is empty.</strong> It has no commits yet, so there is no branch a pull
-              request could go into.
+              <strong>{selection.repo.fullName} is empty.</strong> It has no commits yet, so there is no branch a{" "}
+              {words.reviewName} could go into.
             </p>
             <p>
-              You can add this diagram as the repository's first commit, directly on{" "}
-              <code>{selection.repo.defaultBranch}</code>. Later changes are proposed as pull requests as usual.
+              You can add this diagram as the {words.repository}'s first commit, directly on{" "}
+              <code>{selection.repo.defaultBranch}</code>. Later changes are proposed as {words.reviewName}s as usual.
             </p>
           </div>
         )}
@@ -288,10 +292,10 @@ export function ProposeNewFileDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {finished ? "Close" : "Cancel"}
           </button>
-          {done && <OpenPullRequestLink pullRequest={done.pullRequest} />}
+          {client && done && <OpenReviewLink provider={client.info} review={done.review} />}
           {firstCommit && isSafeOriginLink(firstCommit.origin, firstCommit.origin.htmlUrl) && (
             <a className="github-open-pr" href={firstCommit.origin.htmlUrl} target="_blank" rel="noopener noreferrer">
-              Open {firstCommit.origin.path} on GitHub
+              Open {firstCommit.origin.path} on {words.name}
             </a>
           )}
           {client && !finished && emptyRepository && selection && (
@@ -301,7 +305,7 @@ export function ProposeNewFileDialog({
           )}
           {client && !finished && !emptyRepository && (
             <button type="submit" className="primary" disabled={busy || !selection || !!pathProblem || !branch.trim()}>
-              {busy ? "Proposing…" : "Open pull request"}
+              {busy ? "Proposing…" : `Open ${words.reviewName}`}
             </button>
           )}
         </footer>
