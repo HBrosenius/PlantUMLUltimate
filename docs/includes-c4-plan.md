@@ -1,6 +1,6 @@
 # B7: Includes and C4 diagrams — plan
 
-Status: proposal, 2026-11-24. Nothing is implemented. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
+Status: decided 2026-11-24 (see [section 7](#7-decisions)); I0 is next. Nothing is implemented. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
 
 ## 0. Why
 
@@ -93,7 +93,7 @@ Rendering is the first win. On top of it:
 
 - The sandbox, its CSP and its "no network" rule do not change. Expansion happens in the app, on text.
 - Git includes use the same provider client, token and server checks as Open from GitHub/GitLab: only the origin's own repository and server, paths normalised and kept inside the repository (no `..` above the root), read-only.
-- Included text from Git is held in memory for the session. Whether it is also stored in the document is a decision (section 7, question 2).
+- Included text from Git is held in memory for the session. It is not stored in the document (section 7, decision 2).
 - Arbitrary URLs stay blocked. The C4 URL mapping recognises only exact `raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/<ref>/<known file>` links, and serves the bundled copy whatever the `<ref>`.
 - Limits on depth, size and cycles protect against include bombs.
 
@@ -114,12 +114,14 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 
 **Suggested order:** I0 → I1 → I2 → I3 → I4, then decide on I5–I7 from use. After I1, every C4 file in the world that uses the standard library renders in the app. After I3, whole repositories do.
 
-## 7. Open questions
+## 7. Decisions
 
-1. **C4 as its own diagram kind** (recommended, with its own outline and starters), or render-only for now?
-2. **Included text from Git:** keep it in memory for the session only (recommended: the repository stays the source of truth, nothing extra is saved), or also store a copy in the document so snapshots and offline use keep working?
-3. **Which libraries after C4:** icons (`tupadr3`, Material) first (recommended: small and common in C4), or the cloud libraries (AWS, Azure, Kubernetes)?
-4. **C4 visual editing (I6):** plan it now, or wait until the C4 kind is in use?
+Decided on 2026-11-24:
+
+1. **C4 is its own diagram kind** (`c4`), with its own icon, chooser starters, outline, help and macro completion (I4).
+2. **Included text from Git is kept in memory for the session only.** The repository stays the source of truth and nothing extra is saved in the document. A snapshot made from such a diagram uses the already expanded render, so it still shows correctly.
+3. **After C4, icon libraries come first** (`tupadr3` Font Awesome and Material): they are small per icon and common in C4 diagrams. Cloud libraries (AWS, Azure, Kubernetes) follow demand.
+4. **C4 visual editing (I6) waits** until the C4 kind is in use; I5 and I6 are planned then.
 
 ## 8. Out of scope
 
