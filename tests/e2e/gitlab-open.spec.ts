@@ -200,7 +200,9 @@ test("a self-managed server has its own address and token, and a token only goes
   expect(self.map((call) => call.path)).toEqual(["/api/v4/user", "/api/v4/projects"]);
 
   const dialog = await openFromGitLabMenu(page);
-  await expect(dialog.getByLabel("File link")).toHaveAttribute("placeholder", new RegExp(`^${SELF}/group/project/`));
+  expect((await dialog.getByLabel("File link").getAttribute("placeholder"))?.startsWith(`${SELF}/group/project/`)).toBe(
+    true,
+  );
   await dialog.getByLabel("File link").fill(`${SELF}/${PROJECT}/-/blob/main/docs/flow.puml`);
   await dialog.getByRole("button", { name: "Open link" }).click();
   await expect(dialog).toBeHidden();
