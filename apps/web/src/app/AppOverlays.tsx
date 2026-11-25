@@ -22,6 +22,7 @@ import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import { MindmapMenuItems } from "../features/mindmap/MindmapMenuItems";
 import type { PresentationDocument } from "../presentation-review";
 import type { RefObject, Dispatch, SetStateAction, ComponentProps } from "react";
+import { useMenuInViewport } from "../use-menu-in-viewport";
 import type { TextRange } from "../../../../packages/language-core/src/index";
 import type { SourceProblemPreview } from "../features/documents/use-source-commands";
 import type { RepairCategory } from "../remaining-repair-summary";
@@ -259,6 +260,9 @@ export function AppOverlays({
   viewMode,
   workspace,
 }: AppOverlaysProps) {
+  // Menus open at the pointer; these keep them inside the window near its edges.
+  const classMemberMenuPlacement = useMenuInViewport<HTMLDivElement>(classMemberMenu?.x, classMemberMenu?.y);
+  const symbolMenuPlacement = useMenuInViewport<HTMLDivElement>(symbolMenu?.x, symbolMenu?.y);
   const aiAssistantEnabled = useAiAssistantEnabled();
   return (
     <>
@@ -369,7 +373,8 @@ export function AppOverlays({
           className="tab-menu"
           role="menu"
           aria-label="Class member actions"
-          style={{ left: classMemberMenu.x, top: classMemberMenu.y }}
+          ref={classMemberMenuPlacement.ref}
+          style={classMemberMenuPlacement.style}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key === "Escape") setClassMemberMenu(undefined);
@@ -407,7 +412,8 @@ export function AppOverlays({
           className="tab-menu"
           role="menu"
           aria-label="Symbol actions"
-          style={{ left: symbolMenu.x, top: symbolMenu.y }}
+          ref={symbolMenuPlacement.ref}
+          style={symbolMenuPlacement.style}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key === "Escape") setSymbolMenu(undefined);

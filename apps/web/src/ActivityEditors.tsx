@@ -1,5 +1,5 @@
 import { InspectorPanel } from "./InspectorPanel";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ActivityActionInput,
   ActivityArrow,
@@ -15,6 +15,7 @@ import type {
   ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
 import { ColorField } from "./ColorField";
+import { useDialogFocus } from "./use-dialog-focus";
 
 export function AddActivityActionDialog({
   document,
@@ -29,9 +30,13 @@ export function AddActivityActionDialog({
   const [color, setColor] = useState("");
   const [stereotype, setStereotype] = useState("");
   const [partitionId, setPartitionId] = useState("");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity action"
@@ -92,9 +97,13 @@ export function AddActivityStructureDialog({
   const [actionLabel, setActionLabel] = useState("New action");
   const [partitionId, setPartitionId] = useState("");
   const needsCondition = kind === "if" || kind === "while" || kind === "repeat" || kind === "switch";
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity flow structure"
@@ -166,9 +175,13 @@ export function AddActivityTerminalDialog({
   onClose(): void;
 }) {
   const [kind, setKind] = useState<"start" | "stop" | "end" | "detach" | "kill">("stop");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity terminal"
@@ -214,9 +227,13 @@ export function AddActivityArrowDialog({
   const [label, setLabel] = useState("");
   const [color, setColor] = useState("");
   const [lineStyle, setLineStyle] = useState<NonNullable<ActivityArrowInput["lineStyle"]>>("solid");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity flow arrow"
@@ -588,9 +605,13 @@ export function AddActivityPartitionDialog({
   const [label, setLabel] = useState("");
   const [color, setColor] = useState("");
   const [parentId, setParentId] = useState("");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity partition"
@@ -643,9 +664,13 @@ export function AddActivityNoteDialog({
   const [floating, setFloating] = useState(false);
   const targets = [...document.nodes.filter((item) => item.kind === "action"), ...document.controls];
   const [targetId, setTargetId] = useState(targets.at(-1)?.id ?? "");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label="Add Activity note"

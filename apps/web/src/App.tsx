@@ -1430,7 +1430,11 @@ export function App() {
       !c4Selection.settingsOpen
     )
       return;
+    // An inspector opened by a click (a palette command, a toolbar button) registers this listener while that
+    // same click is still bubbling; it would reach document and close the inspector it just opened.
+    const registeredAt = performance.now();
     const dismissInspector = (event: MouseEvent) => {
+      if (event.timeStamp < registeredAt) return;
       if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
