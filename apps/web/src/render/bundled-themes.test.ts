@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bundledPlantUmlThemeNames, bundledPlantUmlThemes, loadBundledTheme } from "./bundled-themes";
+import { sourceForPlantUmlRenderer } from "./plantuml-source";
 
 describe("bundled PlantUML themes", () => {
   it("knows the official theme names without loading any theme source", () => {
@@ -24,5 +25,20 @@ describe("bundled PlantUML themes", () => {
       expect(theme, name).toMatch(/mindmapDiagram\s*\{\s*node\s*\{[^}]*FontColor/);
       expect(theme.indexOf("wbsDiagram"), name).toBeGreaterThan(theme.indexOf("skinparam node"));
     }
+  });
+
+  it("keeps a theme's own conditionals balanced when it is expanded for the renderer", async () => {
+    // carbon-gray tests %getenv in an !if; blocking that line alone would leave its !endif unmatched.
+    await loadBundledTheme("carbon-gray");
+    const text = sourceForPlantUmlRenderer(
+      ["@startgantt", "!theme carbon-gray", "[A] lasts 2 days", '!$x = %getenv("HOME")', "@endgantt"].join("\n"),
+    );
+    const lines = text.split("\n");
+    expect(text).toContain('!if (%getenv("LEGACY") == "true")');
+    expect(lines.filter((line) => /^\s*!if\b/.test(line)).length).toBe(
+      lines.filter((line) => /^\s*!endif\b/.test(line)).length,
+    );
+    // The author's own builtin is still blocked.
+    expect(text).not.toContain('%getenv("HOME")');
   });
 });

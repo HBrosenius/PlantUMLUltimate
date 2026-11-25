@@ -38,7 +38,7 @@ export function sourceForPlantUmlRenderer(source: string, context?: IncludeConte
 
 export function planForPlantUmlRenderer(source: string, context?: IncludeContext): RenderPlan {
   const expanded = mayContainIncludes(source) ? expandIncludes(source, context) : undefined;
-  const guarded = guardLines((expanded?.text ?? source).split(/\r\n|\r|\n/));
+  const guarded = guardLines((expanded?.text ?? source).split(/\r\n|\r|\n/), expanded?.map);
   const { lines, map } = gantt(guarded, expanded?.map);
   return {
     text: lines.join("\n"),
@@ -52,10 +52,17 @@ export function planForPlantUmlRenderer(source: string, context?: IncludeContext
   };
 }
 
-/** Blocks what could read files or the network and removes note blocks. Keeps the number of lines. */
-function guardLines(lines: string[]): string[] {
+/**
+ * Blocks what could read files or the network and removes note blocks. Keeps the number of lines.
+ * Bundled theme and library text is shipped with the app and passed as is: some themes test
+ * `%getenv(...)` in an `!if`, and blocking only that line would leave its `!endif` unmatched.
+ * The engine's sandbox still has no files, environment or network.
+ */
+function guardLines(lines: string[], map: LineMap | undefined): string[] {
   let inNote = false;
-  return lines.map((line) => {
+  return lines.map((line, index) => {
+    const origin = map?.files[map.file[index] ?? 0]?.origin;
+    if (origin === "theme" || origin === "library") return line;
     if (RESOURCE_DIRECTIVE.test(line) || RESOURCE_BUILTIN.test(line)) return BLOCKED_COMMENT;
     if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Ultimate";
     if (/^\s*note\s+(?:bottom|top|left|right)\s*$/i.test(line)) {
