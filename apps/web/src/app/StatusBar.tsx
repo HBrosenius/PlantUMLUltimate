@@ -2,6 +2,7 @@ import { renderSizeLimit } from "../render/size-limit";
 import { previewStatusLabel } from "../render/preview-status";
 import { RenderSizeNotice } from "../render/RenderSizeNotice";
 import { StorageStatus } from "../StorageStatus";
+import { IncludesStatus } from "../render/IncludesStatus";
 import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
 import type { ActiveCollaboration } from "../use-collaboration-lifecycle";
 import type { usePwa } from "../pwa";
@@ -104,8 +105,11 @@ export function StatusBar({
                     ? "WBS"
                     : workspace.diagramKind === "mindmap"
                       ? "Mindmap"
-                      : "Gantt"}
+                      : workspace.diagramKind === "c4"
+                        ? "C4"
+                        : "Gantt"}
         </span>
+        <IncludesStatus documentId={tabs.activeId} />
         <details className="render-details" open={renderSizeLimit(result?.error) ? true : undefined}>
           <summary>
             {mobileListActive

@@ -1,7 +1,8 @@
 export type ViewMode = "code" | "split" | "diagram" | "stage";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs" | "mindmap";
+export type DiagramKind =
+  "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs" | "mindmap" | "c4";
 
 export interface RenderRequest {
   requestId: number;

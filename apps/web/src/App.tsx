@@ -107,6 +107,9 @@ import { parseGanttCalendar } from "./gantt-calendar";
 import { parseProjectSettings } from "./project-settings";
 import type { DiagramKind, ViewMode } from "./model";
 import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
+import { includeContextFor } from "./render/include-environment";
+import { publishActiveIncludes } from "./render/include-state";
+import { useIncludeEnvironment, useIncludeTabs } from "./app/use-include-environment";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
 import { useAppDialog } from "./use-app-dialog";
@@ -285,6 +288,8 @@ export function App() {
   }>();
   const [pendingProjectWbsSelection, setPendingProjectWbsSelection] = useState<{ tabId: string; nodeId: string }>();
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  // Includes read the live tab list, so it is handed to the renderer's include environment before any render.
+  useIncludeTabs(tabs.documents);
   const projectLaunchRef = useRef<((opened: OpenedFileBytes) => Promise<boolean>) | undefined>(undefined);
   const {
     selectedTaskId,
@@ -435,6 +440,7 @@ export function App() {
     status,
     result,
     retry: retryRender,
+    includes: renderIncludes,
   } = useRenderer(
     workspace.source,
     hydrated && dialog?.kind !== "new-document" && viewMode !== "code",
@@ -1608,6 +1614,9 @@ export function App() {
       case "wbs-relationship":
         selectWbsRelationship(entry.target.id);
         break;
+      case "c4-element":
+        // The source line is already selected above; a C4 picture has no shape to select.
+        break;
     }
   };
 
@@ -1800,6 +1809,29 @@ export function App() {
     updateLinkedSource,
     workspace,
   });
+  useIncludeEnvironment({
+    portable,
+    project,
+    isProjectMemberTab,
+    activeTab: activeDocument,
+    addProjectDiagram,
+    openMember,
+    notify: setInteractionMessage,
+  });
+  useEffect(() => {
+    const scope = includeContextFor(tabs.activeId)?.files;
+    publishActiveIncludes(
+      renderIncludes
+        ? {
+            documentId: tabs.activeId,
+            includes: renderIncludes.includes,
+            diagnostics: renderIncludes.diagnostics,
+            scope: scope?.scope,
+            scopeDescription: scope?.description,
+          }
+        : undefined,
+    );
+  }, [renderIncludes, tabs.activeId]);
   const activeProjectId = project?.manifest.projectId;
   useEffect(() => {
     if (activeProjectId) setProjectNavigatorOpen(true);

@@ -12,6 +12,7 @@ import {
   type DiagramKind,
 } from "./model";
 import { setPlantUmlTheme } from "./plantuml-theme";
+import { c4StarterSource } from "./c4-starters";
 import { exampleFileName, type StarterExample } from "./starter-examples";
 import { parseWorkspaceBackupBundle, prepareWorkspaceRestore, serializeWorkspaceBackup } from "./workspace-backup";
 import {
@@ -67,6 +68,8 @@ export function starterSource(diagramKind: DiagramKind): string {
       return DEFAULT_WBS_SOURCE;
     case "mindmap":
       return DEFAULT_MINDMAP_SOURCE;
+    case "c4":
+      return c4StarterSource("container");
     default: {
       const unreachable: never = diagramKind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);

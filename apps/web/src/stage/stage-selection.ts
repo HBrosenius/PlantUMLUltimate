@@ -432,4 +432,5 @@ export const DIAGRAM_NOUN: Record<DiagramKind, string> = {
   activity: "Activity",
   wbs: "WBS",
   mindmap: "Mindmap",
+  c4: "C4 element",
 };

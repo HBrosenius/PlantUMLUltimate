@@ -1,4 +1,5 @@
 import type { DiagramKind } from "./model";
+import { C4_STARTERS } from "./c4-starters";
 
 export interface StarterExample {
   id: string;
@@ -371,6 +372,13 @@ stop
 --- Ask the teacher
 @endmindmap`,
   },
+  ...C4_STARTERS.map((starter) => ({
+    id: `c4-${starter.level}`,
+    kind: "c4" as const,
+    title: starter.title,
+    description: starter.description,
+    source: starter.source,
+  })),
 ];
 
 /** Turns an example title into a tidy file name such as "product-launch-plan.pumlu". */

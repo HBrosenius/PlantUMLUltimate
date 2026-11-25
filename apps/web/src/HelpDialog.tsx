@@ -22,6 +22,7 @@ const names: Record<DiagramKind, string> = {
   class: "Class",
   component: "Component",
   activity: "Activity",
+  c4: "C4",
 };
 const topics: Topic[] = [
   {
@@ -102,6 +103,25 @@ const topics: Topic[] = [
     ],
     example:
       "* Product launch\n** Plan\n*** Budget\n** Build\n--[#lightblue] Marketing\n-- Sales\n++_ Notes\nleft to right direction",
+  },
+  {
+    title: "C4 diagrams",
+    group: "c4",
+    paragraphs: [
+      "Start with New diagram → C4 diagram and pick Context, Container, Component, Dynamic or Deployment, or write the source yourself: begin with !include <C4/C4_Container> (or C4_Context, C4_Component, C4_Dynamic, C4_Deployment) and describe people, systems, containers and relationships with the C4-PlantUML macros. The library is bundled with the app, so a C4 diagram renders offline. Links to the official C4-PlantUML files on raw.githubusercontent.com work too; they are served from the bundled copy and never downloaded.",
+      "Type a macro name and press Ctrl+Space for suggestions: Person, System, Container, Component, boundaries, Deployment_Node and Rel come with their parameters (alias, label, technology, description) as tab stops. Rel(from, to, label, techn) draws a relationship; System_Boundary, Container_Boundary and Deployment_Node take a { … } block. Use Rel_U, Rel_D, Rel_L and Rel_R to steer the layout, and LAYOUT_WITH_LEGEND() to add a legend.",
+      "The outline lists the people, systems, containers, components, boundaries, deployment nodes and relationships. Selecting one highlights its line in the source. Sprites and icons from other libraries are not available yet, and the person icon is drawn as a plain box.",
+    ],
+    example:
+      '!include <C4/C4_Container>\nPerson(user, "Customer")\nSystem_Boundary(shop, "Web shop") {\n  Container(web, "Web app", "React")\n  ContainerDb(db, "Database", "PostgreSQL")\n}\nRel(user, web, "Uses", "HTTPS")\nRel(web, db, "Reads and writes")',
+  },
+  {
+    title: "Includes",
+    group: "Editing",
+    paragraphs: [
+      "!include works in every diagram, and the app resolves it on your device: <C4/…> and the well-known C4-PlantUML links read the bundled library; !include Name includes another diagram of the same document by name (!include_once, !include_many, !includesub Name!PART and Name!1 work as in PlantUML); in a file opened from GitHub or GitLab, !include ../common/style.puml reads that path from the same repository and branch with your own token; in a folder document it reads the file from the folder. Paths can't leave the repository or folder.",
+      "The Includes list in the status bar shows each include, where it came from and whether it loaded. A problem is marked on the include line; for a missing diagram, the quick fix adds it as a new diagram. Ctrl/⌘-click an include line to open the diagram it includes. An error inside an included file names that file and line. Other URLs, !import and builtins such as %load_json stay blocked.",
+    ],
   },
   {
     title: "Sequence diagrams",

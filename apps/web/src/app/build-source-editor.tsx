@@ -297,6 +297,10 @@ export function buildSourceEditor({
           // A source transaction reports its cursor before React has parsed the new source, so the
           // position would be looked up in the previous document. Leave the selection alone then.
           if (!sourceChanged) mindmap.selectFromSource(findMindmapNodeAt(mindmap.document, position)?.id);
+        } else if (workspace.diagramKind === "c4") {
+          // C4 elements have no canvas selection; the outline lists them by their source line.
+          setSourceSymbol(undefined);
+          setSourceSymbolPosition(undefined);
         } else {
           const occurrence = symbolAt(position);
           setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);

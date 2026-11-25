@@ -33,4 +33,14 @@ export const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
   ),
   wbs: ["@startwbs", "* Project", "** Discovery", "** Delivery", "@endwbs"].join("\n"),
   mindmap: ["@startmindmap", "* Project", "** Discovery", "-- Delivery", "@endmindmap"].join("\n"),
+  // Plain boxes: a theme preview should not load the whole C4 library.
+  c4: [
+    "@startuml",
+    'rectangle "Customer" as User',
+    'rectangle "Web app" as Web',
+    'database "Database" as Db',
+    "User --> Web : Uses",
+    "Web --> Db : Reads and writes",
+    "@enduml",
+  ].join("\n"),
 };

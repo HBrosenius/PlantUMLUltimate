@@ -1,0 +1,32 @@
+.includes-details .includes-problem {
+  color: var(--danger, #b3261e);
+}
+.includes-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.includes-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+}
+.includes-list li strong {
+  overflow-wrap: anywhere;
+}
+.includes-list li small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.includes-list li span:nth-of-type(1) {
+  color: var(--muted);
+}
+.includes-list li[data-status="loaded"] .includes-status {
+  color: var(--muted);
+}
+.includes-list li:not([data-status="loaded"]) .includes-status {
+  color: var(--danger, #b3261e);
+  font-weight: 600;
+}

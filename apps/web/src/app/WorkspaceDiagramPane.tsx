@@ -10,6 +10,7 @@ import {
   ClassDiagramPreview,
   ActivityDiagramPreview,
   MindmapDiagramPreview,
+  C4DiagramPreview,
   WbsDiagramPreview,
 } from "./lazy-previews";
 import type { DocumentSnapshot, DocumentVersion, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
@@ -723,6 +724,16 @@ export function WorkspaceDiagramPane({
                 0,
               )
             }
+          />
+        ) : workspace.diagramKind === "c4" ? (
+          <C4DiagramPreview
+            initialFit={initialDiagramFit}
+            svg={previewSvg}
+            zoom={workspace.zoom}
+            onZoomChange={(zoom) => update("zoom", zoom)}
+            renderStatus={status}
+            renderError={result?.error}
+            onRenderRetry={retryRender}
           />
         ) : (
           <WbsDiagramPreview

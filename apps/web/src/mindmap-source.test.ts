@@ -62,6 +62,7 @@ describe("mindmap kind detection and normalisation", () => {
       class: "uml",
       component: "uml",
       activity: "uml",
+      c4: "uml",
     };
     for (const [kind, suffix] of Object.entries(expected)) expect(diagramTagSuffix(kind as DiagramKind)).toBe(suffix);
     expect(() => diagramTagSuffix("unknown" as DiagramKind)).toThrow(/Unknown diagram kind/);

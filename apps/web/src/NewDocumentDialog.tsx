@@ -3,6 +3,7 @@ import { useId, useRef, useState } from "react";
 import type { DiagramKind } from "./model";
 import { STARTER_EXAMPLES, type StarterExample } from "./starter-examples";
 import { starterSource } from "./use-workspace-documents";
+import { C4_STARTERS, c4StarterSource, type C4Level } from "./c4-starters";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> = [
@@ -30,6 +31,11 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     description: "Describe software components, infrastructure, interfaces, and dependencies.",
   },
   { kind: "mindmap", title: "Mindmap", description: "Brainstorm ideas around a central topic." },
+  {
+    kind: "c4",
+    title: "C4 diagram",
+    description: "Describe a software system: context, containers, components, dynamic flows and deployment.",
+  },
 ];
 
 export function NewDocumentDialog({
@@ -55,6 +61,7 @@ export function NewDocumentDialog({
   const [destination, setDestination] = useState(onAddToDocument ? "document" : "separate");
   const [route, setRoute] = useState<"create" | "open" | "examples">("create");
   const [selectedKind, setSelectedKind] = useState<DiagramKind>("sequence");
+  const [c4Level, setC4Level] = useState<C4Level>("container");
   const [selectedExample, setSelectedExample] = useState<StarterExample>();
   const [exampleKind, setExampleKind] = useState<DiagramKind>("gantt");
   const [name, setName] = useState("");
@@ -76,10 +83,14 @@ export function NewDocumentDialog({
               ? "@startmindmap\n* Topic\n@endmindmap"
               : kind === "activity"
                 ? "@startuml\nstart\nstop\n@enduml"
-                : "@startuml\n@enduml"
+                : kind === "c4"
+                  ? `@startuml\n!include <C4/C4_${c4Level[0]!.toUpperCase()}${c4Level.slice(1)}>\n@enduml`
+                  : "@startuml\n@enduml"
         : kind === "wbs"
           ? "@startwbs\n* Project\n** Deliverable\n@endwbs"
-          : starterSource(kind));
+          : kind === "c4"
+            ? c4StarterSource(c4Level)
+            : starterSource(kind));
     if (destination !== "document" || !onAddToDocument) {
       if (example) onChooseExample(example, name);
       else onChoose(kind, name, initialSource);
@@ -171,6 +182,16 @@ export function NewDocumentDialog({
           </div>
         </section>
         <section hidden={route === "open"} className="diagram-creation-destination">
+          <label hidden={route !== "create" || selectedKind !== "c4"}>
+            C4 diagram type
+            <select value={c4Level} onChange={(event) => setC4Level(event.target.value as C4Level)} disabled={busy}>
+              {C4_STARTERS.map((starter) => (
+                <option key={starter.level} value={starter.level}>
+                  {starter.title.replace(/^C4 /, "")}
+                </option>
+              ))}
+            </select>
+          </label>
           <label hidden={route !== "create"}>
             Start with
             <select value={content} onChange={(event) => setContent(event.target.value)} disabled={busy}>
@@ -481,6 +502,34 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
         <text x="183" y="57" textAnchor="middle">
           Database
         </text>
+      </svg>
+    );
+  if (kind === "c4")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <rect x="62" y="10" width="164" height="92" rx="6" fill="none" stroke="#94a3b8" strokeDasharray="5 4" />
+        <g className="preview-person">
+          <circle cx="32" cy="34" r="6" />
+          <path d="M32 40v14m-10-8h20" />
+        </g>
+        <g fill="#2563eb">
+          <rect x="76" y="24" width="56" height="26" rx="4" />
+          <rect x="76" y="64" width="56" height="26" rx="4" />
+          <rect x="156" y="44" width="56" height="26" rx="4" fill="#64748b" />
+        </g>
+        <path className="preview-link" d="M44 44H76M104 50V64M132 37h12v20h12M132 77h12V60h12" />
+        <g fill="#fff" textAnchor="middle" className="preview-light-labels">
+          <text x="104" y="41">
+            Web
+          </text>
+          <text x="104" y="81">
+            API
+          </text>
+          <text x="184" y="61">
+            Mail
+          </text>
+        </g>
       </svg>
     );
   if (kind === "activity")
