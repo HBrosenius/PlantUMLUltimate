@@ -7,3 +7,35 @@ The renderer serializes requests, matches replies to the in-flight request, debo
 The sandbox bootstrap is small; trusted engine assets arrive in an authenticated parent-window message rather than being encoded a second time into iframe HTML. Font measurement yields after an elapsed work budget, avoiding unnecessary message turns for cached measurements. Fallback font metric buffers transfer to the worker without copying. Trusted scripts have short diagnostic names to avoid copying multi-megabyte data URLs into routine engine exception stacks. These changes preserve the opaque origin, network-blocking CSP, SVG sanitization and render deadlines.
 
 PlantUML SVG does not expose stable semantic task IDs. A derived, disposable overlay matches parsed task labels to canonical Gantt bar geometry and adds transparent interaction targets for selection, dragging, resizing, and dependency operations. PlantUML source remains the only persistent document representation.
+
+## Raster sprites and the worker canvas
+
+PlantUML turns a raster sprite (a grayscale `sprite $x [WxH/16] {...}`, its `z` form, or C4's default person icon) into an `<image>` by drawing it on a canvas: `createImageData`, `putImageData`, then `toDataURL("image/png")`. The worker has no DOM, so `canonical.worker.ts` hands the engine a stand-in canvas from `render/sprite-canvas.ts`.
+
+**What the old stub protected against.** Until I7a the stand-in canvas answered only text measurement, and its `toDataURL` threw "Raster content is disabled in the local renderer" (it arrived with the worker in `b1a3766`, "Fix security and stability issues", and no message or document gave a reason). Read against that commit, the intent was that the worker, which has no network and no DOM, should not gain any way to load, decode or emit images, so every canvas feature beyond text measurement was refused. No test asserted it; the only things that depended on it were the C4 library text, which switched the default person sprite off, and the failing sprites themselves.
+
+**Why the pixel path keeps that intent.**
+
+- It only encodes pixels the engine computed itself: `createImageData` returns a zeroed buffer, the engine fills it, `putImageData` keeps a reference, `toDataURL` writes it as a PNG (stored deflate, CRC32 and Adler32 in plain JavaScript) and returns a `data:image/png;base64,...` URL.
+- It decodes nothing and has no drawing API. The context has no `drawImage`, `createPattern`, `getImageData` or `Image`, so a source cannot make it read an image. `<img:https://...>` still produces no image and no request, and `<img:data:...>` is read by the engine's own PNG reader, never by the canvas.
+- It makes no requests and loads no script.
+- It is capped: a bitmap larger than 512 x 512 pixels (1 MiB of pixels) fails the render, sizes are checked as integers before any allocation, and `toDataURL` without a drawn bitmap throws.
+- The sandbox is as before. The renderer frame's CSP is `default-src 'none'; img-src data:; connect-src 'none'; ...`, so a `data:` image is already allowed and nothing can be fetched. The worker still loads scripts from `blob:` URLs only, and include blocking is unchanged.
+
+Tests: `sprite-canvas.test.ts` (PNG round trip, size and capability limits), `render/sprite-export-path.test.ts` (the frame CSP is pinned to `img-src data:` and `connect-src 'none'`; the canvas context offers no image loading), `tests/e2e/sprites.spec.ts` (preview, no requests) and `tests/e2e/sprites-exports.spec.ts` (every export path).
+
+**Where a sprite travels, and what each step does with an `<image>`:**
+
+| Step                                                                                     | Treatment of `<image href>`                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Renderer frame and worker                                                                | CSP `img-src data:`, `connect-src 'none'`. The engine writes only `data:image/png` from sprites; a remote `<img:>` produces nothing.                                                            |
+| `sanitizeSvg` (DOMPurify, SVG profile), used on every result, the export dialog and more | Keeps `data:image/png` byte for byte. It also keeps `http(s):`, `//` and other `data:` hrefs on `<image>` (it removes `javascript:` and `blob:`), so it is not itself an allow-list. See below. |
+| Preview, presentation, version history                                                   | The app page's CSP is `img-src 'self' data: blob:`; remote images would be blocked there.                                                                                                       |
+| Quick SVG, PNG, PDF, copy image                                                          | Use the stored result as is. PNG, PDF and copy rasterize the SVG as an `<img>` from a blob URL; an SVG used as an image cannot load external resources.                                         |
+| Export dialog                                                                            | `prepareExportSvg` sanitizes again, then wraps.                                                                                                                                                 |
+| Snapshot (HTML)                                                                          | `sanitizeSnapshotSvg` keeps only `data:image/(png\|jpeg\|gif\|webp);base64,...` and `#` references; the page's CSP is `img-src data:`, no `connect-src`.                                        |
+| Reports, collaboration, integration workers, PWA service worker                          | Do not render PlantUML. Reports draw their own SVG from task data, the workers sync source text, the service worker caches the app shell. Nothing there touches an engine image.                |
+
+**Known gap, reported and not changed.** `sanitizeSvg` does not restrict `<image>` hrefs by itself. The engine cannot produce a remote or non-PNG image href (tested in `sprites-exports.spec.ts`), so nothing reaches an export today, but an allow-list in the shared sanitizer (`data:image/png` only on `<image>`) would turn that from a property of the engine into one of the app. It is left as an open item (`it.todo` in `sprite-export-path.test.ts`) because changing a sanitizer is outside I7a.
+
+**Known engine limit.** A sprite whose `<path d="...">` has more than about 50 segments overflows the engine's stack in Chromium (`Maximum call stack size exceeded`), in Firefox at a few hundred segments (`too much recursion`), and not in WebKit within the sizes tried. See `docs/sprites-spike.md`.

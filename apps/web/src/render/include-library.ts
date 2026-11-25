@@ -28,15 +28,6 @@ const RELATIVE_INCLUDE_WRAPPER =
   /^[ \t]*!if[ \t]+%variable_exists\("RELATIVE_INCLUDE"\)[ \t]*\n[ \t]*(!include[ \t]+\S+)[ \t]*\n[ \t]*!else[ \t]*\n[ \t]*!include[ \t]+\S+[ \t]*\n[ \t]*!endif[ \t]*$/gm;
 
 /**
- * The bundled engine draws no raster images (the renderer worker rejects them), and C4's default person
- * icon is a raster sprite: using it fails the whole render with `createImageData is not a function`. The
- * default is therefore switched off, the same as C4-PlantUML's own `HIDE_PERSON_SPRITE()`. People are
- * still drawn, as boxes marked <<person>>. This is the only change made to the library text.
- */
-const DEFAULT_PERSON_SPRITE = '!global $defaultPersonSprite = "person"';
-const NO_PERSON_SPRITE = '!global $defaultPersonSprite = ""';
-
-/**
  * Well-known C4-PlantUML links: exactly `https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/<ref>/<file>.puml`
  * for one of the bundled files. The bundled copy is served whatever the `<ref>`; nothing is fetched.
  */
@@ -89,10 +80,7 @@ export function loadBundledLibraryFile(name: string): Promise<string | undefined
     pending = entry
       .load()
       .then((source) => {
-        const text = source
-          .replace(/\r\n?/g, "\n")
-          .replace(RELATIVE_INCLUDE_WRAPPER, "$1")
-          .replace(DEFAULT_PERSON_SPRITE, NO_PERSON_SPRITE);
+        const text = source.replace(/\r\n?/g, "\n").replace(RELATIVE_INCLUDE_WRAPPER, "$1");
         loadedLibrary.set(key, text);
         return text;
       })
