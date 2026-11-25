@@ -66,11 +66,29 @@ describe("raster sprites on the way out", () => {
     expect(hrefsOf(out).filter(Boolean)).toEqual([sprite]);
   });
 
-  // The preview sanitiser (DOMPurify's SVG profile) leaves http(s), protocol-relative and other data: hrefs on
-  // <image> in place. The engine never writes them (a remote <img:> produces nothing; see tests/e2e/
-  // sprites-exports.spec.ts), the preview frame's CSP blocks them, and the snapshot sanitiser removes them, but
-  // an allow-list in sanitizeSvg would make that a guarantee of the sanitiser itself. Reported in I7a, not changed.
-  it.todo("restricts <image> hrefs to data:image/png in the shared sanitiser");
+  it("keeps only inline raster images in the shared sanitiser", () => {
+    const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+    const out = sanitizeSvg(
+      diagram(
+        [
+          `<image href="${sprite}"/>`,
+          `<image href="${jpeg}"/>`,
+          `<image href="https://tracker.example/pixel.png"/>`,
+          `<image href="//tracker.example/pixel.png"/>`,
+          `<image href="data:image/svg+xml;base64,PHN2Zy8+"/>`,
+          `<image xlink:href="http://tracker.example/x.png"/>`,
+        ].join(""),
+      ),
+    );
+    expect(hrefsOf(out).filter(Boolean)).toEqual([sprite, jpeg]);
+    expect(out).not.toMatch(/tracker|svg\+xml/);
+  });
+
+  it("never lets <use> reach outside the diagram", () => {
+    // DOMPurify's SVG profile drops <use> today; restrictLinks keeps it local if that ever changes.
+    const out = sanitizeSvg(diagram(`<use href="https://tracker.example/s.svg#x"/>`));
+    expect(out).not.toContain("tracker");
+  });
 });
 
 describe("the renderer frame that hosts the worker", () => {
