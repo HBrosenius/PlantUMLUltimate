@@ -8,9 +8,12 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   // Stop a shard with widespread failures rather than spending its full timeout retrying them.
   maxFailures: process.env.CI ? 10 : 0,
-  fullyParallel: Boolean(process.env.CI),
+  fullyParallel: true,
   // Two workers per runner for every browser; Firefox was limited to one, which made it the slowest shards.
-  workers: process.env.CI ? 2 : 1,
+  // Locally four: measured on a 24-thread machine, 4 halved the time of a 102-test, three-browser run with no
+  // failures, while 8 left too little CPU per render and Firefox C4 renders hit the test timeout. Override with
+  // PW_WORKERS (for example PW_WORKERS=2 on a smaller machine, or 1 to debug one test at a time).
+  workers: process.env.CI ? 2 : Number(process.env.PW_WORKERS) || 4,
   reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:5173",

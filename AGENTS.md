@@ -28,6 +28,9 @@
   for a single test). Output is dot-style, stops after 3 failures.
 - Run all 3 browsers (chromium, firefox, webkit) for the touched specs only,
   right before pushing. Never run the full e2e suite while iterating.
+- Local e2e runs use 4 parallel workers. Set `PW_WORKERS` to change that
+  (`PW_WORKERS=1` to watch one test at a time); more than about 6 starves the
+  renderer and makes Firefox C4 renders time out.
 - Wrap long commands (`npm run validate`, builds, full unit runs) in
   `scripts/quiet-run.sh <cmd...>`: full log goes to a file, you see the path,
   exit status, tail and failure lines.
