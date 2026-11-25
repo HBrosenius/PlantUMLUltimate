@@ -20,7 +20,17 @@ export interface RenderPlan {
   includes: ExpandedSource["includes"];
   diagnostics: ExpandedSource["diagnostics"];
   pending: ExpandedSource["pending"];
+  /**
+   * What the font measurements are built from when the expanded text is mostly bundled library (C4): the
+   * library's macro bodies hold thousands of words that are never drawn, and measuring them in every font
+   * takes WebKit longer than the render timeout. Text that is missing is measured from its characters.
+   */
+  atlasText: string | undefined;
 }
+
+/** Short texts the C4 library draws itself (stereotypes and legend entries), so they are measured exactly. */
+const LIBRARY_TEXT =
+  "\n«person» «external_person» «system» «external_system» «container» «external_container» «component» «external_component» «boundary» «enterprise» «node» legend person system container component external boundary";
 
 export function sourceForPlantUmlRenderer(source: string, context?: IncludeContext): string {
   return planForPlantUmlRenderer(source, context).text;
@@ -32,6 +42,9 @@ export function planForPlantUmlRenderer(source: string, context?: IncludeContext
   const { lines, map } = gantt(guarded, expanded?.map);
   return {
     text: lines.join("\n"),
+    atlasText: map?.files.some((file) => file.origin === "library")
+      ? lines.filter((_, index) => map.files[map.file[index] ?? 0]?.origin !== "library").join("\n") + LIBRARY_TEXT
+      : undefined,
     map,
     includes: expanded?.includes ?? [],
     diagnostics: expanded?.diagnostics ?? [],

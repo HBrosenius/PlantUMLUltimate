@@ -98,6 +98,18 @@ describe("the bundled C4 library", () => {
     expect(origin?.line).toBeGreaterThan(1);
   });
 
+  it("measures fonts from the authored text, not from the library's macro bodies", async () => {
+    const source = wrap('!include <C4/C4_Container>\nPerson(user, "Customer")');
+    await prepareIncludes(source, undefined);
+    const plan = planForPlantUmlRenderer(source);
+    expect(plan.text.length).toBeGreaterThan(50_000);
+    expect(plan.atlasText).toContain('Person(user, "Customer")');
+    expect(plan.atlasText).toContain("«container»");
+    expect(plan.atlasText).not.toContain("procedure");
+    expect(plan.atlasText!.length).toBeLessThan(1_000);
+    expect(planForPlantUmlRenderer(wrap("A -> B")).atlasText).toBeUndefined();
+  });
+
   it("maps the well-known C4-PlantUML links to the bundled copy, whatever the ref", async () => {
     for (const ref of ["master", "main", "v2.5.0", "refs/tags/v2.14.0"]) {
       const result = await expand(

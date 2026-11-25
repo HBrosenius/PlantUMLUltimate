@@ -151,6 +151,9 @@ describe("include environment", () => {
       { name: "Main", source: "@startuml\n!include Style\n@enduml" },
       { name: "Style", source: "live style" },
     ]);
+    // A snapshot renders a diagram by its member id, with the same document around it.
+    expect(includeContextFor("m2")?.name).toBe("Style");
+    expect(includeContextFor("m2")?.documents).toHaveLength(2);
     expect(includeActions()?.canAddDiagram).toBe(true);
     expect(includeActions()?.openDiagram("style.puml")).toBe(true);
     expect(openMember).toHaveBeenCalledWith("m2");

@@ -1,6 +1,6 @@
 # B7: Includes and C4 diagrams — plan
 
-Status: decided 2026-11-24 (see [section 7](#7-decisions)); I0 is next. Nothing is implemented. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
+Status: decided 2026-11-24 (see [section 7](#7-decisions)). I0 to I4 are implemented (see [section 10](#10-progress-and-notes)); I5 to I7 are not started. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
 
 ## 0. Why
 
@@ -103,7 +103,7 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 
 | Slice                                 | Delivers                                                                                                                                      | Effort | Gate                                                                                                  |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------- |
-| **I0. Spike**                         | Inline the C4 library by hand and render the five C4 diagram types in the bundled engine. Measure the time.                                   | S      | All five render like the official PlantUML server, in under 2 s on a warm worker.                     |
+| **I0. Spike (done)**                  | Inline the C4 library by hand and render the five C4 diagram types in the bundled engine. Measure the time.                                   | S      | All five render like the official PlantUML server, in under 2 s on a warm worker.                     |
 | **I1. Expander and C4 library**       | `render/includes.ts` with the line map; bundled C4 loaded on demand; C4 links mapped; themes on the same mechanism; blocked-include messages. | M      | C4 examples render; errors in included text point at the right file and line; nothing new is fetched. |
 | **I2. Includes in a document**        | Include another diagram of the same `.pumlu` by name; missing-include diagnostic with "add as diagram"; Ctrl-click to open.                   | S–M    | A shared style diagram updates every diagram that includes it.                                        |
 | **I3. Includes from Git and folders** | Resolve relative includes from the origin repository (GitHub, GitLab) or the opened folder; cached; listed in the includes panel.             | M      | A real repository with shared includes opens and renders without changes.                             |
@@ -136,3 +136,32 @@ Decided on 2026-11-24:
 - A repository with shared include files (a fixture, plus one real repository of yours) opens from GitHub and renders every diagram.
 - Syntax errors inside an included file name that file and line.
 - Network logs show no new requests, except reads from the origin's own Git host.
+
+## 10. Progress and notes
+
+Implemented 2026-11-25: I0 to I4. I5 (semantic review), I6 (visual editing) and I7 (more libraries) are not started.
+
+### I0 spike result
+
+The bundled `@plantuml/core` 1.2026.6 renders all five C4 diagram types (Context, Container, Component, Dynamic, Deployment) once the C4-PlantUML library text is inlined. Measured in Chromium through the app (typing the source, debounce, expansion, render, SVG on screen): about 1.0 s for a warm render, about 2.1 s the first time a diagram type is shown in a fresh page (this includes loading the C4 chunk and the engine's first layout of that type). The 2 s gate holds on a warm worker.
+
+Engine limits found:
+
+- **No raster sprites.** The renderer worker deliberately rejects raster content, and C4's default person icon is a raster sprite, so a plain `Person(...)` failed the whole render with `createImageData is not a function`. The bundled library text is changed at load so the default person sprite is off (C4-PlantUML's own `HIDE_PERSON_SPRITE()`): people render as boxes marked `<<person>>`. Elements that name another sprite (`$sprite="..."`) fail in the same way; icon libraries (I7) need the same answer or raster support in the worker.
+- **Font measurement.** Before each render the app measures every distinct word of the source in every font and hands the table to the worker. Over the expanded C4 text (130 KB of macro bodies) that took WebKit longer than the 30 s render timeout, so every render after the first failed there. The table is now built from the authored text plus the library's own short stereotype and legend words; other text is measured from its characters. WebKit then renders a Container diagram in about 1 s warm.
+- Everything else the starters use (boundaries, nested deployment nodes, numbered relationships, `!function`/`!procedure`/`!$var`, named parameters) works.
+- C4-PlantUML tag **v2.14.0** (released 2026-08-26) is bundled, from https://github.com/plantuml-stdlib/C4-PlantUML. The seven library files total 134 KB (25 KB gzipped); each is its own on-demand chunk, so a Container diagram loads about 96 KB (C4.puml 68 KB, C4_Context 22 KB, C4_Container 6 KB). The main bundle is unchanged. `scripts/update-c4-stdlib.mjs <tag>` refreshes the files, and a test checks that the recorded tag, the version inside `C4.puml` and the licence agree.
+
+### How it works
+
+- `render/includes.ts` expands includes on text, with a line map (every expanded line to its file and line). `prepareIncludes` loads what is missing; `expandIncludes` is synchronous. Themes use the same mechanism (`bundled-themes.ts` keeps only the loaders).
+- `render/plantuml-source.ts` builds the render plan: expansion, then the blocked-directive pass, note removal and the Gantt chain rewrite, with the map kept in step.
+- The map turns the engine's `Syntax Error? ... line N` into `line L in <file>`, and the "[From textarea (line N) ]" error picture the engine draws for an unknown macro is rewritten the same way. The preview notice names the file and offers no jump when the line is in an included file.
+- **Cache invalidation.** The render cache key includes a hash of the expanded text, so a changed included diagram, theme or Git file is never served from a stale entry. The renderer re-runs when another diagram of the document changes (a signature of the document's diagrams), when included text finishes loading (the include cache version) and when the app's include environment changes (tabs, projects).
+- **Git and folder context.** `app/use-include-environment.ts` registers an environment that answers, per open tab: the other diagrams of the same `.pumlu` document (live tab text wins over saved text); the origin repository for a tab opened from GitHub or GitLab (read with the existing provider client and token, same ref, root-relative path, `..` above the root refused before any request); or the folder (or ZIP) document the tab belongs to (read through the folder handle; another member's open tab wins). Included Git and folder text is kept only in an in-memory cache, per session, and is never written to the document. "Read included files again" empties that cache.
+- **Blocked.** Other URLs (`!includeurl`, `http...`), standard library files that are not bundled, `!import`, remote themes and the `%load_json`, `%getenv`, `%dirpath`, `%filename`, `%file_exists` builtins stay blocked, with a message. The engine sandbox, its CSP and its no-network rule are unchanged.
+- **Known limits.** An `!include` inside an `!if` is expanded whether or not the condition holds (the expander does not evaluate conditions); C4's own `RELATIVE_INCLUDE` choice is the one pattern handled. A relative include in an unsaved standalone file has no place to read from and is reported as such. Folder includes are re-read when a member tab changes or on "Read included files again", not when the file changes on disk.
+
+### C4 detection
+
+A diagram is C4 when its source (after `@startuml`) includes `<C4/...>` or an official C4-PlantUML link, or calls a C4 element macro (`Person`, `System`, `Container`, `Component`, the `_Ext`/`Db`/`Queue` variants, boundaries, `Deployment_Node`). `Rel`, `Node` and layout macros alone are not enough. The check runs before the component and class rules, because `Component(...)` would otherwise read as a component declaration. The kind is chosen when a diagram is created or opened; typing C4 into another kind's tab does not switch it. Old files load unchanged; the portable format accepts `c4` (a file with a C4 diagram does not open in older versions).

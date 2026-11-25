@@ -182,6 +182,7 @@ type ExternalState = { state: "loading" } | { state: "loaded"; text: string } | 
 const externalFiles = new Map<string, ExternalState>();
 const listeners = new Set<() => void>();
 let cacheVersion = 0;
+let refreshVersion = 0;
 const scopeId = (scope: IncludeFileScope) => (scope.version ? `${scope.scope}#${scope.version}` : scope.scope);
 const externalKey = (scope: string, path: string) => `${scope}\u0000${path}`;
 
@@ -196,9 +197,12 @@ export function subscribeIncludeCache(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 export const includeCacheVersion = () => cacheVersion;
+/** Changes only when the user asks for included files to be read again. */
+export const includeRefreshVersion = () => refreshVersion;
 
 /** Forgets repository and folder text (all of it, or one scope), so the next render reads it again. */
 export function refreshIncludes(scope?: string): void {
+  refreshVersion += 1;
   for (const key of [...externalFiles.keys()])
     if (!scope || key.startsWith(`${scope}\u0000`) || key.startsWith(`${scope}#`)) externalFiles.delete(key);
   changed();

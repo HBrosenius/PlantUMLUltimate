@@ -95,19 +95,15 @@ function repositoryScope(origin: GitOrigin): IncludeFileScope {
 
 function buildContext(inputs: IncludeEnvironmentInputs, documentId: string): IncludeContext | undefined {
   const tab = liveTabs.find((item) => item.id === documentId);
-  if (!tab) return undefined;
-  if (tab.githubOrigin) return { files: repositoryScope(tab.githubOrigin) };
   const { portable, project } = inputs;
-  if (portable && tab.historyId.startsWith(`project-history-${portable.projectId}-`)) {
+  // A diagram of the open document, by its tab or by its member id (the snapshot renders members that way).
+  const member = portable?.diagrams.find((item) =>
+    tab ? tab.historyId === embeddedMemberHistoryId(portable.projectId, item.id) : item.id === documentId,
+  );
+  if (portable && member) {
     const byHistory = new Map(liveTabs.map((item) => [item.historyId, item]));
     return {
-      ...(portable.diagrams.find((item) => tab.historyId === embeddedMemberHistoryId(portable.projectId, item.id))
-        ? {
-            name: portable.diagrams.find(
-              (item) => tab.historyId === embeddedMemberHistoryId(portable.projectId, item.id),
-            )!.name,
-          }
-        : {}),
+      name: member.name,
       documents: portable.diagrams.map((item) => ({
         name: item.name,
         source:
@@ -115,6 +111,8 @@ function buildContext(inputs: IncludeEnvironmentInputs, documentId: string): Inc
       })),
     };
   }
+  if (!tab) return undefined;
+  if (tab.githubOrigin) return { files: repositoryScope(tab.githubOrigin) };
   if (project && inputs.isProjectMemberTab(documentId) && (project.root || project.archiveEntries)) {
     const members = project.manifest?.documents ?? [];
     const open = new Map(

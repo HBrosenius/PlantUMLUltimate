@@ -3,6 +3,7 @@ import type { RenderResult, RenderStatus } from "../model";
 import { planForPlantUmlRenderer, type RenderPlan } from "./plantuml-source";
 import {
   includeCacheVersion,
+  includeRefreshVersion,
   mayContainIncludes,
   prepareIncludes,
   subscribeIncludeCache,
@@ -31,6 +32,8 @@ interface PendingRender {
   layoutEngine: RendererLayoutEngine;
   /** Maps lines of `renderSource` back to the files they came from; absent when nothing was expanded. */
   lineMap?: LineMap | undefined;
+  /** The text the font measurements are built from, when that is less than `renderSource`. */
+  atlasSource?: string | undefined;
   /** Identifies the expanded text, so an included file that changed is not served from the cache. */
   includeKey: string;
 }
@@ -111,8 +114,12 @@ export function useRenderer(
   const includeKeyRef = useRef("");
   // Includes read other diagrams of the document and files loaded from a repository or folder; either
   // changing means the same source may need a new render.
+  // Loads only matter to a preview that is waiting for one; otherwise every theme or file that finishes
+  // loading would restart every other preview. A refresh request always matters.
+  const waitingForLoads = useRef(false);
   const includeVersion =
-    useSyncExternalStore(subscribeIncludeCache, includeCacheVersion) +
+    useSyncExternalStore(subscribeIncludeCache, () => (waitingForLoads.current ? includeCacheVersion() : 0)) +
+    useSyncExternalStore(subscribeIncludeCache, includeRefreshVersion) +
     useSyncExternalStore(subscribeIncludeEnvironment, includeEnvironmentVersion);
   const expandable = mayContainIncludes(source);
   const includeSignature = expandable ? includeContextSignature(includeContextFor(documentId)) : "";
@@ -204,7 +211,7 @@ export function useRenderer(
         armRenderTimeout();
         return nativeTextMetrics && document.fonts.size === 0
           ? undefined
-          : buildFontAtlas(request.renderSource, abandoned);
+          : buildFontAtlas(request.atlasSource ?? request.renderSource, abandoned);
       });
       void preparation.then(
         (fonts) => {
@@ -217,7 +224,7 @@ export function useRenderer(
             sendPending();
             return;
           }
-          const { lineMap: _lineMap, includeKey: _includeKey, ...wire } = request;
+          const { lineMap: _lineMap, includeKey: _includeKey, atlasSource: _atlasSource, ...wire } = request;
           frame?.contentWindow?.postMessage(
             { channel, type: "render", ...wire, fonts },
             "*",
@@ -416,6 +423,7 @@ export function useRenderer(
     const initialPlan = expandable ? planForPlantUmlRenderer(source, context) : undefined;
     const includeKey = initialPlan ? hashText(initialPlan.text) : "";
     includeKeyRef.current = includeKey;
+    waitingForLoads.current = Boolean(initialPlan && initialPlan.pending.length > 0);
     publishIncludes(setIncludeInfo, initialPlan);
     // A preview already rendered for this exact source needs no debounce and no renderer.
     const cached = cache.current.get(cacheKey(documentId, source, includeKey));
@@ -469,6 +477,7 @@ export function useRenderer(
           layoutEngine,
           lineMap: plan.map,
           includeKey: key,
+          atlasSource: plan.atlasText,
         };
         flush.current?.();
       };
