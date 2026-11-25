@@ -6,8 +6,8 @@ import { analyzeDiagram, diagnosticsForDiagram, quickFixesForDiagram } from "./d
 import { loadBundledLibraryFile } from "./render/include-library";
 
 const wrap = (body: string) => `@startuml\n!include <C4/C4_Container>\n${body}\n@enduml`;
-const apply = (source: string, fix: { from: number; to: number; replacement: string }) =>
-  source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+const apply = (source: string, fix: { from: number; to: number; replacement?: string } | undefined) =>
+  source.slice(0, fix!.from) + fix!.replacement! + source.slice(fix!.to);
 const messages = (source: string) => diagnosticsForDiagram("c4", source).map((item) => item.message);
 
 describe("C4 library names", () => {
@@ -38,7 +38,7 @@ describe("C4 quote issues", () => {
       message: "Quoted argument has an unmatched quote",
       label: "Add missing closing quote",
     });
-    expect(apply(source, issue as Required<typeof issue>)).toBe(wrap('Person(user, "Customer")\nSystem(shop, "Shop")'));
+    expect(apply(source, issue)).toBe(wrap('Person(user, "Customer")\nSystem(shop, "Shop")'));
   });
 
   it("reports an ambiguous unmatched quote without a repair", () => {
@@ -139,7 +139,7 @@ describe("C4 statement issues", () => {
       message: expect.stringContaining("Unknown macro Contaner"),
       label: "Change to Container",
     });
-    expect(apply(source, issue as Required<typeof issue>)).toBe(wrap('Container(web, "Web")'));
+    expect(apply(source, issue)).toBe(wrap('Container(web, "Web")'));
   });
 
   it("does not flag a macro the source defines, a library macro, a preprocessor line or another include", () => {
@@ -167,11 +167,9 @@ describe("C4 statement issues", () => {
     const source = wrap('Person(user, "Customer"');
     const [issue] = c4StatementIssues(source);
     expect(issue).toMatchObject({ message: "Person( is missing its closing parenthesis" });
-    expect(apply(source, issue as Required<typeof issue>)).toBe(wrap('Person(user, "Customer")'));
+    expect(apply(source, issue)).toBe(wrap('Person(user, "Customer")'));
     const block = wrap('System_Boundary(shop, "Shop" {\n}');
-    expect(apply(block, c4StatementIssues(block)[0] as Required<C4Issue0>)).toBe(
-      wrap('System_Boundary(shop, "Shop") {\n}'),
-    );
+    expect(apply(block, c4StatementIssues(block)[0])).toBe(wrap('System_Boundary(shop, "Shop") {\n}'));
   });
 
   it("flags missing arguments, trailing text and a dotted alias", () => {
@@ -185,7 +183,7 @@ describe("C4 statement issues", () => {
   it("flags a macro name used without parentheses", () => {
     const source = wrap("SHOW_LEGEND");
     const [issue] = c4StatementIssues(source);
-    expect(apply(source, issue as Required<typeof issue>)).toBe(wrap("SHOW_LEGEND()"));
+    expect(apply(source, issue)).toBe(wrap("SHOW_LEGEND()"));
   });
 
   it("does not look inside notes, legends, titles or skinparam blocks", () => {
@@ -198,8 +196,6 @@ describe("C4 statement issues", () => {
     ).toEqual([]);
   });
 });
-
-type C4Issue0 = { from: number; to: number; replacement: string };
 
 describe("C4 diagnostics pipeline", () => {
   it("shows the issues as diagnostics and as quick fixes", () => {
