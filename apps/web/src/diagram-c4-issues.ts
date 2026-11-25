@@ -301,17 +301,17 @@ export function c4BraceIssues(source: string): C4BraceIssue[] {
   for (const [index, line] of lines.entries()) {
     if (!opensBlock(line)) continue;
     const next = lines[index + 1];
-    const doubled = /\{\{+\s*$/.exec(line.code);
+    const doubled = trailingBraces(line.code);
     if (doubled) {
       const from = line.from + doubled.index;
       issues.push({
         from,
-        to: from + doubled[0].trim().length,
+        to: from + doubled.length,
         replacement: "{",
         label: "Remove duplicated opening brace",
         message: "Block has duplicated opening braces",
       });
-    } else if (/\{\s*$/.test(line.code)) {
+    } else if (line.code.trimEnd().endsWith("{")) {
       if (next && next.code.trim() === "{")
         issues.push({
           from: next.from,
@@ -477,4 +477,15 @@ export function c4StatementIssues(source: string): C4Issue[] {
       });
   }
   return issues;
+}
+
+/**
+ * Two or more `{` at the end of a line (before trailing whitespace): where the run starts and how long it is.
+ * A scan from the end instead of an unanchored regex, so a long run of braces stays linear.
+ */
+function trailingBraces(code: string): { index: number; length: number } | undefined {
+  const end = code.trimEnd().length;
+  let start = end;
+  while (start > 0 && code[start - 1] === "{") start -= 1;
+  return end - start >= 2 ? { index: start, length: end - start } : undefined;
 }
