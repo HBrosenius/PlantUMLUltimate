@@ -1,0 +1,159 @@
+# Sprites and icon libraries: spike (I7)
+
+Status: spike done 2026-11-25. Branch `spike/i7-sprites`. Input to slice I7 of the [includes and C4 plan](includes-c4-plan.md). Nothing from the icon libraries is bundled; the proof of concept only makes sprites render.
+
+## 1. Findings
+
+**Why sprites failed.** The engine (`@plantuml/core` 1.2026.6, TeaVM output) turns a raster sprite (grayscale `[WxH/16]`, `/8`, `/4`, and their `z` compressed forms) into an `<image>` the browser way: it creates a canvas, calls `getContext("2d").createImageData(w, h)`, fills the RGBA buffer, calls `putImageData`, then `canvas.toDataURL("image/png")` and writes the result into `<image href=...>`. The call site is in the engine's bitmap-to-SVG code, not in our code.
+
+Our worker (`render/canonical.worker.ts`) has no DOM. It replaces `document.createElement("canvas")` with a stub whose `getContext()` returned only the text measurement context (`font`, `measureText`) and whose `toDataURL()` threw `Raster content is disabled in the local renderer`. So the engine failed one step earlier with `createImageData is not a function`; had that been present, `toDataURL` would have thrown next. That stub is the "check" the plan refers to. Nothing else in the worker, the frame or the sanitizer rejects raster content.
+
+**What the check protected against.** No commit message or document says. The stub came with the worker in the "Fix security and stability" commit (b1a3766). The reasonable reading: the worker is not allowed a real canvas or image decoding (no DOM, no network, bounded memory), so every canvas feature that could load, decode or emit arbitrary pixels was refused. The text measurement path is the only canvas use that was needed then.
+
+**Which sprite kinds fail.** Only the ones that go through that canvas path. SVG sprites are drawn as vector shapes by the engine and never touch a canvas. `<img:data:image/png;base64,...>` is decoded by the engine's own PNG reader and its original data URL is reused, so it never touched the canvas either. See the table.
+
+**A separate finding: font atlas cost in WebKit.** Before each render the app measures every distinct "word" of the source in WebKit and Firefox (Chromium measures natively). A sprite body is one 48-character "word" per pixel row, so one inline icon is about 40 extra words times 84 fonts. Twenty icons made WebKit take about 22 s per render. Sprite data is never drawn as text, so `buildFontAtlas` now ignores it (`withoutSpriteData`). WebKit with 20 icons is then about 14.6 s; the rest is the engine (see section 6).
+
+## 2. What works, before and after
+
+Measured in the app (a C4 tab, which accepts any source), Chromium, Firefox and WebKit. "Before" was measured in Chromium with the original worker.
+
+| Sprite kind                                                           | Before                                                | After                                                                                                   |
+| --------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Grayscale `[8x8/16]`, `/8`, `/4`, used as `<$name>` in an element     | Fails: `createImageData is not a function`            | Works in all three browsers (`<image>` with a `data:image/png;base64` href)                             |
+| Compressed `z` sprite (`[64x64/16z]`, AWS style)                      | Fails, same error                                     | Works in all three                                                                                      |
+| `<color:red><$a*3></color>` (colour, scale), sprite in an arrow label | Fails                                                 | Works in all three                                                                                      |
+| C4 default Person sprite (`$defaultPersonSprite = "person"`)          | Fails (so B7 switched it off)                         | Works; the library text is now unchanged except for the RELATIVE_INCLUDE wrapper                        |
+| C4 `$sprite="name"` on any element, with an inline sprite             | Fails                                                 | Works                                                                                                   |
+| Inline SVG sprite, one line (`sprite $s <svg ...>...</svg>`)          | Works (vector)                                        | Works                                                                                                   |
+| Large multi-line SVG sprite (Archimate, 1.7 KB)                       | Fails in Chromium: `Maximum call stack size exceeded` | Same: fails in Chromium, works in Firefox and WebKit. An engine recursion limit, not related to canvas. |
+| `<img:data:image/png;base64,...>`, inline or in a note                | Works                                                 | Works                                                                                                   |
+| `<img:https://...>`                                                   | No image, no request, no error                        | Same. Nothing is fetched (checked with request logging)                                                 |
+
+Not tested: `<&iconic>` OpenIconic (bundled separately, unchanged), `listsprites`, `/8z` and `/4z`.
+
+A harness note: typing a non-Gantt source into a Gantt tab fails with `Cannot read properties of undefined (reading '$jsException')`, before and after. It is the Gantt tab's render path, not the sprites; every probe above ran in a C4 tab.
+
+## 3. The fix and why it is safe
+
+`render/sprite-canvas.ts` (new, about 100 lines) gives the worker's canvas stub the three things the engine calls:
+
+- `getContext().createImageData(w, h)` returns `{ width, height, data: Uint8ClampedArray }`;
+- `putImageData(image)` keeps it;
+- `toDataURL()` writes the pixels as a PNG (stored deflate blocks, CRC32 and Adler32 in plain JavaScript) and returns a `data:image/png;base64,...` URL.
+
+Text measurement is untouched: the context is an object that inherits from the existing font atlas or native text context. This is the smallest fix that fits. Alternatives looked at:
+
+- **OffscreenCanvas in the worker.** Has `createImageData`, but no synchronous `toDataURL` (only the async `convertToBlob`), and the engine's call is synchronous. Not usable. It would also make output depend on the browser's PNG encoder.
+- **Rewriting sprites to SVG before rendering.** Needs a parser for the grayscale and `z` formats (a custom Huffman/base64 alphabet plus inflate), and changes the source the engine sees. More code, more risk, no benefit.
+- **A general ImageData polyfill.** Same as the chosen fix with a wider surface. The stub implements only what the engine calls.
+
+Why this keeps the security intent:
+
+- **No new capability reaches the engine.** The stub does arithmetic on a buffer the engine filled itself. It reads no URL, decodes no image and has no drawing API, so a source cannot make it fetch or load anything. `<img:https://...>` still produces nothing and no request.
+- **The sandbox is unchanged.** The renderer frame's CSP (`default-src 'none'; connect-src 'none'; img-src data:`), the worker's blob-only script loading, and the include blocking are not touched. The output is a `data:` URL, which `img-src data:` already allows. The preview HTML passes through DOMPurify (`sanitizeSvg`), which keeps `data:` hrefs on `<image>`; checked in all three browsers.
+- **Bounded.** The bitmap is limited to 512 x 512 pixels (1 MiB of pixels); real sprites are 16 to 64 pixels square. Sizes are checked as integers before any allocation. Larger sprites fail the render with a message, as before.
+- **No fetch at runtime**, no new dependency.
+
+What does not change: `<img:...>` with a remote URL is still never loaded.
+
+Other changes in the PoC: the person sprite override is removed from `include-library.ts`, with the C4 README and help text updated; `font-atlas.ts` skips sprite data.
+
+## 4. Icon libraries (assessed, not bundled)
+
+Sources read: `tupadr3/plantuml-icon-font-sprites` (default branch `main`) and `plantuml/plantuml-stdlib` (master), downloaded to a temporary folder outside the repository. The stdlib copy is what `!include <tupadr3/...>` uses on the official server.
+
+**Encoding.** Every tupadr3 icon is one `.puml` file with one uncompressed 4-bit grayscale sprite `sprite $name [48x48/16] { 48 rows of 48 hex digits }`, followed by macros. The macros come from `common.puml` (`ENTITY(...)`, `hide stereotype`), for example `FA5_USER(alias, label, shape, color)`. Some other stdlib sets (AWS, Azure) use `[64x64/16z]` compressed sprites; those work too (table above).
+
+```
+!include <tupadr3/common>
+!include <tupadr3/font-awesome-5/user>
+FA5_USER(u, "Customer")        ' or: rectangle "<$user> Customer"
+```
+
+**Size** (official stdlib copy, bytes on disk, `.puml` files only):
+
+| Set                            | Icons | Total   | Average per icon |
+| ------------------------------ | ----- | ------- | ---------------- |
+| `font-awesome` (4)             | 786   | 2.25 MB | 2.9 KB           |
+| `font-awesome-5`               | 1,457 | 4.18 MB | 2.9 KB           |
+| `font-awesome-6` (stdlib only) | 1,881 | 5.43 MB | 2.9 KB           |
+| `material`                     | 933   | 2.75 MB | 2.9 KB           |
+| `devicons`                     | 191   | 0.54 MB | 2.9 KB           |
+| `devicons2`                    | 965   | 2.84 MB | 2.9 KB           |
+| `govicons`                     | 129   | 0.37 MB | 2.9 KB           |
+| `weather`                      | 506   | 1.48 MB | 2.9 KB           |
+| All of `tupadr3`               | 6,849 | 19.9 MB | 2.9 KB           |
+
+Gzip compresses the hex rows well: one icon is about 0.5 KB gzipped, all of `font-awesome-5` about 460 KB, all of `tupadr3` about 2.1 MB. `common.puml` is 1.1 KB. Note that the tupadr3 repository itself has about 45 MB on disk (it also holds generated PNGs and docs); only the `.puml` files are relevant.
+
+**Licences** (checked in the upstream repositories named by tupadr3's own generator, `src/lib/fonts.js`, at the pinned tags):
+
+| Part                                                   | Licence                                                                                                                                                  | Verified                                                                                    |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `tupadr3/plantuml-icon-font-sprites` (sprites, macros) | MIT, Copyright (c) 2017 tupadr3                                                                                                                          | `LICENSE.md`, GitHub API                                                                    |
+| Font Awesome 5 Free (5.15.3)                           | Icons CC BY 4.0; fonts SIL OFL 1.1; code MIT                                                                                                             | `LICENSE.txt` at tag 5.15.3                                                                 |
+| Font Awesome 4 (`fa-4` branch)                         | SIL OFL 1.1 (font), MIT (CSS)                                                                                                                            | **Not re-verified**: the upstream branch files could not be fetched. Check before bundling. |
+| Material Design Icons (google, 3.0.2)                  | Apache 2.0                                                                                                                                               | `LICENSE` at tag 3.0.2                                                                      |
+| Devicon / `devicons2` (v2.12.0)                        | MIT (Copyright konpa)                                                                                                                                    | `LICENSE` at tag                                                                            |
+| Devicons (`vorillaz`)                                  | MIT                                                                                                                                                      | README statement                                                                            |
+| Gov Icons (`540co`, 1.5.1)                             | Icons SIL OFL 1.1; code MIT; docs CC BY 3.0                                                                                                              | `LICENSE.md` at tag                                                                         |
+| Weather Icons (erikflowers)                            | Icons SIL OFL 1.1; code MIT; docs CC BY 3.0                                                                                                              | README                                                                                      |
+| `plantuml-stdlib` repository                           | No licence file at the root; README carries an MIT badge. Per-library licences are not stated in the repo (`tupadr3/README.md` has an empty `license:`). | README, file listing                                                                        |
+
+Attribution the app would need, if these are bundled:
+
+- **Font Awesome 5 and 6 icons (CC BY 4.0)** require credit, a link to the licence and an indication of changes. A line in the app's third-party notices plus the licence link is enough ("Font Awesome Free by Fonticons, Inc., CC BY 4.0, converted to PlantUML sprites by tupadr3, MIT"). Converting to a 16-level grayscale bitmap counts as a change; say so.
+- **Apache 2.0 (Material)** requires the licence text and the NOTICE where there is one; no credit line in diagrams.
+- **MIT** sets require the copyright and licence text in the distribution.
+- **SIL OFL 1.1 (Gov Icons, Weather Icons, FA 4)**: the OFL covers the font; whether it covers a bitmap derived from a glyph is arguable. Do not bundle these without a decision, or leave them out.
+- A third-party notices file (does the repo have one? add `docs/third-party.md` or the app's About page) listing each bundled set, its licence and link. Each bundled set would also get a `README.md` in its stdlib folder like the C4 one, with source tag and date.
+- A diagram that uses an icon contains no copy of the icon, only a reference, so the person's own diagrams need no attribution. The app's exports (SVG, PNG) embed the rendered icon; CC BY applies to the icon, not to the diagram, and the usual practice is not to put credit in exports. Confirm with the licence owner's guidance before launch.
+
+The above is a technical reading, not legal advice.
+
+## 5. Bundling proposal (per icon, on demand)
+
+Today `include-library.ts` uses `import.meta.glob("./stdlib/C4/*.puml", { query: "?raw", import: "default" })`: each file is its own lazy chunk, loaded only when a diagram includes it.
+
+For icons, one file per icon with that glob would make thousands of chunks and a huge manifest. Proposal:
+
+1. **Pack per set, not per icon, at build time.** A script (like `scripts/update-c4-stdlib.mjs`) reads the upstream tag and writes, for each set, one JSON file per alphabetic bucket (about 16 buckets of about 90 icons per set, about 40 KB gzipped each) plus a small index (`name -> bucket`) of about 20 KB. `import.meta.glob("./stdlib/tupadr3/*.json")` then yields a few dozen lazy chunks.
+2. **Store the sprite once.** Only the grayscale rows are needed; the 4 macro lines per icon follow one pattern and can be generated. The rows can be kept as `z` compressed sprites (PlantUML's own encoding, which the engine already reads) to cut 2.9 KB to about 0.5 KB per icon before gzip.
+3. **Resolve `!include <tupadr3/font-awesome-5/user>`** through the index to the bucket, load it, and extract the one icon (as the expander does for C4 files). `<tupadr3/common>` is a single file. Includes keep blocked for anything not in the index.
+4. **Autocomplete and a picker** can use the index alone (names only, a few hundred KB for everything, loaded lazily when the user types `<tupadr3/`).
+
+Bundle impact: the main bundle stays unchanged (index and buckets load on demand). The total in the build output for `font-awesome-5` plus `material` plus `devicons2` would be about 1 to 1.5 MB of lazy chunks (gzipped, uncompressed rows) or about a third of that with `z` rows. A single diagram with 5 icons loads one bucket per set, about 40 KB gzipped. If size matters more, ship only Font Awesome 5 and Material first (the plan's choice) and add sets on demand.
+
+## 6. Timings
+
+Measured end to end in the app after the fix, warm worker (first render of the page excluded), five runs each, time from typing the source to the new diagram on screen, including the render debounce. Chromium measures text natively; WebKit builds the font atlas.
+
+| Diagram                                                    | Chromium (ms)           | WebKit (ms)                                                   |
+| ---------------------------------------------------------- | ----------------------- | ------------------------------------------------------------- |
+| C4 Container, 3 persons, **with** person icons             | 957 to 985 (cold 2,222) | 1,285 to 1,911 (cold 3,244)                                   |
+| Same, `HIDE_PERSON_SPRITE()` (no icons)                    | 947 to 967              | 1,281 to 1,805                                                |
+| 20 inline Font Awesome 5 icons (local copy, not committed) | 3,313 to 3,712          | 14,613 to 24,445 before the atlas fix; 12,660 to 14,885 after |
+
+So person icons cost nothing measurable. Twenty icons cost about 2.5 s more in Chromium, about 120 ms per 48 x 48 sprite in total (not profiled; the PNG writer is a small loop over 9 K pixels and is unlikely to be the main part). WebKit is much slower and not yet understood: skipping sprite data in the atlas saved about 8 s, but 20 icons still take about 14 s there. The cause is not established (not profiled): either the engine's own sprite work or the rest of the render being slower in WebKit.
+
+## 7. Open risks
+
+- **WebKit and icon-heavy diagrams** (about 14 s for 20 icons, the 30 s render timeout is near at 40 to 50 icons). Needs a profile before I7 ships icons; options are to profile the engine per sprite and to cache.
+- **Chromium stack overflow on large SVG sprites** (Archimate). Unrelated to the fix, and tupadr3 does not use SVG sprites.
+- **Firefox:** a CSS attribute selector `image[href^="data:image/png..."]` does not match the engine's `<image>` there (the element has both `xlink:href` and `href`, and `getAttribute("href")` works). The e2e test reads the attribute instead.
+- **Licences:** Font Awesome 4 and the OFL sets are not settled (section 4). The `plantuml-stdlib` repository has no licence file.
+- **Exports:** PNG sprites inside exported SVG and snapshots were not exercised here; embedded `data:` PNG should work, but add a test in I7.
+- **Zoom quality:** a 48 x 48 bitmap scales up blurry when the preview is zoomed; the official server has the same limit.
+- The PNG writer stores uncompressed data: a 64 x 64 sprite is about 17 KB of base64 in the SVG (the 20-icon diagram's SVG is large). A real deflate would be smaller; not needed yet.
+
+## 8. Recommendation for I7: go
+
+Sprites work now with a small, contained change that keeps the sandbox, CSP and no-network rule as they are. Go, with these slices:
+
+1. **I7a. Land the PoC** (this branch): sprite canvas, restored C4 person icon, atlas change, tests. Review the security argument in section 3.
+2. **I7b. WebKit performance for sprites**: profile the 20-icon case, then decide on caching or lowering the atlas work further. Gate: 20 icons under 5 s in WebKit.
+3. **I7c. Licence decisions and notices**: settle FA 4 and the OFL sets, add the third-party notices file and the About entry. No files bundled before this.
+4. **I7d. Build script and index** (`scripts/update-tupadr3-stdlib.mjs`): packed buckets, `z` rows, index, tests that the recorded tag and licence agree (as for C4).
+5. **I7e. Font Awesome 5 and Material first**, then the other sets one at a time (S each as planned); expander resolves `<tupadr3/...>`; completion of icon names; a help section.
+6. **I7f. Cloud libraries** (AWS, Azure, Kubernetes) later; their licences differ (AWS icons are CC BY-ND 2.0 as stated in the stdlib files) and need their own review.

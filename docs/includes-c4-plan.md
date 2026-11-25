@@ -112,6 +112,8 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 | **I6. C4 visual editing**             | Select, rename, edit fields, add relationships and elements on the canvas.                                                                    | M–L    | The C4 edits round-trip without touching unrelated source.                                            |
 | **I7. More libraries**                | Icon sets and cloud libraries, per file and on demand.                                                                                        | S each | Size budget kept; licences checked.                                                                   |
 
+I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md).
+
 **Suggested order:** I0 → I1 → I2 → I3 → I4, then decide on I5–I7 from use. After I1, every C4 file in the world that uses the standard library renders in the app. After I3, whole repositories do.
 
 ## 7. Decisions

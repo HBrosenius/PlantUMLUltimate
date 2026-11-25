@@ -2,6 +2,7 @@
 import { parseHTML, DOMParser, SVGElement, Event as DOMEvent } from "linkedom";
 import { atlasContext, type FontAtlas } from "./font-atlas";
 import { describeSyntaxError } from "./syntax-error";
+import { spriteCanvas } from "./sprite-canvas";
 function nativeTextContext(): ReturnType<typeof atlasContext> | undefined {
   try {
     const context = typeof OffscreenCanvas === "function" ? new OffscreenCanvas(300, 150).getContext("2d") : null;
@@ -65,16 +66,7 @@ let fonts: FontAtlas;
 let measurementContext: ReturnType<typeof atlasContext>;
 let boundsContext: ReturnType<typeof atlasContext>;
 document.createElement = ((name: string) => {
-  if (name.toLowerCase() === "canvas") {
-    return {
-      width: 300,
-      height: 150,
-      getContext: () => measurementContext,
-      toDataURL: () => {
-        throw new Error("Raster content is disabled in the local renderer");
-      },
-    };
-  }
+  if (name.toLowerCase() === "canvas") return spriteCanvas(() => measurementContext);
   return createElement(name);
 }) as typeof document.createElement;
 Object.defineProperty(SVGElement.prototype, "getBBox", {

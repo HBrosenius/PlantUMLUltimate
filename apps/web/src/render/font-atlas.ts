@@ -19,6 +19,14 @@ export function fontFamily(value: string): string {
   return family === "sansserif" ? "sans-serif" : family === "monospaced" ? "monospace" : family;
 }
 
+const SPRITE_BLOCK = /^[ \t]*sprite\s+\S+\s*\[[^\]\n]*\]\s*\{[^}]*\}/gm;
+const SPRITE_SVG = /^[ \t]*sprite\s+\S+\s*<svg[\s\S]*?<\/svg>/gim;
+
+/** Sprite pixel rows and SVG markup are never drawn as text: measuring each row as a word costs seconds. */
+export function withoutSpriteData(source: string): string {
+  return source.includes("sprite") ? source.replace(SPRITE_BLOCK, "").replace(SPRITE_SVG, "") : source;
+}
+
 export async function buildFontAtlas(source: string, cancelled = () => false): Promise<FontAtlas> {
   if (document.fonts && measuredFonts !== document.fonts) {
     measuredFonts?.removeEventListener("loadingdone", clearMeasurements);
@@ -56,7 +64,7 @@ export async function buildFontAtlas(source: string, cancelled = () => false): P
     ...[...source.matchAll(/\b(\d{4})[-/]\d{2}[-/]\d{2}/g)].map((match) => Number(match[1])),
   ]);
   for (const year of years) for (const month of months) add(`${month} ${year}`);
-  for (const word of source.matchAll(/[^\s[\]{}()]+/g)) add(word[0]);
+  for (const word of withoutSpriteData(source).matchAll(/[^\s[\]{}()]+/g)) add(word[0]);
   const families = new Set(["sans-serif", "serif", "monospace"]);
   for (const match of source.matchAll(/\b\w*FontName\s+([^\r\n]+)/gi)) {
     if (families.size < 5 && match[1]!.length <= 200) families.add(fontFamily(match[1]!));
