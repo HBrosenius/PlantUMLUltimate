@@ -41,6 +41,13 @@ const actions = () => ({
   onActivityArrow: vi.fn(),
   onMindmapNode: vi.fn(),
   onWbsNode: vi.fn(),
+  onC4Person: vi.fn(),
+  onC4System: vi.fn(),
+  onC4Container: vi.fn(),
+  onC4Component: vi.fn(),
+  onC4Boundary: vi.fn(),
+  onC4Node: vi.fn(),
+  onC4Relationship: vi.fn(),
 });
 
 const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({

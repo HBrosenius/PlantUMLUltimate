@@ -1,0 +1,182 @@
+/* C4 canvas editing: hit areas, drag handles and the properties panel. Mirrors the use case preview. */
+.c4-semantic-hit {
+  fill: transparent;
+  stroke: transparent;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.c4-semantic-hit[data-c4-editable="false"] {
+  cursor: pointer;
+}
+.c4-semantic-hit:hover {
+  fill: rgb(37 99 235 / 7%);
+  stroke: rgb(37 99 235 / 45%);
+  stroke-width: 1.5;
+}
+.c4-connection-handle {
+  fill: #2563eb;
+  stroke: white;
+  stroke-width: 2;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.c4-connection-handle:hover {
+  fill: #1d4ed8;
+  r: 10px;
+}
+.c4-move-handle {
+  fill: #64748b;
+  stroke: white;
+  stroke-width: 1.5;
+  cursor: grab;
+  pointer-events: all;
+}
+.c4-move-handle:hover {
+  fill: #334155;
+}
+.c4-relationship-hit {
+  fill: none;
+  stroke: rgb(37 99 235 / 0.001);
+  stroke-width: 14;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+.c4-relationship-hit:hover {
+  stroke: rgb(37 99 235 / 24%);
+}
+.c4-relationship-hit.c4-selected-object {
+  stroke: rgb(37 99 235 / 35%);
+}
+.c4-relationship-endpoint {
+  fill: white;
+  stroke: #2563eb;
+  stroke-width: 3;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.c4-relationship-endpoint:hover {
+  fill: #dbeafe;
+}
+.c4-connection-preview {
+  stroke: #2563eb;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  pointer-events: none;
+}
+.c4-semantic-hit.c4-valid-drop {
+  fill: rgb(34 197 94 / 12%);
+  stroke: rgb(22 163 74 / 75%);
+  stroke-width: 2;
+}
+.c4-boundary-frame {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: none;
+}
+.c4-dragging-move .c4-boundary-frame[data-c4-drop-id] {
+  fill: rgb(34 197 94 / 5%);
+  stroke: rgb(22 163 74 / 58%);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
+.c4-selected-object {
+  fill: rgb(37 99 235 / 10%);
+  stroke: #2563eb;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.c4-boundary-frame.c4-selected-object {
+  fill: transparent;
+}
+.c4-keyboard-help {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .c4-connection-handle,
+  .c4-relationship-endpoint {
+    stroke-width: 8px;
+  }
+  .c4-move-handle {
+    stroke-width: 6px;
+  }
+}
+
+.c4-inspector {
+  width: 360px;
+  padding: 16px;
+}
+.c4-inspector header {
+  margin-bottom: 12px;
+}
+.c4-inspector header > div {
+  display: grid;
+  gap: 3px;
+}
+.c4-inspector header small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.c4-inspector form {
+  display: grid;
+  gap: 11px;
+}
+.c4-inspector fieldset {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+}
+.c4-inspector legend {
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+.c4-inspector fieldset label {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.c4-inspector input[readonly] {
+  color: var(--muted);
+}
+.c4-inspector .inspector-actions {
+  position: sticky;
+  bottom: -16px;
+  margin: 0 -16px -16px;
+  padding: 11px 16px 14px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+.c4-readonly-note {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.c4-dialog code {
+  overflow-wrap: anywhere;
+}
+.c4-dialog-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+}
+.c4-include-offer {
+  align-items: flex-start;
+}

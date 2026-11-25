@@ -72,6 +72,7 @@ export interface RibbonChromeProps {
   openVersionHistory: () => Promise<void>;
   openWbsSettingsFromToolbar: () => void;
   openMindmapSettingsFromToolbar: () => void;
+  openC4SettingsFromToolbar: () => void;
   parseResult: DiagramParseResult<GanttDocument>;
   project: VirtualProject | undefined;
   projectInspectorOpen: boolean;
@@ -171,6 +172,7 @@ export function RibbonChrome({
   openVersionHistory,
   openWbsSettingsFromToolbar,
   openMindmapSettingsFromToolbar,
+  openC4SettingsFromToolbar,
   parseResult,
   project,
   projectInspectorOpen,
@@ -241,6 +243,13 @@ export function RibbonChrome({
     onActivityArrow: () => openDialog({ kind: "add-activity-arrow" }),
     onWbsNode: () => openDialog({ kind: "add-wbs-node" }),
     onMindmapNode: () => openDialog({ kind: "add-mindmap-node" }),
+    onC4Person: () => openDialog({ kind: "add-c4-element", elementKind: "person" }),
+    onC4System: () => openDialog({ kind: "add-c4-element", elementKind: "system" }),
+    onC4Container: () => openDialog({ kind: "add-c4-element", elementKind: "container" }),
+    onC4Component: () => openDialog({ kind: "add-c4-element", elementKind: "component" }),
+    onC4Boundary: () => openDialog({ kind: "add-c4-boundary" }),
+    onC4Node: () => openDialog({ kind: "add-c4-boundary", boundaryKind: "Deployment_Node" }),
+    onC4Relationship: () => openDialog({ kind: "add-c4-relationship" }),
   });
   const undoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.undoDescriptions);
   const redoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.redoDescriptions);
@@ -604,6 +613,16 @@ export function RibbonChrome({
                       title={commandReadOnly ? "Viewing only" : undefined}
                       data-inspector-trigger
                       onClick={openMindmapSettingsFromToolbar}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {workspace.diagramKind === "c4" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openC4SettingsFromToolbar}
                     >
                       Diagram settings
                     </button>

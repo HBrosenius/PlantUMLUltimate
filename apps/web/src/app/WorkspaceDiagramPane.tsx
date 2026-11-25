@@ -41,6 +41,7 @@ import type { RenderResult, RenderStatus, ViewMode } from "../model";
 import type { GanttScheduleMode } from "../features/gantt/use-gantt-controller";
 import type { SchedulePreview } from "../SchedulePreviewDialog";
 import type { Dispatch, SetStateAction } from "react";
+import type { C4Editor } from "../features/c4/use-c4-editor";
 import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
 
@@ -111,6 +112,7 @@ export interface WorkspaceDiagramPaneProps {
   moveGanttTask: (taskId: string, days: number) => void;
   moveUseCaseElementByDrag: (elementId: string, packageId: string) => void;
   mindmap: MindmapEditor;
+  c4: C4Editor;
   moveWbsNode: (nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right") => void;
   openDateActionMenu: (date: string) => void;
   openMember: (documentId: string) => void;
@@ -315,6 +317,7 @@ export function WorkspaceDiagramPane({
   moveGanttTask,
   moveUseCaseElementByDrag,
   mindmap,
+  c4,
   moveWbsNode,
   openDateActionMenu,
   openMember,
@@ -727,6 +730,8 @@ export function WorkspaceDiagramPane({
           />
         ) : workspace.diagramKind === "c4" ? (
           <C4DiagramPreview
+            editingEnabled={result?.source === workspace.source}
+            onInlineRename={commandReadOnly ? undefined : c4.startInlineRename}
             initialFit={initialDiagramFit}
             svg={previewSvg}
             zoom={workspace.zoom}
@@ -734,6 +739,17 @@ export function WorkspaceDiagramPane({
             renderStatus={status}
             renderError={result?.error}
             onRenderRetry={retryRender}
+            document={c4.document}
+            selectedKey={diagramMulti.multiple ? undefined : (c4.selectedKey ?? c4.sourceHighlightedKey)}
+            onSelect={(selection) => {
+              const range = c4.selectFromCanvas(selection);
+              if (range) setSelectionRequest({ ...range });
+            }}
+            onBackgroundSelect={c4.dismissInspector}
+            onDelete={c4.removeSelected}
+            onRelationshipCreate={c4.connectByDrag}
+            onRelationshipReconnect={c4.reconnectByDrag}
+            onMove={c4.moveByDrag}
           />
         ) : (
           <WbsDiagramPreview
