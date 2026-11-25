@@ -23,6 +23,7 @@ const markers: Record<DiagramKind, [string, string]> = {
   class: ["@startuml", "@enduml"],
   component: ["@startuml", "@enduml"],
   activity: ["@startuml", "@enduml"],
+  c4: ["@startuml", "@enduml"],
 };
 
 const escaped = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

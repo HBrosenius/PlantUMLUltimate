@@ -1614,6 +1614,9 @@ export function App() {
       case "wbs-relationship":
         selectWbsRelationship(entry.target.id);
         break;
+      case "c4-element":
+        // The source line is already selected above; a C4 picture has no shape to select.
+        break;
     }
   };
 

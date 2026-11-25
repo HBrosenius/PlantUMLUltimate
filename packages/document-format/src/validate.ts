@@ -26,6 +26,7 @@ const DIAGRAM_KINDS = new Set<PortableDiagramKind>([
   "activity",
   "wbs",
   "mindmap",
+  "c4",
 ]);
 const VERSION_REASONS = new Set<PortableVersionReason>([
   "opened",

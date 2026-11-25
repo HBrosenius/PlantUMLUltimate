@@ -15,6 +15,7 @@ import { classDiagnostics, classQuickFixes } from "./class-language";
 import { activityDiagnostics, activityQuickFixes } from "./activity-language";
 import { wbsDiagnostics, wbsQuickFixes } from "./wbs-language";
 import { mindmapDiagnostics, mindmapQuickFixes } from "./mindmap-language";
+import { c4Diagnostics, c4QuickFixes } from "./c4-language";
 
 export interface DiagramQuickFix {
   choiceGroup?: string;
@@ -49,6 +50,8 @@ const languageDiagnostics = (kind: DiagramKind, source: string, parse = parseGan
       return wbsDiagnostics(source);
     case "mindmap":
       return mindmapDiagnostics(source);
+    case "c4":
+      return c4Diagnostics(source);
     default: {
       const unreachable: never = kind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
@@ -73,6 +76,8 @@ function quickFixesForKind(kind: DiagramKind, source: string, parse: typeof pars
       return wbsQuickFixes(source);
     case "mindmap":
       return mindmapQuickFixes(source);
+    case "c4":
+      return c4QuickFixes(source);
     default: {
       const unreachable: never = kind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);

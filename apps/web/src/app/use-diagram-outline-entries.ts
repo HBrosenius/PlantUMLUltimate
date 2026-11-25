@@ -1,4 +1,5 @@
 import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
+import { c4OutlineEntries } from "../c4-outline";
 import { useMemo } from "react";
 import { type DiagramOutlineEntry, buildDiagramOutlineEntries, outlineLine } from "../diagram-outline";
 import type { ActivityDocument } from "../../../../packages/diagram-activity/src/model";
@@ -259,6 +260,8 @@ export function useDiagramOutlineEntries({
           }),
         ),
       );
+    } else if (workspace.diagramKind === "c4") {
+      extras.push(...c4OutlineEntries(source));
     } else if (workspace.diagramKind === "wbs") {
       wbsDocument.relationships.forEach((item) =>
         extras.push(

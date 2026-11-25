@@ -14,6 +14,7 @@ export function diagramTagSuffix(kind: DiagramKind): "gantt" | "wbs" | "mindmap"
     case "class":
     case "component":
     case "activity":
+    case "c4":
       return "uml";
     default: {
       const unreachable: never = kind;

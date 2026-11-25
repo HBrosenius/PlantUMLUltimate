@@ -36,6 +36,11 @@ export const MindmapDiagramPreview = lazyFeature<
   "the mindmap preview",
 );
 
+export const C4DiagramPreview = lazyFeature<ComponentProps<typeof import("../C4DiagramPreview").C4DiagramPreview>>(
+  () => import("../C4DiagramPreview").then((module) => ({ default: module.C4DiagramPreview })),
+  "the C4 preview",
+);
+
 export const WbsDiagramPreview = lazyFeature<ComponentProps<typeof import("../WbsDiagramPreview").WbsDiagramPreview>>(
   () => import("../WbsDiagramPreview").then((module) => ({ default: module.WbsDiagramPreview })),
   "the WBS preview",

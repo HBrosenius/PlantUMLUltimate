@@ -105,7 +105,9 @@ export function StatusBar({
                     ? "WBS"
                     : workspace.diagramKind === "mindmap"
                       ? "Mindmap"
-                      : "Gantt"}
+                      : workspace.diagramKind === "c4"
+                        ? "C4"
+                        : "Gantt"}
         </span>
         <IncludesStatus documentId={tabs.activeId} />
         <details className="render-details" open={renderSizeLimit(result?.error) ? true : undefined}>

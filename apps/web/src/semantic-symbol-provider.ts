@@ -155,6 +155,9 @@ function collectOccurrences(context: ProviderContext): SemanticSymbolOccurrence[
       return collectWbsSymbolOccurrences(context.source, context.wbs);
     case "mindmap":
       return collectMindmapSymbolOccurrences(context.source, parseMindmap(context.source));
+    case "c4":
+      // C4 elements are listed in the outline from their macro calls (see c4-source.ts), not renamed as symbols.
+      return [];
     default: {
       const unreachable: never = context.diagramKind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);

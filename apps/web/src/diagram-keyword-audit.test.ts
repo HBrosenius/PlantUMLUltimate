@@ -25,11 +25,12 @@ const bodies: Record<DiagramKind, string> = {
   gantt: "[Work] lasts 2 days",
   wbs: "* Root\n** Child",
   mindmap: "* Root\n** Child",
+  c4: '!include <C4/C4_Context>\nPerson(user, "User")',
 };
 const statements: Array<[DiagramKind, string]> = [
   // Mindmap has no repairable keywords, and the pinned renderer audit (liveAudit) predates it.
   ...Object.keys(bodies)
-    .filter((kind) => kind !== "mindmap")
+    .filter((kind) => kind !== "mindmap" && kind !== "c4")
     .map((kind) => [kind as DiagramKind, "skinparam backgroundColor white"] as [DiagramKind, string]),
   ["class", "class Customer"],
   ["class", "interface Customer"],

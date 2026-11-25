@@ -23,7 +23,9 @@ export type DiagramOutlineTarget =
   | { type: "usecase-object"; id: string }
   | { type: "class-object"; id: string }
   | { type: "activity-object"; id: string }
-  | { type: "wbs-relationship"; id: string };
+  | { type: "wbs-relationship"; id: string }
+  /** A C4 element, boundary or relationship; it has no canvas shape, so selecting it reveals its source line. */
+  | { type: "c4-element"; id: string };
 
 export const diagramOutlineTypeLabels: Record<SemanticSymbolOccurrence["kind"], string> = {
   task: "Task",
@@ -100,6 +102,7 @@ export function filterDiagramOutline(entries: readonly DiagramOutlineEntry[], qu
 
 export function outlineTargetSelector(entry: DiagramOutlineEntry): string | undefined {
   const target = entry.target;
+  if (target.type === "c4-element") return undefined;
   let attribute: string | undefined;
   let key: string | number | undefined;
   if (target.type === "semantic") {

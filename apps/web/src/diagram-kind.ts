@@ -1,4 +1,5 @@
 import type { DiagramKind } from "./model";
+import { isC4Source } from "./c4-source";
 
 const SEQUENCE_DECLARATION = /^\s*(?:participant|actor|boundary|control|entity|database|collections|queue)\b/im;
 const SEQUENCE_STATEMENT =
@@ -22,6 +23,8 @@ export function detectDiagramKind(source: string): DiagramKind | undefined {
   if (/^\s*@startwbs\b/im.test(source)) return "wbs";
   if (/^\s*@startmindmap\b/im.test(source)) return "mindmap";
   if (!/^\s*@startuml\b/im.test(source)) return undefined;
+  // C4 first: its macros (`Component(...)`) would otherwise read as component declarations.
+  if (isC4Source(source)) return "c4";
   if (ACTIVITY_STATEMENT.test(source)) return "activity";
   if (COMPONENT_DECLARATION.test(source)) return "component";
   if (CLASS_DECLARATION.test(source)) return "class";
@@ -42,7 +45,8 @@ export function normalizeDiagramKind(value: unknown, source: string): DiagramKin
     value === "component" ||
     value === "activity" ||
     value === "wbs" ||
-    value === "mindmap"
+    value === "mindmap" ||
+    value === "c4"
   )
     return value;
   return detectDiagramKind(source) ?? "gantt";

@@ -25,6 +25,7 @@ export function manualErrorGuidance(
     gantt: "[Order details] lasts 3 days",
     wbs: "* Order details",
     mindmap: "* Order details",
+    c4: 'Container(order, "Order service", "Java")',
   };
   // Block-closing repairs can insert text well after the diagnostic's header.
   if (/missing\s+\}|unclosed|unterminated/i.test(message) && fixes.some((fix) => /close|insert end/i.test(fix.message)))

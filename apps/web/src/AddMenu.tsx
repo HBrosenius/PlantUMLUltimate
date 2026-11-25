@@ -397,6 +397,8 @@ function AddMenuView({
                 <span>Note…</span>
               </button>
             </>
+          ) : diagramKind === "c4" ? (
+            <p className="add-menu-note">Type a C4 macro in the editor, such as Container, and press Ctrl+Space.</p>
           ) : diagramKind === "mindmap" ? (
             <button
               aria-keyshortcuts="Alt+N"

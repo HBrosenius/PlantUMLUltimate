@@ -17,6 +17,8 @@ import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode"
 import { wbsCompletions } from "./wbs-language";
 import { plantUmlMindmapHighlightStyle, plantUmlMindmapMode } from "./plantuml-mindmap-mode";
 import { mindmapCompletions } from "./mindmap-language";
+import { plantUmlC4HighlightStyle, plantUmlC4Mode } from "./plantuml-c4-mode";
+import { c4Completions } from "./c4-language";
 import type { DiagramKind } from "./model";
 import { withManualErrorGuidance } from "./manual-error-guidance";
 import { analyzeDiagram } from "./diagram-diagnostics";
@@ -51,6 +53,8 @@ function languageSupport(kind: DiagramKind) {
         highlights: plantUmlMindmapHighlightStyle,
         completions: mindmapCompletions,
       };
+    case "c4":
+      return { mode: plantUmlC4Mode, highlights: plantUmlC4HighlightStyle, completions: c4Completions };
     default: {
       const unreachable: never = kind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
