@@ -1,6 +1,6 @@
 # B7: Includes and C4 diagrams — plan
 
-Status: decided 2026-11-24 (see [section 7](#7-decisions)). I0 to I4 are implemented (see [section 10](#10-progress-and-notes)); I5 to I7 are not started. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
+Status: decided 2026-11-24 (see [section 7](#7-decisions)). I0 to I4 and I7a are implemented (see [section 10](#10-progress-and-notes)); I5, I6 and the rest of I7 are not started. Builds on [rendering](rendering.md), the bundled themes (`apps/web/src/render/bundled-themes.ts`), [single-file documents](single-file-projects.md) and the [GitHub](git-integration-plan.md) and [GitLab](gitlab-integration-plan.md) integrations.
 
 ## 0. Why
 
@@ -112,7 +112,7 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 | **I6. C4 visual editing**             | Select, rename, edit fields, add relationships and elements on the canvas.                                                                    | M–L    | The C4 edits round-trip without touching unrelated source.                                            |
 | **I7. More libraries**                | Icon sets and cloud libraries, per file and on demand.                                                                                        | S each | Size budget kept; licences checked.                                                                   |
 
-I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md).
+I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md). **I7a (raster sprite rendering, restored C4 person icon, export checks, security note) is done**; I7b to I7f follow the spike's recommendation.
 
 **Suggested order:** I0 → I1 → I2 → I3 → I4, then decide on I5–I7 from use. After I1, every C4 file in the world that uses the standard library renders in the app. After I3, whole repositories do.
 
@@ -141,7 +141,7 @@ Decided on 2026-11-24:
 
 ## 10. Progress and notes
 
-Implemented 2026-11-25: I0 to I4. I5 (semantic review), I6 (visual editing) and I7 (more libraries) are not started.
+Implemented 2026-11-25: I0 to I4, and I7a (raster sprites). I5 (semantic review), I6 (visual editing) and the rest of I7 (icon libraries) are not started.
 
 ### I0 spike result
 
@@ -149,7 +149,7 @@ The bundled `@plantuml/core` 1.2026.6 renders all five C4 diagram types (Context
 
 Engine limits found:
 
-- **No raster sprites.** The renderer worker deliberately rejects raster content, and C4's default person icon is a raster sprite, so a plain `Person(...)` failed the whole render with `createImageData is not a function`. The bundled library text is changed at load so the default person sprite is off (C4-PlantUML's own `HIDE_PERSON_SPRITE()`): people render as boxes marked `<<person>>`. Elements that name another sprite (`$sprite="..."`) fail in the same way; icon libraries (I7) need the same answer or raster support in the worker.
+- **Raster sprites (fixed in I7a).** The worker used to reject raster content, so C4's default person icon failed the whole render with `createImageData is not a function` and the bundled library text switched it off. The worker now writes sprites as PNG data: URLs (`render/sprite-canvas.ts`; security note in [rendering](rendering.md#raster-sprites-and-the-worker-canvas)), the override is gone and `Person(...)` shows its icon. SVG sprites with long path data still overflow the engine's stack in Chromium (known limit, see [sprites-spike.md](sprites-spike.md)).
 - **Font measurement.** Before each render the app measures every distinct word of the source in every font and hands the table to the worker. Over the expanded C4 text (130 KB of macro bodies) that took WebKit longer than the 30 s render timeout, so every render after the first failed there. The table is now built from the authored text plus the library's own short stereotype and legend words; other text is measured from its characters. WebKit then renders a Container diagram in about 1 s warm.
 - Everything else the starters use (boundaries, nested deployment nodes, numbered relationships, `!function`/`!procedure`/`!$var`, named parameters) works.
 - C4-PlantUML tag **v2.14.0** (released 2026-08-26) is bundled, from https://github.com/plantuml-stdlib/C4-PlantUML. The seven library files total 134 KB (25 KB gzipped); each is its own on-demand chunk, so a Container diagram loads about 96 KB (C4.puml 68 KB, C4_Context 22 KB, C4_Container 6 KB). The main bundle is unchanged. `scripts/update-c4-stdlib.mjs <tag>` refreshes the files, and a test checks that the recorded tag, the version inside `C4.puml` and the licence agree.

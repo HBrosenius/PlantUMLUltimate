@@ -1,6 +1,6 @@
 # Sprites and icon libraries: spike (I7)
 
-Status: spike done 2026-11-25. Branch `spike/i7-sprites`. Input to slice I7 of the [includes and C4 plan](includes-c4-plan.md). Nothing from the icon libraries is bundled; the proof of concept only makes sprites render.
+Status: spike done 2026-11-25. **I7a (raster sprite rendering) landed on `feat/sprites`; see section 9.** Input to slice I7 of the [includes and C4 plan](includes-c4-plan.md). Nothing from the icon libraries is bundled; I7a only makes sprites render and checks that they leave the app correctly.
 
 ## 1. Findings
 
@@ -18,17 +18,17 @@ Our worker (`render/canonical.worker.ts`) has no DOM. It replaces `document.crea
 
 Measured in the app (a C4 tab, which accepts any source), Chromium, Firefox and WebKit. "Before" was measured in Chromium with the original worker.
 
-| Sprite kind                                                           | Before                                                | After                                                                                                   |
-| --------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Grayscale `[8x8/16]`, `/8`, `/4`, used as `<$name>` in an element     | Fails: `createImageData is not a function`            | Works in all three browsers (`<image>` with a `data:image/png;base64` href)                             |
-| Compressed `z` sprite (`[64x64/16z]`, AWS style)                      | Fails, same error                                     | Works in all three                                                                                      |
-| `<color:red><$a*3></color>` (colour, scale), sprite in an arrow label | Fails                                                 | Works in all three                                                                                      |
-| C4 default Person sprite (`$defaultPersonSprite = "person"`)          | Fails (so B7 switched it off)                         | Works; the library text is now unchanged except for the RELATIVE_INCLUDE wrapper                        |
-| C4 `$sprite="name"` on any element, with an inline sprite             | Fails                                                 | Works                                                                                                   |
-| Inline SVG sprite, one line (`sprite $s <svg ...>...</svg>`)          | Works (vector)                                        | Works                                                                                                   |
-| Large multi-line SVG sprite (Archimate, 1.7 KB)                       | Fails in Chromium: `Maximum call stack size exceeded` | Same: fails in Chromium, works in Firefox and WebKit. An engine recursion limit, not related to canvas. |
-| `<img:data:image/png;base64,...>`, inline or in a note                | Works                                                 | Works                                                                                                   |
-| `<img:https://...>`                                                   | No image, no request, no error                        | Same. Nothing is fetched (checked with request logging)                                                 |
+| Sprite kind                                                           | Before                                                | After                                                                                                                 |
+| --------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Grayscale `[8x8/16]`, `/8`, `/4`, used as `<$name>` in an element     | Fails: `createImageData is not a function`            | Works in all three browsers (`<image>` with a `data:image/png;base64` href)                                           |
+| Compressed `z` sprite (`[64x64/16z]`, AWS style)                      | Fails, same error                                     | Works in all three                                                                                                    |
+| `<color:red><$a*3></color>` (colour, scale), sprite in an arrow label | Fails                                                 | Works in all three                                                                                                    |
+| C4 default Person sprite (`$defaultPersonSprite = "person"`)          | Fails (so B7 switched it off)                         | Works; the library text is now unchanged except for the RELATIVE_INCLUDE wrapper                                      |
+| C4 `$sprite="name"` on any element, with an inline sprite             | Fails                                                 | Works                                                                                                                 |
+| Inline SVG sprite, one line (`sprite $s <svg ...>...</svg>`)          | Works (vector)                                        | Works                                                                                                                 |
+| Large multi-line SVG sprite (Archimate, 1.7 KB)                       | Fails in Chromium: `Maximum call stack size exceeded` | Same: fails in Chromium, works in Firefox and WebKit. An engine recursion limit, not related to canvas (section 9.4). |
+| `<img:data:image/png;base64,...>`, inline or in a note                | Works                                                 | Works                                                                                                                 |
+| `<img:https://...>`                                                   | No image, no request, no error                        | Same. Nothing is fetched (checked with request logging)                                                               |
 
 Not tested: `<&iconic>` OpenIconic (bundled separately, unchanged), `listsprites`, `/8z` and `/4z`.
 
@@ -140,10 +140,10 @@ So person icons cost nothing measurable. Twenty icons cost about 2.5 s more in C
 ## 7. Open risks
 
 - **WebKit and icon-heavy diagrams** (about 14 s for 20 icons, the 30 s render timeout is near at 40 to 50 icons). Needs a profile before I7 ships icons; options are to profile the engine per sprite and to cache.
-- **Chromium stack overflow on large SVG sprites** (Archimate). Unrelated to the fix, and tupadr3 does not use SVG sprites.
+- **Chromium stack overflow on SVG sprites with long path data** (Archimate). Engine limit, section 9.4; tupadr3 does not use SVG sprites.
 - **Firefox:** a CSS attribute selector `image[href^="data:image/png..."]` does not match the engine's `<image>` there (the element has both `xlink:href` and `href`, and `getAttribute("href")` works). The e2e test reads the attribute instead.
 - **Licences:** Font Awesome 4 and the OFL sets are not settled (section 4). The `plantuml-stdlib` repository has no licence file.
-- **Exports:** PNG sprites inside exported SVG and snapshots were not exercised here; embedded `data:` PNG should work, but add a test in I7.
+- **Exports:** checked and tested in I7a (section 9.1).
 - **Zoom quality:** a 48 x 48 bitmap scales up blurry when the preview is zoomed; the official server has the same limit.
 - The PNG writer stores uncompressed data: a 64 x 64 sprite is about 17 KB of base64 in the SVG (the 20-icon diagram's SVG is large). A real deflate would be smaller; not needed yet.
 
@@ -157,3 +157,27 @@ Sprites work now with a small, contained change that keeps the sandbox, CSP and 
 4. **I7d. Build script and index** (`scripts/update-tupadr3-stdlib.mjs`): packed buckets, `z` rows, index, tests that the recorded tag and licence agree (as for C4).
 5. **I7e. Font Awesome 5 and Material first**, then the other sets one at a time (S each as planned); expander resolves `<tupadr3/...>`; completion of icon names; a help section.
 6. **I7f. Cloud libraries** (AWS, Azure, Kubernetes) later; their licences differ (AWS icons are CC BY-ND 2.0 as stated in the stdlib files) and need their own review.
+
+## 9. I7a landed
+
+Branch `feat/sprites`: the spike commit plus the follow-up below. Scope: render raster sprites, restore the C4 person icon, prove the exports, write the security argument down. No icon library is bundled.
+
+### 9.1 Exports
+
+Every path the app offers keeps the engine's `<image href="data:image/png;base64,...">`, for a C4 person icon and for an inline grayscale sprite. `tests/e2e/sprites-exports.spec.ts` renders both in a C4 tab and, for each export, decodes the result and checks that each sprite's rectangle holds several grey levels (a missing or blank sprite has one): quick SVG, quick PNG, quick PDF (the JPEG inside it), the export dialog's SVG (its second sanitising pass), snapshot (HTML) (also opened from a `file:` URL with no request and no CSP violation), and copy image (Chromium only, as the clipboard test already is). A last test puts a remote `<img:https://...>` and a `data:image/svg+xml` image in the source and asserts that no export contains either and nothing is requested. `render/sprite-export-path.test.ts` checks the same through `sanitizeSvg`, `prepareExportSvg` and `sanitizeSnapshotSvg` with a PNG from the worker's own writer, and pins the renderer frame CSP. Nothing needed fixing. Reports, collaboration and the PWA do not render engine output, so there is nothing to export there.
+
+### 9.2 Security review
+
+Written down in [rendering.md](rendering.md#raster-sprites-and-the-worker-canvas): what the old stub protected against, why the pixel path keeps that, where each sanitiser and CSP stands. No test asserted the old "raster disabled" behaviour (the only dependants were the C4 library override, now removed, and the failing sprites), so none had to change. One gap is reported, not changed: the shared `sanitizeSvg` leaves non-PNG `<image>` hrefs alone (the engine never writes them, the page CSP blocks them, the snapshot sanitiser strips them). An allow-list there is a sanitiser change and was left for a decision.
+
+### 9.3 Regression runs
+
+Run on Chromium, Firefox and WebKit: `c4`, `includes`, `includes-git`, `theme-gallery`, `security`, `preview-render-notice`, `renderer-performance`, `portable-document`, `export-options`, `snapshot-export` and the two sprite specs. Results are in the I7a hand-off report.
+
+### 9.4 The Archimate stack overflow
+
+Not ours. A sprite that is a single `<path d="...">` fails in Chromium once the path has roughly 50 to 80 segments (40 segments render, 80 do not, with or without newlines; about 1 KB is enough), with `RangeError: Maximum call stack size exceeded`. Firefox fails later (400 segments: `InternalError: too much recursion`); WebKit did not fail up to 2.9 KB. Deeply nested groups (300 levels), many short paths and 13 KB of small shapes all render, so the depth is in the engine's path data handling, one recursion level per segment. Our code never looks at sprite bodies in the worker (`getBBox` is text only; the font atlas skips sprite rows and SVG markup; sanitising runs on the result, after the engine). A `<style>` or gradient sprite fails differently (`Cannot read properties of null (reading 'bBZ')`), also inside the engine. Decision: a known limit. Workaround for authors: simplify the path or split it into shorter paths. A real fix would be a newer engine, or rewriting such sprites before rendering (not worth it yet). It does not affect the tupadr3 icons (bitmaps) or C4.
+
+### 9.5 Still open
+
+WebKit speed with many icons (I7b), licence decisions (I7c), the sanitiser allow-list above, zoom blur and the uncompressed PNG size (section 7).
