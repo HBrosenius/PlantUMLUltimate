@@ -35,6 +35,13 @@ function AddMenuView({
   onActivityArrow,
   onWbsNode,
   onMindmapNode,
+  onC4Person,
+  onC4System,
+  onC4Container,
+  onC4Component,
+  onC4Boundary,
+  onC4Node,
+  onC4Relationship,
 }: {
   diagramKind: DiagramKind;
   disabled?: boolean | undefined;
@@ -68,6 +75,13 @@ function AddMenuView({
   onActivityArrow(): void;
   onWbsNode(): void;
   onMindmapNode(): void;
+  onC4Person(): void;
+  onC4System(): void;
+  onC4Container(): void;
+  onC4Component(): void;
+  onC4Boundary(): void;
+  onC4Node(): void;
+  onC4Relationship(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -398,7 +412,64 @@ function AddMenuView({
               </button>
             </>
           ) : diagramKind === "c4" ? (
-            <p className="add-menu-note">Type a C4 macro in the editor, such as Container, and press Ctrl+Space.</p>
+            <>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Person)}
+              >
+                <span>Person…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4System)}
+              >
+                <span>Software system…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Container)}
+              >
+                <span>Container…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Component)}
+              >
+                <span>Component…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Boundary)}
+              >
+                <span>Boundary…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Node)}
+              >
+                <span>Deployment node…</span>
+              </button>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onC4Relationship)}
+              >
+                <span>Relationship…</span>
+              </button>
+            </>
           ) : diagramKind === "mindmap" ? (
             <button
               aria-keyshortcuts="Alt+N"

@@ -88,6 +88,16 @@ A new package `packages/diagram-c4`, shaped like `diagram-usecase`:
 - **Stage view:** C4 joins the stage dock like the other types.
 - **Depends on C0:** canvas selection needs each drawn shape to point back to its alias (section 5).
 
+**Result (C2):** all of the above landed in `apps/web/src/features/c4/` and `C4DiagramPreview.tsx`, with the gate as an e2e test (`tests/e2e/editor-c4.spec.ts`). Differences from the list above:
+
+- **Notes** are not added: C1 has no operation for a C4 note, so there is no form for one.
+- **Reordering** by drag or Alt+arrow is not offered (it was not in the list); the Placement select and the move handle cover boundaries.
+- **A relationship drawn by dragging** is written as `Rel(a, b, "Uses")`, since C4 wants a verb on every arrow; the label is one field away in the panel.
+- **Both ways** (`BiRel`) can be chosen when adding a relationship, not in the panel.
+- **Tag definitions** (`AddElementTag`) are not edited in the Diagram settings panel; layout and legend are.
+- **The missing-include offer** appears in the Add dialogs (a checkbox, on by default). It adds one `!include` line after the last C4 include, so a Container added to a Context diagram gives both includes; the library handles that.
+- **Stage** gets selection, dock actions (Rename, Relate, Delete) and the Add menu.
+
 ## 5. The one unknown (C0 spike)
 
 Selecting and dragging on the canvas depend on finding which source element a drawn shape belongs to. The other types use the ids and entity names the engine writes into the SVG (`normalizeRenderedId` in `UseCaseDiagramPreview.tsx`).

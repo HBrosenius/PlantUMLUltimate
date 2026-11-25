@@ -15,6 +15,11 @@ export const MindmapPanels = lazyFeature<
   "the mindmap editor",
 );
 
+export const C4Panels = lazyFeature<ComponentProps<typeof import("../features/c4/C4Panels").C4Panels>>(
+  () => import("../features/c4/C4Panels").then((module) => ({ default: module.C4Panels })),
+  "the C4 editor",
+);
+
 export const WbsSettingsInspector = lazyFeature<
   ComponentProps<typeof import("../features/wbs/WbsInspectors").WbsSettingsInspector>
 >(

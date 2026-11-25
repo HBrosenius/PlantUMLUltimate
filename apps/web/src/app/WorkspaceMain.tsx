@@ -40,6 +40,7 @@ import type { SchedulePreview } from "../SchedulePreviewDialog";
 import type { AddItem, DockAction, StageSelection } from "../stage/stage-selection";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
 import { diagramFocusSelector } from "./diagram-focus";
+import type { C4Editor } from "../features/c4/use-c4-editor";
 import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 
 export interface WorkspaceMainProps {
@@ -107,6 +108,7 @@ export interface WorkspaceMainProps {
   moveGanttTask: (taskId: string, days: number) => void;
   moveUseCaseElementByDrag: (elementId: string, packageId: string) => void;
   mindmap: MindmapEditor;
+  c4: C4Editor;
   moveWbsNode: (nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right") => void;
   openClassMemberMenu: (target: Element, x: number, y: number) => boolean;
   openDateActionMenu: (date: string) => void;
@@ -351,6 +353,7 @@ export function WorkspaceMain({
   moveGanttTask,
   moveUseCaseElementByDrag,
   mindmap,
+  c4,
   moveWbsNode,
   openClassMemberMenu,
   openDateActionMenu,
@@ -708,6 +711,7 @@ export function WorkspaceMain({
           moveGanttTask={moveGanttTask}
           moveUseCaseElementByDrag={moveUseCaseElementByDrag}
           mindmap={mindmap}
+          c4={c4}
           moveWbsNode={moveWbsNode}
           openDateActionMenu={openDateActionMenu}
           openMember={openMember}

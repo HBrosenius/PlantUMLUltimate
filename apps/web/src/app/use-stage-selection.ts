@@ -21,6 +21,8 @@ import type {
   ClassPackage,
   ClassRelationship,
 } from "../../../../packages/diagram-class/src/model";
+import { c4SelectionAtPosition } from "../features/c4/c4-forms";
+import type { C4SelectionState } from "../features/c4/use-c4-editor";
 import type { useDiagramMultiSelection } from "../use-diagram-multi-selection";
 import type { DiagramParseResult } from "../../../../packages/language-core/src/index";
 import type {
@@ -49,6 +51,7 @@ import type { WorkspaceSnapshot } from "../workspace-storage";
 
 export interface useStageSelectionInputs {
   activityDocument: ActivityDocument;
+  c4Selection: C4SelectionState;
   classDocument: ClassDocument;
   diagramMulti: ReturnType<typeof useDiagramMultiSelection>;
   parseResult: DiagramParseResult<GanttDocument>;
@@ -112,6 +115,7 @@ export interface useStageSelectionInputs {
 
 export function useStageSelection({
   activityDocument,
+  c4Selection,
   classDocument,
   diagramMulti,
   parseResult,
@@ -168,6 +172,7 @@ export function useStageSelection({
   wbsDocument,
   workspace,
 }: useStageSelectionInputs) {
+  const { selectedElement: selectedC4Element, selectedRelationship: selectedC4Relationship } = c4Selection;
   const stageSelection = useMemo(
     () =>
       stageActive && !diagramMulti.multiple
@@ -201,6 +206,22 @@ export function useStageSelection({
               "activity-arrow": selectedActivityArrow,
               "wbs-node": selectedWbsNode,
               "wbs-relationship": selectedWbsRelationship,
+              "c4-element":
+                selectedC4Element && selectedC4Element.category !== "boundary" && selectedC4Element.category !== "node"
+                  ? { id: selectedC4Element.id, label: selectedC4Element.label, range: selectedC4Element.range }
+                  : undefined,
+              "c4-boundary":
+                selectedC4Element &&
+                (selectedC4Element.category === "boundary" || selectedC4Element.category === "node")
+                  ? { id: selectedC4Element.id, label: selectedC4Element.label, range: selectedC4Element.range }
+                  : undefined,
+              "c4-relationship": selectedC4Relationship
+                ? {
+                    id: `rel:${selectedC4Relationship.index}`,
+                    label: selectedC4Relationship.label || "Relationship",
+                    range: selectedC4Relationship.range,
+                  }
+                : undefined,
             } as StageSelectionInput["items"],
           })
         : undefined,
@@ -222,6 +243,8 @@ export function useStageSelection({
       selectedActivityArrow,
       selectedWbsNode,
       selectedWbsRelationship,
+      selectedC4Element,
+      selectedC4Relationship,
       stageActive,
       diagramMulti.multiple,
       workspace.diagramKind,
@@ -308,6 +331,11 @@ export function useStageSelection({
       case "wbs":
         selectWbsFromSource(symbolAt(position)?.key, findWbsNodeAt(wbsDocument, position)?.id);
         break;
+      case "c4": {
+        const restored = c4SelectionAtPosition(c4Selection.document, position);
+        if (restored) c4Selection.select(restored);
+        break;
+      }
       case "mindmap":
         // Source-only: there is no visual selection to restore.
         break;

@@ -30,6 +30,12 @@ export type AppDialog =
   | { kind: "add-usecase-relationship" }
   | { kind: "add-usecase-package" }
   | { kind: "add-usecase-note" }
+  | { kind: "add-c4-element"; elementKind: "person" | "system" | "container" | "component" }
+  | {
+      kind: "add-c4-boundary";
+      boundaryKind?: "System_Boundary" | "Container_Boundary" | "Enterprise_Boundary" | "Boundary" | "Deployment_Node";
+    }
+  | { kind: "add-c4-relationship" }
   | { kind: "add-sequence-participant" }
   | { kind: "add-sequence-message" }
   | { kind: "add-sequence-structure"; structureKind: SequenceStructureKind };

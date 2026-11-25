@@ -67,6 +67,7 @@ export function useOutlineModeEffects({
       "data-wbs-node-id",
       "data-mindmap-node-id",
       "data-wbs-relationship-id",
+      "data-c4-object-id",
     ];
     const mark = () => {
       root.querySelectorAll("[data-outline-match]").forEach((element) => element.removeAttribute("data-outline-match"));

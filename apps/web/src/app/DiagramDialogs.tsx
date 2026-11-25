@@ -21,6 +21,7 @@ import { ProjectInspector } from "../ProjectInspector";
 import { parseProjectSettings, type ProjectSettings } from "../project-settings";
 import {
   AddWbsNodeDialog,
+  C4Panels,
   MindmapPanels,
   WbsSettingsInspector,
   WbsNodeInspector,
@@ -57,6 +58,7 @@ import type {
 } from "../../../../packages/diagram-usecase/src/operations";
 import type { WbsNodeInput, WbsNode, WbsRelationship, WbsDocument } from "../../../../packages/diagram-wbs/src/model";
 import type { WbsInsertPosition } from "../features/wbs/WbsDialogs";
+import type { C4Editor } from "../features/c4/use-c4-editor";
 import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { AppDialog } from "../use-app-dialog";
 import type { ActiveCollaboration } from "../use-collaboration-lifecycle";
@@ -153,6 +155,7 @@ export interface DiagramDialogsProps {
   )[];
   linkedGantt: DocumentSnapshot | undefined;
   linkedWbs: DocumentSnapshot | undefined;
+  c4: C4Editor;
   mindmap: MindmapEditor;
   linkedWorkPreview: LinkedWorkPreview | undefined;
   mapWbsProjectEdit: (node: WbsNode, source: string) => void;
@@ -305,6 +308,7 @@ export function DiagramDialogs({
   linkedDiagramActions,
   linkedGantt,
   linkedWbs,
+  c4,
   mindmap,
   linkedWorkPreview,
   mapWbsProjectEdit,
@@ -543,6 +547,9 @@ export function DiagramDialogs({
           onChooseExample={(example, name) => createDocument(example.kind, example, name)}
           onClose={closeNewDocumentDialog}
         />
+      )}
+      {workspace.diagramKind === "c4" && (
+        <C4Panels c4={c4} dialog={dialog} closeDialog={closeDialog} multiple={diagramMulti.multiple} />
       )}
       {workspace.diagramKind === "mindmap" && (
         <MindmapPanels mindmap={mindmap} dialog={dialog} closeDialog={closeDialog} multiple={diagramMulti.multiple} />

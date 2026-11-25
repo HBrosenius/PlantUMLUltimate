@@ -30,6 +30,9 @@ export type StageSelectionKind =
   | "activity-arrow"
   | "wbs-node"
   | "wbs-relationship"
+  | "c4-element"
+  | "c4-boundary"
+  | "c4-relationship"
   | "other";
 
 /** Kinds whose selection is described by a generic `{ id, label|name, range }` item. */
@@ -88,6 +91,7 @@ const FAMILY_ANCHORS: Record<string, { attribute: string; neighbours: string }> 
   class: { attribute: "data-class-object-id", neighbours: "[data-class-object-id]" },
   activity: { attribute: "data-activity-object-id", neighbours: "[data-activity-object-id]" },
   wbs: { attribute: "data-wbs-node-id", neighbours: "[data-wbs-node-id]" },
+  c4: { attribute: "data-c4-object-id", neighbours: "[data-c4-object-id]" },
 };
 
 const escape = (value: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(value) : value);
@@ -397,6 +401,14 @@ function genericActionsFor(selection: StageSelection, handlers: DockHandlers, ma
         }),
         ...del,
       ];
+    case "c4-element":
+      return [
+        rename,
+        make({ id: "relate", label: "Relate…", title: "Add a relationship", run: handlers.addLinked }),
+        ...del,
+      ];
+    case "c4-boundary":
+      return [rename, ...del];
     case "usecase-package":
     case "usecase-note":
     case "class-package":
@@ -411,6 +423,7 @@ function genericActionsFor(selection: StageSelection, handlers: DockHandlers, ma
     case "activity-terminal":
     case "activity-arrow":
     case "wbs-relationship":
+    case "c4-relationship":
       return del;
     default:
       return [];
@@ -432,5 +445,5 @@ export const DIAGRAM_NOUN: Record<DiagramKind, string> = {
   activity: "Activity",
   wbs: "WBS",
   mindmap: "Mindmap",
-  c4: "C4 element",
+  c4: "C4",
 };

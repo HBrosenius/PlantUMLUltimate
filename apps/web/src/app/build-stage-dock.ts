@@ -32,6 +32,7 @@ export interface buildStageDockInputs {
   removeClassNote: () => void;
   removeClassPackage: () => void;
   removeClassRelationship: () => void;
+  removeC4Selected: () => void;
   removeSequenceMessage: () => void;
   removeSequenceParticipant: () => void;
   removeSequenceStructure: () => void;
@@ -72,6 +73,7 @@ export function buildStageDock({
   removeClassNote,
   removeClassPackage,
   removeClassRelationship,
+  removeC4Selected,
   removeSequenceMessage,
   removeSequenceParticipant,
   removeSequenceStructure,
@@ -119,7 +121,8 @@ export function buildStageDock({
     deleteSequenceStructure: removeSequenceStructure,
     renameInLens: () => window.dispatchEvent(new Event("stage-focus-lens")),
     addLinked: () => {
-      if (workspace.diagramKind === "usecase") openDialog({ kind: "add-usecase-relationship" });
+      if (workspace.diagramKind === "c4") openDialog({ kind: "add-c4-relationship" });
+      else if (workspace.diagramKind === "usecase") openDialog({ kind: "add-usecase-relationship" });
       else if (workspace.diagramKind === "activity") openDialog({ kind: "add-activity-arrow" });
       else openDialog({ kind: "add-class-relationship" });
     },
@@ -141,6 +144,9 @@ export function buildStageDock({
       "activity-control": removeActivityControl,
       "activity-terminal": removeActivityTerminal,
       "activity-arrow": removeActivityArrow,
+      "c4-element": removeC4Selected,
+      "c4-boundary": removeC4Selected,
+      "c4-relationship": removeC4Selected,
       "wbs-node": removeWbsNode,
       "wbs-relationship": removeWbsRelationship,
     },
@@ -184,6 +190,15 @@ export function buildStageDock({
         ];
       case "wbs":
         return [item("node", "Node", () => openDialog({ kind: "add-wbs-node" }))];
+      case "c4":
+        return [
+          item("person", "Person", () => openDialog({ kind: "add-c4-element", elementKind: "person" })),
+          item("system", "System", () => openDialog({ kind: "add-c4-element", elementKind: "system" })),
+          item("container", "Container", () => openDialog({ kind: "add-c4-element", elementKind: "container" })),
+          item("component", "Component", () => openDialog({ kind: "add-c4-element", elementKind: "component" })),
+          item("boundary", "Boundary", () => openDialog({ kind: "add-c4-boundary" })),
+          item("relationship", "Relationship", () => openDialog({ kind: "add-c4-relationship" })),
+        ];
       case "mindmap":
         // Source-only until visual editing exists: nothing to add from the stage.
         return [];

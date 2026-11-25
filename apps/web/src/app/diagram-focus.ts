@@ -7,6 +7,7 @@ export function diagramFocusSelector(target: Element): string | undefined {
     "data-activity-object-id",
     "data-wbs-node-id",
     "data-mindmap-node-id",
+    "data-c4-object-id",
   ]) {
     const owner = target.closest(`[${attribute}]`);
     const value = owner?.getAttribute(attribute);

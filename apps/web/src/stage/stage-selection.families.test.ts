@@ -70,4 +70,31 @@ describe("stage selection for the other families", () => {
     })!;
     expect(dockActionsFor(selection, handlers()).map((action) => action.id)).toEqual(["rename", "relate"]);
   });
+
+  it("describes and acts on C4 selections", () => {
+    const remove = vi.fn();
+    const h = handlers({ "c4-element": remove, "c4-boundary": remove, "c4-relationship": remove });
+    const element = describeStageSelection({
+      diagramKind: "c4",
+      items: { "c4-element": { id: "web", label: "Web app", range: { from: 4, to: 30 } } },
+    })!;
+    expect(element).toMatchObject({ kind: "c4-element", id: "web", label: "Web app", range: { from: 4, to: 30 } });
+    expect(element.anchor).toBe('[data-c4-object-id="web"]');
+    expect(dockActionsFor(element, h).map((action) => action.id)).toEqual(["rename", "relate", "delete"]);
+    dockActionsFor(element, h)
+      .find((action) => action.id === "relate")!
+      .run();
+    expect(h.addLinked).toHaveBeenCalled();
+    const link = describeStageSelection({
+      diagramKind: "c4",
+      items: { "c4-relationship": { id: "rel:2", label: "Calls", range: { from: 40, to: 60 } } },
+    })!;
+    expect(link.anchor).toBe('[data-c4-object-id="rel:2"]');
+    expect(dockActionsFor(link, h).map((action) => action.id)).toEqual(["delete"]);
+    const boundary = describeStageSelection({
+      diagramKind: "c4",
+      items: { "c4-boundary": { id: "shop", label: "Shop", range: { from: 0, to: 80 } } },
+    })!;
+    expect(dockActionsFor(boundary, h).map((action) => action.id)).toEqual(["rename", "delete"]);
+  });
 });
