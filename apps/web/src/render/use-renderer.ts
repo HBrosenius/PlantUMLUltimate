@@ -1,7 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type SetStateAction } from "react";
 import type { RenderResult, RenderStatus } from "../model";
-import { sourceForPlantUmlRenderer } from "./plantuml-source";
-import { bundledThemeToLoad, loadBundledTheme } from "./bundled-themes";
+import { planForPlantUmlRenderer, type RenderPlan } from "./plantuml-source";
+import {
+  includeCacheVersion,
+  mayContainIncludes,
+  prepareIncludes,
+  subscribeIncludeCache,
+  type LineMap,
+} from "./includes";
+import {
+  hashText,
+  includeContextFor,
+  includeContextSignature,
+  includeEnvironmentVersion,
+  subscribeIncludeEnvironment,
+} from "./include-environment";
+import { mapErrorPictureToSource, mapSyntaxErrorToSource } from "./syntax-error";
 import { loadRendererAssets, frameDocument } from "./renderer-assets";
 import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
@@ -15,6 +29,10 @@ interface PendingRender {
   documentId: string;
   renderSource: string;
   layoutEngine: RendererLayoutEngine;
+  /** Maps lines of `renderSource` back to the files they came from; absent when nothing was expanded. */
+  lineMap?: LineMap | undefined;
+  /** Identifies the expanded text, so an included file that changed is not served from the cache. */
+  includeKey: string;
 }
 interface FrameMessage {
   channel: string;
@@ -29,7 +47,21 @@ const TIMEOUT_MS = 15_000;
 const RENDER_TIMEOUT_MS = 30_000;
 const SUPERSEDED_GRACE_MS = 500;
 const CACHE_BYTES = 20_000_000;
-const cacheKey = (documentId: string, source: string) => JSON.stringify([documentId, source]);
+const cacheKey = (documentId: string, source: string, includeKey = "") =>
+  JSON.stringify([documentId, source, includeKey]);
+
+/** What the last expansion of a source found: each include and what went wrong with it. */
+export interface RenderIncludeInfo {
+  includes: RenderPlan["includes"];
+  diagnostics: RenderPlan["diagnostics"];
+}
+
+function publishIncludes(set: Dispatch<SetStateAction<RenderIncludeInfo | undefined>>, plan: RenderPlan | undefined) {
+  if (!plan) return set(undefined);
+  const next = { includes: plan.includes, diagnostics: plan.diagnostics };
+  const key = JSON.stringify(next);
+  set((previous) => (previous && JSON.stringify(previous) === key ? previous : next));
+}
 
 export type RendererLayoutEngine = "native" | "graphviz";
 export function rendererLayoutEngineForDiagramKind(kind: string): RendererLayoutEngine {
@@ -75,6 +107,15 @@ export function useRenderer(
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
   const [restart, setRestart] = useState(0);
+  const [includeInfo, setIncludeInfo] = useState<RenderIncludeInfo>();
+  const includeKeyRef = useRef("");
+  // Includes read other diagrams of the document and files loaded from a repository or folder; either
+  // changing means the same source may need a new render.
+  const includeVersion =
+    useSyncExternalStore(subscribeIncludeCache, includeCacheVersion) +
+    useSyncExternalStore(subscribeIncludeEnvironment, includeEnvironmentVersion);
+  const expandable = mayContainIncludes(source);
+  const includeSignature = expandable ? includeContextSignature(includeContextFor(documentId)) : "";
 
   useEffect(() => {
     if (!started) return;
@@ -176,8 +217,9 @@ export function useRenderer(
             sendPending();
             return;
           }
+          const { lineMap: _lineMap, includeKey: _includeKey, ...wire } = request;
           frame?.contentWindow?.postMessage(
-            { channel, type: "render", ...request, fonts },
+            { channel, type: "render", ...wire, fonts },
             "*",
             fonts ? [fonts.metrics.buffer] : [],
           );
@@ -306,13 +348,15 @@ export function useRenderer(
             : 0,
       };
       try {
-        if (message.error)
+        if (message.error) {
           completed.error =
             typeof message.error === "string"
               ? message.error.slice(0, 10_000)
               : "The renderer returned an invalid error";
-        else if (typeof message.svg === "string") {
-          const svg = message.svg;
+          // The engine counted lines in the expanded text; report the file and line the author wrote.
+          if (request.lineMap) completed.error = mapSyntaxErrorToSource(completed.error, request.lineMap);
+        } else if (typeof message.svg === "string") {
+          const svg = request.lineMap ? mapErrorPictureToSource(message.svg, request.lineMap) : message.svg;
           completed.svg = measurePreviewPhase("sanitize-incoming", () => sanitizeSvg(svg));
         } else completed.error = "The renderer returned no diagram";
       } catch (error) {
@@ -320,7 +364,7 @@ export function useRenderer(
       }
       if (!completed.error) lastRenderMs.current = completed.durationMs;
       if (completed.svg) {
-        const key = cacheKey(request.documentId, request.source);
+        const key = cacheKey(request.documentId, request.source, request.includeKey);
         cache.current.delete(key);
         cache.current.set(key, completed);
         let bytes = [...cache.current].reduce(
@@ -368,8 +412,13 @@ export function useRenderer(
       setStatus("idle");
       return;
     }
+    const context = includeContextFor(documentId);
+    const initialPlan = expandable ? planForPlantUmlRenderer(source, context) : undefined;
+    const includeKey = initialPlan ? hashText(initialPlan.text) : "";
+    includeKeyRef.current = includeKey;
+    publishIncludes(setIncludeInfo, initialPlan);
     // A preview already rendered for this exact source needs no debounce and no renderer.
-    const cached = cache.current.get(cacheKey(documentId, source));
+    const cached = cache.current.get(cacheKey(documentId, source, includeKey));
     if (cached) {
       setResult({ ...cached, requestId: id });
       setStatus("idle");
@@ -407,18 +456,25 @@ export function useRenderer(
       }
       const queue = () => {
         if (cancelled || requestId.current !== id) return;
+        // Expanded again now that everything it needed is loaded.
+        const plan = planForPlantUmlRenderer(source, context);
+        const key = expandable ? hashText(plan.text) : "";
+        includeKeyRef.current = key;
+        publishIncludes(setIncludeInfo, expandable ? plan : undefined);
         pending.current = {
           requestId: id,
           source,
           documentId,
-          renderSource: sourceForPlantUmlRenderer(source),
+          renderSource: plan.text,
           layoutEngine,
+          lineMap: plan.map,
+          includeKey: key,
         };
         flush.current?.();
       };
-      // Bundled themes load on demand; sources without one keep the synchronous path.
-      const theme = bundledThemeToLoad(source);
-      if (theme) void loadBundledTheme(theme).then(queue, queue);
+      // Bundled themes, the bundled C4 library and files from a repository or folder load on demand;
+      // sources without includes keep the synchronous path.
+      if (initialPlan && initialPlan.pending.length > 0) void prepareIncludes(source, context).then(queue, queue);
       else queue();
     }, delay);
     let cancelled = false;
@@ -426,11 +482,18 @@ export function useRenderer(
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [enabled, source, documentId, layoutEngine, restart]);
+    // `expandable` follows `source`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, source, documentId, layoutEngine, restart, includeSignature, includeVersion]);
 
   const retry = () => {
-    cache.current.delete(cacheKey(documentId, source));
+    cache.current.delete(cacheKey(documentId, source, includeKeyRef.current));
     setRestart((value) => value + 1);
   };
-  return { status, result: result?.documentId === documentId ? result : undefined, retry };
+  return {
+    status,
+    result: result?.documentId === documentId ? result : undefined,
+    retry,
+    includes: expandable ? includeInfo : undefined,
+  };
 }

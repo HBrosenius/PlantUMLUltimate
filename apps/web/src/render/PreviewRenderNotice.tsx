@@ -36,7 +36,9 @@ export function PreviewRenderNotice({
     >
       <strong>
         {syntax
-          ? `Line ${syntax.line} can't be drawn`
+          ? syntax.file
+            ? `Line ${syntax.line} of ${syntax.file} can't be drawn`
+            : `Line ${syntax.line} can't be drawn`
           : failed
             ? "Preview could not be updated"
             : slow
@@ -47,7 +49,9 @@ export function PreviewRenderNotice({
         <>
           {syntax.text && <code>{syntax.text}</code>}
           <span>
-            PlantUML doesn't recognise this line. Check its spelling and values
+            {syntax.file
+              ? `This line is in an included file, not in this diagram. Fix it in ${syntax.file}`
+              : "PlantUML doesn't recognise this line. Check its spelling and values"}
             {hasPreview ? "; the preview shows the last version that worked." : "."}
           </span>
         </>
@@ -57,7 +61,7 @@ export function PreviewRenderNotice({
       {failed ? (
         <>
           {!syntax && <span>{error ?? "The renderer returned an unknown error."}</span>}
-          {syntax ? (
+          {syntax?.file ? null : syntax ? (
             <button
               type="button"
               onClick={() =>

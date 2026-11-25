@@ -1,68 +1,122 @@
-import { expandBundledTheme } from "./bundled-themes";
+import {
+  BLOCKED_COMMENT,
+  RESOURCE_BUILTIN,
+  RESOURCE_DIRECTIVE,
+  expandIncludes,
+  mayContainIncludes,
+  type ExpandedSource,
+  type IncludeContext,
+  type LineMap,
+} from "./includes";
 
 /**
- * Preprocessor directives that read other files or URLs: every `!include` variant (`!include`,
- * `!includeurl`, `!include_many`, `!include_once`, `!includesub`, `!includedef`, ...), `!import`
- * and `!theme ... from <location>`. PlantUML tolerates whitespace after the `!`.
+ * What the sandboxed engine is given for a source: the text with every include and bundled theme expanded
+ * locally, a line map from each line back to its file and line (undefined when nothing was expanded, so
+ * line numbers are the authored ones), and what the expansion found.
  */
-const RESOURCE_DIRECTIVE = /^\s*!\s*(?:include\w*|import\w*)\b|^\s*!\s*theme\b.*\bfrom\b/i;
-/**
- * Preprocessor builtins that read files, URLs, the environment or the local file system. These can
- * appear anywhere in a line (for example in a variable assignment or a label), so the whole line is blocked.
- */
-const RESOURCE_BUILTIN = /%\s*(?:load_json|getenv|get_env|dirpath|filename\w*|file_exists|dir_exists)\b/i;
+export interface RenderPlan {
+  text: string;
+  map: LineMap | undefined;
+  includes: ExpandedSource["includes"];
+  diagnostics: ExpandedSource["diagnostics"];
+  pending: ExpandedSource["pending"];
+}
 
-export function sourceForPlantUmlRenderer(source: string): string {
-  const lines = source.split(/\r\n|\r|\n/);
+export function sourceForPlantUmlRenderer(source: string, context?: IncludeContext): string {
+  return planForPlantUmlRenderer(source, context).text;
+}
+
+export function planForPlantUmlRenderer(source: string, context?: IncludeContext): RenderPlan {
+  const expanded = mayContainIncludes(source) ? expandIncludes(source, context) : undefined;
+  const guarded = guardLines((expanded?.text ?? source).split(/\r\n|\r|\n/));
+  const { lines, map } = gantt(guarded, expanded?.map);
+  return {
+    text: lines.join("\n"),
+    map,
+    includes: expanded?.includes ?? [],
+    diagnostics: expanded?.diagnostics ?? [],
+    pending: expanded?.pending ?? [],
+  };
+}
+
+/** Blocks what could read files or the network and removes note blocks. Keeps the number of lines. */
+function guardLines(lines: string[]): string[] {
   let inNote = false;
-  const safeSource = lines
-    .map((line) => {
-      if (RESOURCE_DIRECTIVE.test(line) || RESOURCE_BUILTIN.test(line))
-        return "' remote resource directive blocked by PlantUML Ultimate";
-      if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Ultimate";
-      if (/^\s*note\s+(?:bottom|top|left|right)\s*$/i.test(line)) {
-        inNote = true;
-        return "' note rendered by PlantUML Ultimate";
+  return lines.map((line) => {
+    if (RESOURCE_DIRECTIVE.test(line) || RESOURCE_BUILTIN.test(line)) return BLOCKED_COMMENT;
+    if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Ultimate";
+    if (/^\s*note\s+(?:bottom|top|left|right)\s*$/i.test(line)) {
+      inNote = true;
+      return "' note rendered by PlantUML Ultimate";
+    }
+    if (inNote && /^\s*end\s+note\s*$/i.test(line)) {
+      inNote = false;
+      return "";
+    }
+    return inNote ? "" : line;
+  });
+}
+
+/**
+ * The bundled engine accepts pairwise arrows, but not compact Gantt chains. Keep the first edge on its
+ * authored line and append the remaining edges at the block's end, so diagnostics for subsequent authored
+ * statements stay aligned. Inserted lines are mapped to the block's `@endgantt` line.
+ */
+function gantt(lines: string[], map: LineMap | undefined): { lines: string[]; map: LineMap | undefined } {
+  const kind = lines
+    .join("\n")
+    .match(/^[ \t]*@start(\w+)\b/im)?.[1]
+    ?.toLowerCase();
+  if (kind !== "gantt") return { lines, map };
+  const result = [...lines];
+  const file = map ? [...map.file] : undefined;
+  const line = map ? [...map.line] : undefined;
+  let index = 0;
+  while (index < result.length) {
+    if (!/^[ \t]*@startgantt\b/i.test(result[index]!)) {
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < result.length && !/^[ \t]*@endgantt\b/i.test(result[end]!)) end += 1;
+    if (end >= result.length) break;
+    // Moving edges out of a macro or conditional would change its meaning. The bundled themes are expanded
+    // macros too, but they are not the author's.
+    const body = result.slice(index + 1, end);
+    const authored = body.filter((_, offset) => {
+      const origin = map ? map.files[map.file[index + 1 + offset] ?? 0]?.origin : "main";
+      return origin !== "theme";
+    });
+    if (authored.some((text) => /^[ \t]*!(?!theme\b)/i.test(text))) {
+      index = end + 1;
+      continue;
+    }
+    const extraEdges: string[] = [];
+    let inComment = false;
+    for (let at = index + 1; at < end; at += 1) {
+      const text = result[at]!;
+      const commented = inComment || text.includes("/'");
+      if (text.includes("/'")) inComment = true;
+      if (text.includes("'/")) inComment = false;
+      if (commented) continue;
+      result[at] = text.replace(
+        /^([ \t]*)(\[[^\]\n]+\](?:[ \t]*->[ \t]*\[[^\]\n]+\]){2,})([ \t]*(?:'.*)?)$/,
+        (_line, indent: string, chain: string, comment: string) => {
+          const tasks = chain.match(/\[[^\]\n]+\]/g)!;
+          for (let task = 1; task < tasks.length - 1; task += 1)
+            extraEdges.push(`${indent}${tasks[task]} -> ${tasks[task + 1]}`);
+          return `${indent}${tasks[0]} -> ${tasks[1]}${comment}`;
+        },
+      );
+    }
+    if (extraEdges.length) {
+      result.splice(end, 0, ...extraEdges);
+      if (file && line) {
+        file.splice(end, 0, ...extraEdges.map(() => file[end] ?? 0));
+        line.splice(end, 0, ...extraEdges.map(() => line[end] ?? 1));
       }
-      if (inNote && /^\s*end\s+note\s*$/i.test(line)) {
-        inNote = false;
-        return "";
-      }
-      return inNote ? "" : line;
-    })
-    .join("\n");
-  const diagramKind = safeSource.match(/^[ \t]*@start(\w+)\b/im)?.[1]?.toLowerCase();
-  if (diagramKind !== "gantt") return expandBundledTheme(safeSource);
-  // The bundled engine accepts pairwise arrows, but not compact Gantt chains.
-  // Keep the first edge on its authored line and append the remaining edges at
-  // the block's end, so diagnostics for subsequent authored statements stay aligned.
-  const compatibleSource = safeSource.replace(
-    /^([ \t]*@startgantt\b[^\n]*\n)([\s\S]*?)(^[ \t]*@endgantt\b[^\n]*)/gim,
-    (_block, start: string, body: string, end: string) => {
-      // Moving edges out of a macro or conditional would change its meaning.
-      if (/^[ \t]*!(?!theme\b)/im.test(body)) return _block;
-      const extraEdges: string[] = [];
-      let inComment = false;
-      const compatibleBody = body
-        .split("\n")
-        .map((line) => {
-          const commented = inComment || line.includes("/'");
-          if (line.includes("/'")) inComment = true;
-          if (line.includes("'/")) inComment = false;
-          if (commented) return line;
-          return line.replace(
-            /^([ \t]*)(\[[^\]\n]+\](?:[ \t]*->[ \t]*\[[^\]\n]+\]){2,})([ \t]*(?:'.*)?)$/,
-            (_line, indent: string, chain: string, comment: string) => {
-              const tasks = chain.match(/\[[^\]\n]+\]/g)!;
-              for (let index = 1; index < tasks.length - 1; index += 1)
-                extraEdges.push(`${indent}${tasks[index]} -> ${tasks[index + 1]}`);
-              return `${indent}${tasks[0]} -> ${tasks[1]}${comment}`;
-            },
-          );
-        })
-        .join("\n");
-      return `${start}${compatibleBody}${extraEdges.length ? `${extraEdges.join("\n")}\n` : ""}${end}`;
-    },
-  );
-  return expandBundledTheme(compatibleSource);
+    }
+    index = end + extraEdges.length + 1;
+  }
+  return { lines: result, map: map && file && line ? { files: map.files, file, line } : undefined };
 }
