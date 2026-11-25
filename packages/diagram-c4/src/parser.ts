@@ -120,9 +120,12 @@ function readCall(line: string) {
     }
   }
   if (close < 0) return undefined;
-  const tail = /^\s*(\{)?\s*(?:'.*)?$/.exec(line.slice(close + 1));
-  if (!tail) return undefined;
-  return { indent: head[1]!.length, name: head[2]!, open, close, brace: Boolean(tail[1]) };
+  // After the call: optional whitespace, an optional `{`, optional whitespace, then nothing or a comment.
+  let rest = line.slice(close + 1).trimStart();
+  const brace = rest.startsWith("{");
+  if (brace) rest = rest.slice(1).trimStart();
+  if (rest && !rest.startsWith("'")) return undefined;
+  return { indent: head[1]!.length, name: head[2]!, open, close, brace };
 }
 
 const TAG_DEFINITIONS: Record<string, C4TagDefinition["kind"]> = {
@@ -224,7 +227,7 @@ export function parseC4(source: string): C4Document {
           to: named("to") ?? positional[1]?.value ?? "",
         };
         settings.hints.push(hint);
-      } else if (/\{\s*(?:'.*)?$/.test(text)) stack.push({});
+      } else if (opensBlock(text)) stack.push({});
       return;
     }
     const site = callSite(macro.name, call, line, from, to, index, scopes, stack.length);
@@ -304,4 +307,18 @@ function callSite(
     depth,
     ...(scope ? { scope } : {}),
   };
+}
+
+/**
+ * Whether a line opens a block: some `{` followed only by whitespace, or by whitespace and a comment. One pass
+ * from the end, so long runs of `{` or spaces stay linear.
+ */
+function opensBlock(text: string): boolean {
+  let next = "";
+  for (let index = text.length - 1; index >= 0; index -= 1) {
+    const char = text[index]!;
+    if (char === "{" && (next === "" || next === "'")) return true;
+    if (char !== " " && char !== "	") next = char;
+  }
+  return false;
 }
