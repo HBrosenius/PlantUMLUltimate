@@ -1,0 +1,18 @@
+@startuml
+!include <C4/C4_Container>
+Container(a, "A")
+Container(b, "B")
+Container(c, "C")
+Container(d, "D")
+Container(e, "E")
+Container(f, "F")
+Rel(a, b, "first")
+Rel(a, b, "second")
+Rel_U(b, c, "up")
+Rel_D(c, d, "down", "T")
+Rel_L(d, e, "left")
+Rel_R(e, f, "right")
+BiRel(a, f, "bi")
+Rel_Back(c, a, "back")
+Rel(a, c, "plain")
+@enduml

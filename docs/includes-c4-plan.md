@@ -114,6 +114,8 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 
 I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md). **I7a (raster sprite rendering, restored C4 person icon, export checks, security note) is done**; I7b to I7f follow the spike's recommendation.
 
+> **2026-11-25:** I5 and I6 are replaced by [C4 editing](c4-editing-plan.md), which brings C4 up to the other diagram types.
+
 **Suggested order:** I0 → I1 → I2 → I3 → I4, then decide on I5–I7 from use. After I1, every C4 file in the world that uses the standard library renders in the app. After I3, whole repositories do.
 
 ## 7. Decisions

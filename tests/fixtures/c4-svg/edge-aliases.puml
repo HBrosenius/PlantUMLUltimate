@@ -1,0 +1,9 @@
+@startuml
+!include <C4/C4_Container>
+Container(my_Svc_2, "Under")
+Container(A1b, "Digits")
+Container(CamelCase, "Camel")
+Container(x9, "Nine")
+Rel(my_Svc_2, A1b, "r1")
+Rel(CamelCase, x9, "r2")
+@enduml

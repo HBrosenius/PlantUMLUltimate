@@ -107,6 +107,8 @@ test("macro completion offers C4 macros with their parameters as tab stops", asy
   await page.keyboard.press("End");
   await page.keyboard.press("Enter");
   await page.keyboard.type("ContainerQ");
+  // Opened explicitly: completion while typing can miss a fast typist in Firefox.
+  await page.keyboard.press("Control+Space");
   const tooltip = page.locator(".cm-tooltip-autocomplete");
   await expect(tooltip).toContainText("ContainerQueue");
   await expect(tooltip).toContainText("alias, label, techn?, descr?");

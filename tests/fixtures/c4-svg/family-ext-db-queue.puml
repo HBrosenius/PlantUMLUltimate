@@ -1,0 +1,21 @@
+@startuml
+!include <C4/C4_Component>
+Person(p1, "P", "d")
+Person_Ext(p2, "PExt", "d")
+System(s1, "Sys", "d")
+System_Ext(s2, "SysExt", "d")
+SystemDb(s3, "SysDb", "d")
+SystemQueue(s4, "SysQ", "d")
+SystemDb_Ext(s5, "SysDbExt", "d")
+SystemQueue_Ext(s6, "SysQExt", "d")
+Container(c1, "Cont", "T", "d")
+Container_Ext(c2, "ContExt", "T", "d")
+ContainerDb(c3, "ContDb", "T", "d")
+ContainerQueue(c4, "ContQ", "T", "d")
+ContainerDb_Ext(c5, "ContDbExt", "T", "d")
+ContainerQueue_Ext(c6, "ContQExt", "T", "d")
+Component(k1, "Comp", "T", "d")
+Component_Ext(k2, "CompExt", "T", "d")
+ComponentDb(k3, "CompDb", "T", "d")
+ComponentQueue(k4, "CompQ", "T", "d")
+@enduml

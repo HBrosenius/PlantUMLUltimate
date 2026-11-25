@@ -1,0 +1,18 @@
+@startuml
+!include <C4/C4_Component>
+
+title Components of the API
+
+Container(web, "Web app", "React", "Calls the API")
+ContainerDb(db, "Database", "PostgreSQL", "Orders and customers")
+Container_Boundary(api, "API") {
+  Component(orders, "Order controller", "Spring MVC", "Receives order requests")
+  Component(service, "Order service", "Java", "Order rules")
+  Component(repository, "Order repository", "Spring Data", "Stores orders")
+}
+
+Rel(web, orders, "Calls", "JSON/HTTPS")
+Rel(orders, service, "Uses")
+Rel(service, repository, "Uses")
+Rel(repository, db, "Reads and writes", "SQL")
+@enduml

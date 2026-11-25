@@ -1,0 +1,15 @@
+{
+  "name": "@plantuml-studio/diagram-c4",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@plantuml-studio/language-core": "*"
+  }
+}

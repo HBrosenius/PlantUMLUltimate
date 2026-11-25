@@ -1,0 +1,9 @@
+@startuml
+!include <C4/C4_Container>
+!procedure Svc($a, $l)
+Container($a, $l, "Java")
+!endprocedure
+Svc(procA, "From procedure")
+Container(plain, "Plain")
+Rel(procA, plain, "calls")
+@enduml

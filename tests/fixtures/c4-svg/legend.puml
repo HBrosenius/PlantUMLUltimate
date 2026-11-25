@@ -1,0 +1,9 @@
+@startuml
+!include <C4/C4_Container>
+LAYOUT_WITH_LEGEND()
+AddElementTag("v1", $bgColor="#ff0000")
+Container(c, "C", $tags="v1")
+Person(p, "P")
+Rel(p, c, "uses")
+SHOW_LEGEND()
+@enduml
