@@ -2303,6 +2303,7 @@ export function App() {
   // GitLab menu items appear once a GitLab token is set; remembered tokens are loaded at startup.
   const gitLabEnabled = useGitLabEnabled();
   const { commands } = useAppCommands({
+    openC4SettingsFromToolbar: c4Selection.openSettings,
     openFromGitHub,
     openFromGitLab: gitLabEnabled ? openFromGitLab : undefined,
     proposeOnGit: activeDocument.githubOrigin ? proposeOnGit : undefined,
@@ -2589,6 +2590,7 @@ export function App() {
       else if (item.attribute === "data-activity-object-id") selectActivityObject(item.id);
       else if (item.attribute === "data-wbs-node-id") selectWbsNode(item.id);
       else if (item.attribute === "data-mindmap-node-id") mindmapSelection.selectNode(item.id);
+      else if (item.attribute === "data-c4-object-id") c4.selectFromOutline(item.id);
       else selectWbsRelationship(item.id);
     },
   });
@@ -2717,6 +2719,9 @@ export function App() {
     mapWbsProjectEdit,
     referenceSymbol,
     renameCapacity,
+    renameC4Selection: (from, to) => {
+      if (c4.selection?.kind === "element" && c4.selection.alias === from) c4.select({ kind: "element", alias: to });
+    },
     restoreRenamedDiagramFocus,
     setInteractionMessage,
     setReferenceSymbol,

@@ -1,4 +1,5 @@
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
+import { c4QuoteIssues } from "./diagram-c4-issues";
 import type { DiagramKind } from "./model";
 
 export interface QuoteIssue {
@@ -11,6 +12,7 @@ export interface QuoteIssue {
 
 // Only declaration labels are quoted syntax here; note bodies and free text may contain quotes.
 export function quoteIssues(kind: DiagramKind, source: string): QuoteIssue[] {
+  if (kind === "c4") return c4QuoteIssues(source);
   const issues: QuoteIssue[] = [];
   const declaration =
     kind === "sequence"

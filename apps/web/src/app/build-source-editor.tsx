@@ -220,7 +220,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
         workspace.diagramKind === "wbs" ||
-        workspace.diagramKind === "mindmap"
+        workspace.diagramKind === "mindmap" ||
+        workspace.diagramKind === "c4"
           ? requestSymbolRename
           : undefined
       }
@@ -232,7 +233,8 @@ export function buildSourceEditor({
         workspace.diagramKind === "component" ||
         workspace.diagramKind === "activity" ||
         workspace.diagramKind === "wbs" ||
-        workspace.diagramKind === "mindmap"
+        workspace.diagramKind === "mindmap" ||
+        workspace.diagramKind === "c4"
           ? (position, x, y) => {
               if (!symbolAt(position)) return false;
               setSymbolMenu({ position, x, y });
@@ -303,8 +305,9 @@ export function buildSourceEditor({
         } else if (workspace.diagramKind === "c4") {
           // The shape under the cursor is highlighted on the canvas. A source edit reports its cursor before the new
           // source is parsed, so the position is only looked up in the document it belongs to.
-          setSourceSymbol(undefined);
-          setSourceSymbolPosition(undefined);
+          const occurrence = sourceChanged ? undefined : symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
           c4.selectFromSource(sourceChanged ? undefined : position);
         } else {
           const occurrence = symbolAt(position);

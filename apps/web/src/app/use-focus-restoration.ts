@@ -50,7 +50,9 @@ export function useFocusRestoration({
                   ? "data-activity-object-id"
                   : kind === "wbs-node"
                     ? "data-wbs-node-id"
-                    : undefined;
+                    : kind === "c4-element"
+                      ? "data-c4-object-id"
+                      : undefined;
       const selector = attribute
         ? `[${attribute}="${CSS.escape(key)}"][tabindex], [${attribute}="${CSS.escape(key)}"] [tabindex]`
         : undefined;

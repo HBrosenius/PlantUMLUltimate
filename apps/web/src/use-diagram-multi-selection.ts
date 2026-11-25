@@ -4,6 +4,7 @@ import { parseMindmap } from "@plantuml-studio/diagram-mindmap";
 import {
   changeDiagramItems,
   copyDiagramItems,
+  deleteC4Items,
   deleteMindmapItems,
   setMindmapItemsBoxless,
   setMindmapItemsSide,
@@ -254,7 +255,7 @@ export function useDiagramMultiSelection({
     items
       .filter((item) => item.range.from <= range.from && item.range.to >= range.to)
       .sort((a, b) => a.range.to - a.range.from - (b.range.to - b.range.from))[0];
-  const change = (mode: "color" | "stereotype", value: string) =>
+  const change = (mode: "color" | "stereotype" | "tags", value: string) =>
     attempt(() => {
       if (readOnly || kind === "gantt") return;
       const result = changeDiagramItems(kind as BulkDiagramKind, source, keys, mode, value);
@@ -311,7 +312,25 @@ export function useDiagramMultiSelection({
     });
   const remove = () =>
     attempt(() => {
-      if (readOnly || kind !== "mindmap") return;
+      if (readOnly) return;
+      if (kind === "c4") {
+        const result = deleteC4Items(source, keys);
+        if (!result.applied) return;
+        const extra = result.removed - result.applied;
+        if (
+          !window.confirm(
+            `Delete ${result.applied} selected ${result.applied === 1 ? "item" : "items"}${
+              extra > 0 ? ` and ${extra} connected ${extra === 1 ? "relationship" : "relationships"}` : ""
+            }?`,
+          )
+        )
+          return;
+        if (!commit(result.source, `Delete ${result.applied} C4 ${result.applied === 1 ? "item" : "items"}`)) return;
+        clear();
+        report(`Deleted ${result.removed} C4 ${result.removed === 1 ? "item" : "items"}`);
+        return;
+      }
+      if (kind !== "mindmap") return;
       const result = deleteMindmapItems(source, keys);
       if (!result.applied) return;
       const extra = result.removed - result.applied;

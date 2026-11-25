@@ -359,6 +359,14 @@ describe("documentDisplayNames", () => {
     ]);
     expect([...names.values()]).toEqual(["plan.puml (1)", "notes.puml", "plan.puml (2)"]);
   });
+
+  it("names a new untitled diagram after its kind, including C4", () => {
+    const names = documentDisplayNames([
+      { id: "a", fileName: "untitled.puml", fileCopy: "new", diagramKind: "c4" },
+      { id: "b", fileName: "untitled.puml", fileCopy: "new", diagramKind: "usecase" },
+    ]);
+    expect([...names.values()]).toEqual(["C4 diagram", "Use Case diagram"]);
+  });
 });
 
 describe("workspace persistence", () => {

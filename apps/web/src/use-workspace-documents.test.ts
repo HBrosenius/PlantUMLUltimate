@@ -31,6 +31,7 @@ describe("new workspace documents", () => {
     expect(diagramKindDisplayName("usecase")).toBe("Use Case");
     expect(diagramKindDisplayName("wbs")).toBe("WBS");
     expect(diagramKindDisplayName("gantt")).toBe("Gantt");
+    expect(diagramKindDisplayName("c4")).toBe("C4");
   });
 });
 

@@ -1,3 +1,4 @@
+import { c4BraceIssues } from "./diagram-c4-issues";
 import type { DiagramKind } from "./model";
 
 interface BraceIssue {
@@ -9,6 +10,7 @@ interface BraceIssue {
 }
 
 export function braceIssues(kind: DiagramKind, source: string): BraceIssue[] {
+  if (kind === "c4") return c4BraceIssues(source);
   if (kind !== "class" && kind !== "component" && kind !== "usecase") return [];
   const lines: Array<{ text: string; code: string; from: number; indent: number }> = [];
   let offset = 0;

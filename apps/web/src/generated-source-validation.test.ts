@@ -53,6 +53,55 @@ describe("generated source validation", () => {
     expect(validateGeneratedSource(kind, before, after).valid).toBe(false);
   });
 
+  describe("C4", () => {
+    const before = [
+      "@startuml",
+      "!include <C4/C4_Container>",
+      'Person(user, "Customer")',
+      'Container(web, "Web", "React")',
+      'Rel(user, web, "Uses")',
+      "@enduml",
+    ].join("\n");
+
+    it("accepts an edit that keeps the includes and writes valid macro calls", () => {
+      const after = before.replace('"Web", "React")', '"Web app", "React", "The UI")');
+      expect(validateGeneratedSource("c4", before, after).valid).toBe(true);
+      expect(
+        validateGeneratedSource("c4", before, `${before.replace("@enduml", "")}Person(ops, "Ops")\n@enduml`).valid,
+      ).toBe(true);
+    });
+
+    it("rejects an edit that drops or changes the include", () => {
+      const dropped = before.replace("!include <C4/C4_Container>\n", "");
+      expect(validateGeneratedSource("c4", before, dropped)).toMatchObject({ valid: false });
+      const changed = before.replace("C4_Container", "C4_Context");
+      expect(validateGeneratedSource("c4", before, changed)).toMatchObject({
+        valid: false,
+        message: expect.stringContaining("preserved"),
+      });
+    });
+
+    it("rejects invalid macro calls, an escaped quote and a dotted alias", () => {
+      for (const [after, message] of [
+        [before.replace('Container(web, "Web", "React")', 'Contaner(web, "Web", "React")'), "unknown macro"],
+        [before.replace('"Web", "React")', '"Web", "React"'), "closing parenthesis"],
+        [before.replace('"Web"', '"The \\"Web\\""'), "escaped quote"],
+        [before.replace("Container(web,", "Container(web.app,"), "dot"],
+        [before.replace('Person(user, "Customer")', "Person(user)"), "missing label"],
+        [before.replace('"Customer")', '"Customer'), "unmatched quote"],
+      ] as const) {
+        const result = validateGeneratedSource("c4", before, after);
+        expect(result.valid, message).toBe(false);
+        expect(result.message?.toLowerCase(), message).toContain(message);
+      }
+    });
+
+    it("keeps an existing problem from blocking an unrelated edit", () => {
+      const broken = before.replace('Container(web, "Web", "React")', 'Contaner(web, "Web", "React")');
+      expect(validateGeneratedSource("c4", broken, broken.replace('"Customer"', '"Client"')).valid).toBe(true);
+    });
+  });
+
   it("allows edits beside an existing Class error", () => {
     const before = "@startuml\nclass Broken {\nclass A\n@enduml";
     const after = "@startuml\nclass Broken {\nclass B\n@enduml";

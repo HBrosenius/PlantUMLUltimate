@@ -181,6 +181,7 @@ export function useSymbolNavigation({
         },
         { kind: "wbs-node", key: closestValue("data-wbs-node-id") },
         { kind: "mindmap-node", key: closestValue("data-mindmap-node-id") },
+        { kind: "c4-element", key: closestValue("data-c4-object-id") },
       ];
       for (const candidate of candidates) {
         if (!candidate.key) continue;

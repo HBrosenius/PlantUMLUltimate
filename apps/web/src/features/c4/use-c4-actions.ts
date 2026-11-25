@@ -10,6 +10,7 @@ import {
   removeC4Relationship,
   reverseC4Relationship,
   setC4RelationshipDirection,
+  setC4RelationshipMacro,
   setC4Settings,
   updateC4Argument,
   type C4BoundaryInput,
@@ -155,6 +156,16 @@ export function useC4Actions({
       apply(setC4RelationshipDirection(source, index, direction), "Change relationship direction"),
     [apply, source],
   );
+  /** `Rel` to `BiRel` and back, keeping the direction (`Rel_R` to `BiRel_R`). */
+  const setBothWays = useCallback(
+    (index: number, macro: string, both: boolean): C4ActionResult =>
+      apply(
+        setC4RelationshipMacro(source, index, macro.replace(/^(?:Bi)?Rel/, both ? "BiRel" : "Rel")),
+        both ? "Make relationship both ways" : "Make relationship one way",
+        "keep",
+      ),
+    [apply, source],
+  );
   const reverse = useCallback(
     (index: number): C4ActionResult => apply(reverseC4Relationship(source, index), "Reverse relationship"),
     [apply, source],
@@ -289,6 +300,7 @@ export function useC4Actions({
     updateArgument,
     changeMacro,
     setDirection,
+    setBothWays,
     reverse,
     moveElement,
     applySettings,
