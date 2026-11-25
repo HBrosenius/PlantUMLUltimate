@@ -1,4 +1,14 @@
 import {
+  collectC4SymbolOccurrences,
+  parseC4,
+  removeC4Element,
+  removeC4Relationship,
+  updateC4Argument,
+  type C4Document,
+  type C4Element,
+  type C4Relationship,
+} from "@plantuml-studio/diagram-c4";
+import {
   parseClassDiagram,
   collectClassSymbolOccurrences,
   updateClassRelationship,
@@ -51,6 +61,8 @@ export interface DiagramBulkItem {
   /** Mindmap nodes only: the node can be drawn without a box, and deleted with its subtree. */
   boxless?: boolean;
   deletable?: boolean;
+  /** C4 only: the element, boundary or relationship has a `$tags` argument that can be edited. */
+  tags?: boolean;
   /** Mindmap nodes only: a direct child of a root in a document where branches have a side. */
   side?: boolean;
   changeColor?: (color: string) => string;
@@ -207,6 +219,8 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
       item.deletable = editable;
       item.side = sidesApply && !mindmapSideBlocker(source, doc, node);
     }
+  } else if (kind === "c4") {
+    items.push(...c4BulkItems(source));
   } else {
     const doc = parseWbs(source);
     doc.nodes.forEach((item) =>
@@ -228,6 +242,128 @@ export function diagramBulkItems(kind: BulkDiagramKind, source: string): Diagram
     );
   }
   return items;
+}
+
+const C4_ATTRIBUTE = "data-c4-object-id";
+const C4_SCOPE_TEXT = { if: "an !if block", procedure: "a !procedure", function: "a !function", loop: "a loop" };
+
+/** Why a C4 call can't be copied, changed or deleted here: the same reasons the single-item edits give. */
+function c4Blocker(site: C4Element | C4Relationship): string | undefined {
+  if (site.scope)
+    return `Line ${site.line} is inside ${C4_SCOPE_TEXT[site.scope]}, so it can't be edited here. Change the source instead.`;
+  if (site.macro === "RelIndex")
+    return "Numbered relationships (RelIndex) can't be edited here. Change the source instead.";
+  return undefined;
+}
+
+/** Elements and boundaries by alias, then relationships as `rel:N`: the keys the canvas gives its shapes. */
+function c4BulkItems(source: string, doc: C4Document = parseC4(source)): DiagramBulkItem[] {
+  const counts = new Map<string, number>();
+  for (const element of doc.elements) counts.set(element.id, (counts.get(element.id) ?? 0) + 1);
+  const items: DiagramBulkItem[] = [];
+  for (const element of doc.elements) {
+    // An alias declared twice can't be told apart, so it is not selectable.
+    if (counts.get(element.id) !== 1) continue;
+    const editable = !c4Blocker(element);
+    items.push({
+      key: key(C4_ATTRIBUTE, element.id),
+      id: element.id,
+      attribute: C4_ATTRIBUTE,
+      label: element.label || element.id,
+      range: element.range,
+      copyRange: element.closeRange ? { from: element.range.from, to: element.closeRange.to } : element.range,
+      color: false,
+      stereotype: false,
+      tags: editable,
+      deletable: editable,
+    });
+  }
+  for (const relationship of doc.relationships) {
+    const id = `rel:${relationship.index}`;
+    const editable = !c4Blocker(relationship);
+    items.push({
+      key: key(C4_ATTRIBUTE, id),
+      id,
+      attribute: C4_ATTRIBUTE,
+      label: relationship.label || `${relationship.from} to ${relationship.to}`,
+      range: relationship.range,
+      copyRange: relationship.range,
+      color: false,
+      stereotype: false,
+      tags: editable,
+      deletable: editable,
+    });
+  }
+  return items;
+}
+
+const relationshipIndex = (id: string) => (id.startsWith("rel:") ? Number(id.slice(4)) : undefined);
+
+/** Sets or clears `$tags` on every selected C4 item, one C1 edit after the other. */
+function changeC4Tags(
+  source: string,
+  keys: readonly string[],
+  value: string,
+): { source: string; applied: number; skipped: number } {
+  const selected = c4BulkItems(source).filter((item) => keys.includes(item.key) && item.tags);
+  let current = source;
+  let applied = 0;
+  let refusal: string | undefined;
+  for (const item of selected) {
+    const index = relationshipIndex(item.id);
+    const result = updateC4Argument(
+      current,
+      index === undefined ? { kind: "element", alias: item.id } : { kind: "relationship", index },
+      "tags",
+      value || undefined,
+    );
+    if (!result.ok) {
+      refusal ??= result.message;
+      continue;
+    }
+    if (result.source !== current) applied++;
+    current = result.source;
+  }
+  if (!applied && refusal) throw new Error(refusal);
+  return { source: current, applied, skipped: keys.length - applied };
+}
+
+/**
+ * Deletes the selected C4 elements, boundaries and relationships in one edit. A deleted element takes its
+ * relationships with it and a deleted boundary keeps its contents, as in the single-item delete. Anything that
+ * can't be deleted safely refuses the whole action with the reason C1 gives.
+ */
+export function deleteC4Items(
+  source: string,
+  keys: readonly string[],
+): { source: string; applied: number; removed: number } {
+  const chosen = c4BulkItems(source).filter((item) => keys.includes(item.key));
+  const doc = parseC4(source);
+  for (const item of chosen) {
+    if (item.deletable) continue;
+    const index = relationshipIndex(item.id);
+    const site =
+      index === undefined ? doc.elements.find((element) => element.id === item.id) : doc.relationships[index];
+    throw new Error((site && c4Blocker(site)) ?? "This can't be deleted here.");
+  }
+  let current = source;
+  const take = (result: ReturnType<typeof removeC4Relationship>) => {
+    if (!result.ok) throw new Error(result.message);
+    current = result.source;
+  };
+  // Relationships go first and from the end, so the numbers of the others stay valid.
+  const relationships = chosen
+    .map((item) => relationshipIndex(item.id))
+    .filter((index): index is number => index !== undefined)
+    .sort((a, b) => b - a);
+  for (const index of relationships) take(removeC4Relationship(current, index));
+  for (const item of chosen) if (relationshipIndex(item.id) === undefined) take(removeC4Element(current, item.id));
+  const after = parseC4(current);
+  return {
+    source: current,
+    applied: chosen.length,
+    removed: doc.elements.length + doc.relationships.length - after.elements.length - after.relationships.length,
+  };
 }
 
 function replaceRanges(source: string, edits: Array<Range & { text: string }>): string {
@@ -271,10 +407,15 @@ export function changeDiagramItems(
   kind: BulkDiagramKind,
   source: string,
   keys: readonly string[],
-  mode: "color" | "stereotype",
+  mode: "color" | "stereotype" | "tags",
   raw: string,
 ): { source: string; applied: number; skipped: number } {
   const value = raw.trim();
+  if (mode === "tags") {
+    if (kind !== "c4") return { source, applied: 0, skipped: keys.length };
+    if (/["\r\n]/.test(value)) throw new Error("Enter tags without quotes or line breaks.");
+    return changeC4Tags(source, keys, value);
+  }
   if (mode === "color" && value && !/^#?[a-zA-Z0-9_]+(?:[;-][a-zA-Z0-9_]+)*$/.test(value))
     throw new Error("Enter a color name or hex color.");
   if (mode === "stereotype" && /[<>\r\n]/.test(value))
@@ -451,6 +592,7 @@ export function copyDiagramItems(
   const selected = items.filter((item) => keys.includes(item.key));
   if (!selected.length) return undefined;
   if (kind === "mindmap" && selected.some((item) => !item.deletable)) throw new Error(MINDMAP_MARKDOWN_UNAVAILABLE);
+  if (kind === "c4") return copyC4Items(source, selected);
   const implicit =
     kind === "usecase"
       ? parseUseCase(source).elements.filter(
@@ -514,7 +656,37 @@ export function copyDiagramItems(
   };
 }
 
+/** The selected calls, and the relationships between the copied elements. Anything in a procedure is refused. */
+function copyC4Items(source: string, selected: readonly DiagramBulkItem[]): DiagramClipboard {
+  const doc = parseC4(source);
+  for (const item of selected) {
+    const index = relationshipIndex(item.id);
+    const site =
+      index === undefined ? doc.elements.find((element) => element.id === item.id) : doc.relationships[index];
+    const reason = site && c4Blocker(site);
+    if (reason) throw new Error(reason.replace("edited", "copied"));
+  }
+  let ranges = mergeRanges(selected.map((item) => endLine(source, item.copyRange)));
+  const includes = (range: Range) => ranges.some((part) => range.from >= part.from && range.to <= part.to);
+  const ids = new Set(doc.elements.filter((item) => includes(item.range)).map((item) => item.id));
+  // Keep the relationships between the copied elements, without pulling outside elements in.
+  ranges = mergeRanges([
+    ...ranges,
+    ...doc.relationships
+      .filter((item) => ids.has(item.from) && ids.has(item.to))
+      .map((item) => endLine(source, item.range)),
+  ]);
+  return {
+    kind: "c4",
+    text: ranges
+      .map((range) => source.slice(range.from, range.to).trimEnd())
+      .join("\n")
+      .replace(/\r\n/g, "\n"),
+  };
+}
+
 function occurrences(kind: BulkDiagramKind, source: string) {
+  if (kind === "c4") return collectC4SymbolOccurrences(source);
   if (kind === "class" || kind === "component") return collectClassSymbolOccurrences(source, parseClassDiagram(source));
   if (kind === "usecase") return collectUseCaseSymbolOccurrences(source, parseUseCase(source));
   if (kind === "sequence") {

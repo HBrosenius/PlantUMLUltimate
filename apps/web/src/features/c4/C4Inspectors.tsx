@@ -292,6 +292,7 @@ export function C4RelationshipInspector({
   onUpdate,
   onDirection,
   onReverse,
+  onBothWays,
   onDelete,
   onClose,
 }: {
@@ -300,6 +301,7 @@ export function C4RelationshipInspector({
   onUpdate(parameter: string, value: string): C4ActionResult;
   onDirection(direction: C4Direction): C4ActionResult;
   onReverse(): C4ActionResult;
+  onBothWays(both: boolean): C4ActionResult;
   onDelete(): void;
   onClose(): void;
 }) {
@@ -358,6 +360,15 @@ export function C4RelationshipInspector({
             options={C4_DIRECTIONS.map((item) => ({ value: item, label: C4_DIRECTION_LABELS[item] }))}
             onCommit={(value) => onDirection(value as C4Direction)}
           />
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={/^BiRel/.test(relationship.macro)}
+              disabled={Boolean(blocker)}
+              onChange={(event) => setError(onBothWays(event.target.checked))}
+            />{" "}
+            Both ways
+          </label>
           <button
             type="button"
             disabled={Boolean(blocker)}

@@ -24,7 +24,9 @@ export function WorkspaceHint({ kind }: { kind: DiagramKind }) {
             ? "action"
             : kind === "usecase"
               ? "actor or use case"
-              : "object";
+              : kind === "c4"
+                ? "person, system or container"
+                : "object";
   return (
     <span className="workspace-hint" data-inspector-trigger>
       <button type="button" aria-expanded={open} onClick={() => (open ? dismiss() : setOpen(true))}>

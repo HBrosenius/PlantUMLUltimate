@@ -7,6 +7,7 @@ import { parseActivity } from "@plantuml-studio/diagram-activity";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import type { DiagramKind } from "./model";
 import { createSemanticSymbolProvider } from "./semantic-symbol-provider";
+import { inlineLabelRenameRequest } from "./inline-label-rename";
 
 describe("semantic symbol provider contract", () => {
   const cases: Array<{ kind: DiagramKind; source: string; next: string }> = [
@@ -117,5 +118,95 @@ describe("renaming names that contain double quotes", () => {
     const result = symbols.rename(request, 'New "Name"');
     expect(result.source).toBeDefined();
     expect(label(result.source!)).toBe('New "Name"');
+  });
+});
+
+describe("C4 symbols", () => {
+  const source = [
+    "@startuml",
+    "!include <C4/C4_Container>",
+    'Person(user, "Customer")',
+    'System_Boundary(shop, "Shop") {',
+    '  Container(web, "Web app", "React")',
+    "}",
+    'Rel(user, web, "Uses")',
+    "Lay_R(user, web)",
+    "@enduml",
+  ].join("\n");
+  const symbols = (text: string) =>
+    createSemanticSymbolProvider({
+      diagramKind: "c4",
+      source: text,
+      gantt: parseGantt(text).document,
+      sequence: parseSequence(text),
+      useCase: parseUseCase(text),
+      classDiagram: parseClassDiagram(text),
+      activity: parseActivity(text),
+      wbs: parseWbs(text),
+    });
+
+  it("lists declarations and references, and finds every reference of an alias", () => {
+    const provider = symbols(source);
+    const declaration = provider.occurrences.find((item) => item.key === "web" && item.role === "declaration")!;
+    expect(declaration.kind).toBe("c4-element");
+    expect(provider.occurrencesFor(declaration).map((item) => item.role)).toEqual([
+      "declaration",
+      "reference",
+      "reference",
+    ]);
+    expect(provider.occurrenceAt(declaration.range.from + 1)).toBe(declaration);
+  });
+
+  it("renames an alias in its declaration, relationships and layout hints, and only there", () => {
+    const provider = symbols(source);
+    const declaration = provider.occurrences.find((item) => item.key === "web" && item.role === "declaration")!;
+    const request = provider.renameRequest(declaration)!;
+    expect(request.mode).toBe("C4 alias");
+    expect(provider.renameOccurrenceCount(request)).toBe(3);
+    expect(provider.validateRename(request, "frontend")).toBeUndefined();
+    const result = provider.rename(request, "frontend");
+    expect(result).toMatchObject({ nextKey: "frontend" });
+    expect(result.source).toBe(
+      source
+        .replace("Container(web,", "Container(frontend,")
+        .replace("Rel(user, web,", "Rel(user, frontend,")
+        .replace("Lay_R(user, web)", "Lay_R(user, frontend)"),
+    );
+  });
+
+  it("refuses an alias with a dot, a used alias and an alias that is not declared", () => {
+    const provider = symbols(source);
+    const web = provider.occurrences.find((item) => item.key === "web" && item.role === "declaration")!;
+    const request = provider.renameRequest(web)!;
+    expect(provider.validateRename(request, "a.b")).toContain("dot");
+    expect(provider.validateRename(request, "user")).toContain("already used");
+    expect(provider.validateRename(request, "")).toContain("required");
+    expect(provider.rename(request, "user")).toMatchObject({ error: expect.stringContaining("already used") });
+    const undeclared = symbols(source.replace("Rel(user, web,", "Rel(user, ghost,")).occurrences.find(
+      (item) => item.key === "ghost",
+    )!;
+    expect(symbols(source.replace("Rel(user, web,", "Rel(user, ghost,")).renameRequest(undeclared)).toBeUndefined();
+  });
+
+  it("refuses a rename inside a procedure with the message of the source edit", () => {
+    const text = [
+      "@startuml",
+      "!include <C4/C4_Container>",
+      'Person(user, "Customer")',
+      "!if (true)",
+      'Container(web, "Web")',
+      "!endif",
+      "@enduml",
+    ].join("\n");
+    const provider = symbols(text);
+    const declaration = provider.occurrences.find((item) => item.key === "web")!;
+    const request = provider.renameRequest(declaration)!;
+    expect(provider.validateRename(request, "frontend")).toContain("inside an !if block");
+  });
+
+  it("does not treat the label as an inline-rename target", () => {
+    // The label is written through the same operation as the properties panel, not through a symbol.
+    const provider = symbols(source);
+    expect(inlineLabelRenameRequest(provider, "c4", "web")).toBeUndefined();
   });
 });

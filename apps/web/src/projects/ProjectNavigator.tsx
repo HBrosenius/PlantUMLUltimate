@@ -309,6 +309,7 @@ export function ProjectNavigator({
                 <option value="activity">Activity</option>
                 <option value="wbs">WBS</option>
                 <option value="mindmap">Mindmap</option>
+                <option value="c4">C4</option>
               </select>
             </label>
             <label>

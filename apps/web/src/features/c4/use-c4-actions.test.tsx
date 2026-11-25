@@ -127,6 +127,34 @@ describe("useC4Actions", () => {
     expect(messages).toEqual(["Added relationship", "Reconnected to end"]);
   });
 
+  it("makes a relationship both ways and back, keeping its direction and selection", () => {
+    const source = SOURCE.replace('Rel(web, api, "Calls")', 'Rel_R(web, api, "Calls")');
+    const { actions, commits, selected } = setup(source);
+    act(() => {
+      actions().setBothWays(1, "Rel_R", true);
+    });
+    expect(commits[0]!.source).toContain('BiRel_R(web, api, "Calls")');
+    expect(commits[0]!.description).toBe("Make relationship both ways");
+    expect(selected).toEqual([]);
+    const both = setup(commits[0]!.source);
+    act(() => {
+      both.actions().setBothWays(1, "BiRel_R", false);
+    });
+    expect(both.commits[0]!.source).toBe(source);
+  });
+
+  it("refuses both ways for a direction BiRel doesn't have", () => {
+    const source = SOURCE.replace('Rel(web, api, "Calls")', 'Rel_Back(web, api, "Calls")');
+    const { actions, commits, messages } = setup(source);
+    let result: string | undefined;
+    act(() => {
+      result = actions().setBothWays(1, "Rel_Back", true);
+    });
+    expect(result).toContain("not a relationship macro");
+    expect(commits).toEqual([]);
+    expect(messages).toEqual([result]);
+  });
+
   it("moves into and out of a boundary", () => {
     const { actions, commits } = setup();
     act(() => {

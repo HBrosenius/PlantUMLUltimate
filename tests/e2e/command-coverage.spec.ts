@@ -22,6 +22,7 @@ test("palette creation commands match every diagram family", async ({ page }) =>
     ["Class", "Add entity…"],
     ["Component", "Add entity…"],
     ["Activity", "Add action…"],
+    ["C4", "Add person…"],
   ]) {
     if (kind !== "Gantt") {
       await page.getByRole("button", { name: "New diagram tab" }).click();

@@ -16,7 +16,7 @@ export function BulkDiagramInspector({
 }: {
   items: readonly DiagramBulkItem[];
   readOnly: boolean;
-  onChange(mode: "color" | "stereotype", value: string): void;
+  onChange(mode: "color" | "stereotype" | "tags", value: string): void;
   onCopy(): void;
   onDuplicate(): void;
   onPaste(): void;
@@ -30,8 +30,10 @@ export function BulkDiagramInspector({
 }) {
   const [color, setColor] = useState("");
   const [stereotype, setStereotype] = useState("");
+  const [tags, setTags] = useState("");
   const colorCount = items.filter((item) => item.color).length;
   const stereotypeCount = items.filter((item) => item.stereotype).length;
+  const tagsCount = items.filter((item) => item.tags).length;
   const boxlessCount = items.filter((item) => item.boxless).length;
   const sideCount = items.filter((item) => item.side).length;
   const styleLabel = onBoxless ? "Style class" : "Stereotype";
@@ -71,6 +73,20 @@ export function BulkDiagramInspector({
               </button>
               <small>
                 {stereotypeCount} of {items.length} elements
+              </small>
+            </div>
+          )}
+          {tagsCount > 0 && (
+            <div className="bulk-task-row">
+              <label>
+                Tags
+                <input value={tags} placeholder="tag1+tag2" onChange={(event) => setTags(event.target.value)} />
+              </label>
+              <button type="button" onClick={() => onChange("tags", tags)}>
+                {tags ? "Set tags" : "Clear tags"}
+              </button>
+              <small>
+                {tagsCount} of {items.length} items
               </small>
             </div>
           )}

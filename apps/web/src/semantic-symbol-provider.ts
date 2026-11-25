@@ -50,6 +50,12 @@ import {
   updateMindmapNode,
   type MindmapSymbolOccurrence,
 } from "@plantuml-studio/diagram-mindmap";
+import {
+  collectC4SymbolOccurrences,
+  parseC4,
+  renameC4Alias,
+  type C4SymbolOccurrence,
+} from "@plantuml-studio/diagram-c4";
 import type { DiagramKind } from "./model";
 import { validateRenameValue } from "./rename-symbol-validation";
 
@@ -60,7 +66,8 @@ export type SemanticSymbolOccurrence =
   | ClassSymbolOccurrence
   | ActivitySymbolOccurrence
   | WbsSymbolOccurrence
-  | MindmapSymbolOccurrence;
+  | MindmapSymbolOccurrence
+  | C4SymbolOccurrence;
 
 export type SemanticRenameMode =
   | "task"
@@ -83,7 +90,8 @@ export type SemanticRenameMode =
   | "activity partition"
   | "WBS node"
   | "WBS node alias"
-  | "Mindmap node";
+  | "Mindmap node"
+  | "C4 alias";
 
 export interface SemanticRenameRequest {
   occurrence: SemanticSymbolOccurrence;
@@ -156,8 +164,7 @@ function collectOccurrences(context: ProviderContext): SemanticSymbolOccurrence[
     case "mindmap":
       return collectMindmapSymbolOccurrences(context.source, parseMindmap(context.source));
     case "c4":
-      // C4 elements are listed in the outline from their macro calls (see c4-source.ts), not renamed as symbols.
-      return [];
+      return collectC4SymbolOccurrences(context.source);
     default: {
       const unreachable: never = context.diagramKind;
       throw new Error(`Unknown diagram kind: ${String(unreachable)}`);
@@ -219,6 +226,11 @@ function renameRequest(
   }
   if (occurrence.kind === "activity-action" || occurrence.kind === "activity-partition")
     return { occurrence, mode: occurrence.kind === "activity-action" ? "activity action" : "activity partition" };
+  if (occurrence.kind === "c4-element")
+    // An alias that no macro declares (a typo in a relationship) has nothing to rename.
+    return parseC4(context.source).elements.some((item) => item.id === occurrence.key)
+      ? { occurrence, mode: "C4 alias" }
+      : undefined;
   if (occurrence.kind === "mindmap-node") {
     const node = parseMindmap(context.source).nodes.find((item) => item.id === occurrence.key);
     return node && !node.markdown ? { occurrence, mode: "Mindmap node" } : undefined;
@@ -405,6 +417,11 @@ function validateRename(
       forbidden: /["\r\n]/,
       forbiddenMessage: "Partition names cannot contain quotes or line breaks",
     });
+  }
+  if (target.kind === "c4-element") {
+    // The same operation does the rename, so its refusals (a dot, a used alias, an expression) are shown as they are.
+    const result = renameC4Alias(context.source, target.key, value);
+    return result.ok ? undefined : result.message;
   }
   if (target.kind === "mindmap-node") {
     if (!parseMindmap(context.source).nodes.some((candidate) => candidate.id === target.key))
@@ -610,6 +627,13 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
     });
     const nextKey = parseActivity(source).partitions.find((candidate) => candidate.label === trimmed)?.id;
     return { source, ...(nextKey ? { nextKey } : {}) };
+  }
+  if (target.kind === "c4-element") {
+    const result = renameC4Alias(context.source, target.key, trimmed);
+    if (!result.ok) return { error: result.message };
+    return result.source === context.source
+      ? { error: "Rename made no changes" }
+      : { source: result.source, nextKey: trimmed };
   }
   if (target.kind === "mindmap-node") {
     const item = parseMindmap(context.source).nodes.find((candidate) => candidate.id === target.key);
