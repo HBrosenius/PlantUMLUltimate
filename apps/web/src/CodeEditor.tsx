@@ -15,7 +15,9 @@ import { Annotation, Compartment, EditorState, Prec, StateEffect, StateField, ty
 import { Decoration, EditorView, keymap, tooltips, WidgetType, type DecorationSet } from "@codemirror/view";
 import { gotoLine } from "@codemirror/search";
 import { indentWithTab, isolateHistory } from "@codemirror/commands";
-import { lintGutter, type Diagnostic } from "@codemirror/lint";
+import { forceLinting, linter, lintGutter, type Diagnostic } from "@codemirror/lint";
+import { includeEditorDiagnostics, includeAtLine } from "./render/include-editor";
+import { includeActions, useActiveIncludes } from "./render/include-state";
 import { codeEditorSetup } from "./code-editor-setup";
 import type { DiagramKind } from "./model";
 import {
@@ -357,6 +359,13 @@ export function CodeEditor({
     return analysisRef.current(kind, source);
   }, []);
   const documentIdRef = useRef(documentId);
+  // Includes of the open diagram: problems are marked on the include line, and Ctrl/Cmd-click opens one.
+  const activeIncludes = useActiveIncludes(documentId);
+  const includesRef = useRef(activeIncludes);
+  includesRef.current = activeIncludes;
+  useEffect(() => {
+    if (view.current) forceLinting(view.current);
+  }, [activeIncludes]);
   const sourceRevision = useRef(0);
   const preferences = useEditorPreferences();
   const preferenceCompartment = useRef(new Compartment());
@@ -505,11 +514,34 @@ export function CodeEditor({
           ]),
           language.current.of(languageExtensions(initialKind.current, previewTooltipFixes, readAnalysis)),
           lintGutter(),
+          linter((current) => includeEditorDiagnostics(current.state.doc, includesRef.current, includeActions()), {
+            delay: 0,
+          }),
           // Escape editor scroll clipping while inheriting the app's theme variables.
           tooltips({ parent: host.current.closest<HTMLElement>(".app") ?? host.current.ownerDocument.body }),
           preferenceCompartment.current.of(editorPreferenceExtensions(loadEditorPreferences())),
           EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
           EditorView.domEventHandlers({
+            mousedown: (event, currentView) => {
+              // Ctrl/Cmd-click on an include line opens the diagram it includes.
+              if (!(event.ctrlKey || event.metaKey) || event.button !== 0) return false;
+              const position = currentView.posAtCoords({ x: event.clientX, y: event.clientY });
+              if (position === null) return false;
+              const line = currentView.state.doc.lineAt(position);
+              const include = includeAtLine(includesRef.current, line.number, line.text);
+              if (!include) return false;
+              const actions = includeActions();
+              event.preventDefault();
+              if (include.origin === "document" && actions?.openDiagram(include.label)) return true;
+              actions?.notify(
+                include.origin === "library"
+                  ? `${include.label} is part of the bundled C4 library.`
+                  : include.origin === "document"
+                    ? `${include.target} isn't in this document.`
+                    : `${include.label} is read from ${include.origin === "folder" ? "the folder" : "the repository"}; open it there to edit it.`,
+              );
+              return true;
+            },
             click: (_event, currentView) => {
               const position = currentView.state.selection.main.head;
               const line = currentView.state.doc.lineAt(position);
