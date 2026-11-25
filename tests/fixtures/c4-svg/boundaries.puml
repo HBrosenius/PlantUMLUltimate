@@ -1,0 +1,15 @@
+@startuml
+!include <C4/C4_Component>
+Enterprise_Boundary(ent, "Enterprise") {
+  Person(p1, "P")
+  System_Boundary(sb, "SysB") {
+    Container(c1, "C1")
+    Container_Boundary(cb, "ContB") {
+      Component(k1, "K1")
+    }
+  }
+}
+Boundary(gb, "Generic") {
+  System(s1, "S1")
+}
+@enduml

@@ -1,0 +1,15 @@
+@startuml
+!include <C4/C4_Dynamic>
+
+title Placing an order
+
+Person(customer, "Customer", "Buys products online")
+Container(web, "Web app", "React", "Shows the basket")
+Container(api, "API", "Java, Spring Boot", "Orders and payments")
+ContainerDb(db, "Database", "PostgreSQL", "Orders")
+
+Rel(customer, web, "Presses Order")
+Rel(web, api, "Sends the order", "JSON/HTTPS")
+Rel(api, db, "Stores the order", "SQL")
+Rel(api, web, "Confirms", "JSON/HTTPS")
+@enduml

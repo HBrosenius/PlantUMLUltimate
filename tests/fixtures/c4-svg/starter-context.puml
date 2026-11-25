@@ -1,0 +1,14 @@
+@startuml
+!include <C4/C4_Context>
+
+title System context for the web shop
+
+Person(customer, "Customer", "Buys products online")
+System(shop, "Web shop", "Lets customers browse and order products")
+System_Ext(payments, "Payment provider", "Takes card payments")
+System_Ext(mail, "Mail service", "Sends order confirmations")
+
+Rel(customer, shop, "Browses and orders", "HTTPS")
+Rel(shop, payments, "Takes payments", "HTTPS")
+Rel(shop, mail, "Sends confirmations", "SMTP")
+@enduml

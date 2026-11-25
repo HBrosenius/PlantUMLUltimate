@@ -1,0 +1,18 @@
+@startuml
+!include <C4/C4_Container>
+
+title Containers of the web shop
+
+Person(customer, "Customer", "Buys products online")
+System_Boundary(shop, "Web shop") {
+  Container(web, "Web app", "React", "Shows the catalogue and the basket")
+  Container(api, "API", "Java, Spring Boot", "Orders, payments and stock")
+  ContainerDb(db, "Database", "PostgreSQL", "Orders and customers")
+}
+System_Ext(payments, "Payment provider", "Takes card payments")
+
+Rel(customer, web, "Uses", "HTTPS")
+Rel(web, api, "Calls", "JSON/HTTPS")
+Rel(api, db, "Reads and writes", "SQL")
+Rel(api, payments, "Takes payments", "HTTPS")
+@enduml

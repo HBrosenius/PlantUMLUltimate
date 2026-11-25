@@ -1,0 +1,16 @@
+@startuml
+!include <C4/C4_Deployment>
+
+title Deployment of the web shop
+
+Deployment_Node(cloud, "Cloud region", "Managed hosting") {
+  Deployment_Node(app, "App server", "Linux, Docker") {
+    Container(api, "API", "Java, Spring Boot", "Orders and payments")
+  }
+  Deployment_Node(data, "Database server", "Managed PostgreSQL") {
+    ContainerDb(db, "Database", "PostgreSQL", "Orders")
+  }
+}
+
+Rel(api, db, "Reads and writes", "SQL")
+@enduml

@@ -1,0 +1,10 @@
+@startuml
+!include <C4/C4_Deployment>
+Deployment_Node(n1, "Node1", "Tech") {
+  Deployment_Node(n2, "Node2") {
+    Container(c1, "C1", "T")
+  }
+}
+Container(c2, "C2")
+Rel(c1, c2, "talks")
+@enduml

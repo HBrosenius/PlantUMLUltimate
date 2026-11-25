@@ -102,6 +102,8 @@ The spike renders the five starters and records, for each kind of shape, what id
 
 **Outcome:** either "aliases are in the SVG" (C2 follows the use case preview), or a fallback (match by label and position, or add a hidden marker when the library loads). In both cases it also gives the gate for C2.
 
+**Result (2026-11-25):** aliases are in the SVG (`data-qualified-name` on `g.entity` and `g.cluster`, endpoint ids on `g.link`); no fallback is needed. See [c4-svg-ids-spike.md](c4-svg-ids-spike.md).
+
 ## 6. Slices
 
 Effort for one developer: **S ≈ days, M ≈ 1–3 weeks, L ≈ 3+ weeks.**
