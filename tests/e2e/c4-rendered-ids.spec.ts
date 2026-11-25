@@ -49,7 +49,10 @@ test("clicking a rendered C4 Container shape resolves to its source alias, bound
   expect(await recorded(page)).toEqual({ kind: "element", alias: "customer", path: [] });
 
   await recordNextClick(page);
-  await svg.locator("g.cluster").first().click({ position: { x: 20, y: 6 }, force: true });
+  await svg
+    .locator("g.cluster")
+    .first()
+    .click({ position: { x: 20, y: 6 }, force: true });
   expect(await recorded(page)).toEqual({ kind: "boundary", alias: "shop", path: [] });
 
   // The first relationship of the starter is Rel(customer, web, ...).
