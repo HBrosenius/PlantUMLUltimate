@@ -67,6 +67,7 @@ import {
 } from "./wbs-gantt";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
+import { useC4Editor, useC4Selection } from "./features/c4/use-c4-editor";
 import { useMindmapEditor, useMindmapSelection } from "./features/mindmap/use-mindmap-editor";
 import { parseActivitySettings } from "./activity-settings";
 import type { ActivityDialogKind } from "./features/activity/ActivityDialogs";
@@ -591,6 +592,7 @@ export function App() {
     selectFromSource: selectWbsFromSource,
   } = useWbsController(workspace.diagramKind, wbsDocument);
   const mindmapSelection = useMindmapSelection(workspace.diagramKind, workspace.source);
+  const c4Selection = useC4Selection(workspace.diagramKind, workspace.source);
   useEffect(() => {
     if (!pendingProjectWbsSelection || tabs.activeId !== pendingProjectWbsSelection.tabId) return;
     if (
@@ -1300,6 +1302,7 @@ export function App() {
 
   const clearDiagramMultiSelection = useRef<() => void>(() => {});
   const dismissMindmapInspectors = mindmapSelection.dismissInspectors;
+  const dismissC4Inspector = c4Selection.dismissInspector;
   const dismissPropertyInspectors = useCallback(() => {
     dismissInspectorSelection();
     dismissSequenceInspector();
@@ -1307,9 +1310,11 @@ export function App() {
     dismissClassInspector();
     dismissActivityInspector();
     dismissMindmapInspectors();
+    dismissC4Inspector();
     setFocusNoteTaskId(undefined);
   }, [
     dismissActivityInspector,
+    dismissC4Inspector,
     dismissMindmapInspectors,
     dismissClassInspector,
     dismissInspectorSelection,
@@ -1364,6 +1369,8 @@ export function App() {
     wbsSettingsOpen || undefined,
     mindmapSelection.selectedNodeId,
     mindmapSelection.settingsOpen || undefined,
+    c4Selection.selectedKey,
+    c4Selection.settingsOpen || undefined,
     legendInspectorOpen || undefined,
   ];
   const propertySelection = propertySelections.some((value) => value !== undefined)
@@ -1418,7 +1425,9 @@ export function App() {
       !projectInspectorOpen &&
       !useCaseSettingsOpen &&
       !classSettingsOpen &&
-      !activitySettingsOpen
+      !activitySettingsOpen &&
+      !c4Selection.selectedKey &&
+      !c4Selection.settingsOpen
     )
       return;
     const dismissInspector = (event: MouseEvent) => {
@@ -1428,7 +1437,7 @@ export function App() {
       if (event.composedPath().some((item) => item instanceof Element && item.matches(".task-inspector"))) return;
       // View-only controls (fit, zoom) adjust the view around the selection and must not dismiss its inspector.
       const inspectorTrigger =
-        "[data-inspector-trigger], [data-view-control], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
+        "[data-inspector-trigger], [data-view-control], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint], [data-c4-object-id], [data-c4-connect-from], [data-c4-move-id], [data-c4-relationship-endpoint]";
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       dismissAllInspectors();
@@ -1451,6 +1460,8 @@ export function App() {
     dismissAllInspectors,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
+    c4Selection.selectedKey,
+    c4Selection.settingsOpen,
   ]);
 
   const selectTask = (taskId: string) => {
@@ -1615,7 +1626,7 @@ export function App() {
         selectWbsRelationship(entry.target.id);
         break;
       case "c4-element":
-        // The source line is already selected above; a C4 picture has no shape to select.
+        c4.selectFromOutline(entry.target.id);
         break;
     }
   };
@@ -1975,6 +1986,13 @@ export function App() {
     openDialog,
     closeDialog,
   });
+  const c4 = useC4Editor(c4Selection, {
+    source: workspace.source,
+    commitSource,
+    setInteractionMessage,
+    openDialog,
+    closeDialog,
+  });
 
   const confirmUseCaseDelete = useCallback((message: string) => window.confirm(message), []);
   const closeUseCaseDialog = useCallback(
@@ -2246,6 +2264,7 @@ export function App() {
   const startInlineRename = (id: string, anchor: Element) => {
     if (commandReadOnly || diagramMulti.multiple || status !== "idle" || anchor.closest("[data-class-member-id]"))
       return false;
+    if (workspace.diagramKind === "c4") return c4.startInlineRename(id, anchor);
     const request = inlineLabelRenameRequest(symbolProvider, workspace.diagramKind, id);
     if (!request) {
       setInteractionMessage(
@@ -2434,6 +2453,8 @@ export function App() {
     selectedWbsRelationshipId ||
     mindmapSelection.selectedNodeId ||
     mindmapSelection.settingsOpen ||
+    c4Selection.selectedKey ||
+    c4Selection.settingsOpen ||
     sequenceSettingsOpen ||
     useCaseSettingsOpen ||
     classSettingsOpen ||
@@ -2589,6 +2610,7 @@ export function App() {
   const stageDark = useResolvedDark(workspace.theme);
   const { stageSelection, stageLensFocusRef } = useStageSelection({
     activityDocument,
+    c4Selection,
     classDocument,
     diagramMulti,
     parseResult,
@@ -2749,6 +2771,7 @@ export function App() {
     selectUseCaseFromSource,
     selectWbsFromSource,
     mindmap,
+    c4,
     selectionRequest,
     sequenceDocument,
     setProblemPreview,
@@ -2783,7 +2806,8 @@ export function App() {
     classSettingsOpen ||
     activitySettingsOpen ||
     wbsSettingsOpen ||
-    mindmapSelection.settingsOpen;
+    mindmapSelection.settingsOpen ||
+    c4Selection.settingsOpen;
   const stageHidesInspector = stageActive && !stageInspectorOpen && !stageUtilityPanelOpen && !diagramMulti.multiple;
   const { stageDockActions, stageAddItems } = buildStageDock({
     addClassMember,
@@ -2807,6 +2831,7 @@ export function App() {
     removeClassNote,
     removeClassPackage,
     removeClassRelationship,
+    removeC4Selected: c4.removeSelected,
     removeSequenceMessage,
     removeSequenceParticipant,
     removeSequenceStructure,
@@ -2933,6 +2958,7 @@ export function App() {
           openVersionHistory={openVersionHistory}
           openWbsSettingsFromToolbar={openWbsSettingsFromToolbar}
           openMindmapSettingsFromToolbar={mindmapSelection.openSettingsFromToolbar}
+          openC4SettingsFromToolbar={c4Selection.openSettings}
           parseResult={parseResult}
           project={project}
           projectInspectorOpen={projectInspectorOpen}
@@ -3051,6 +3077,7 @@ export function App() {
           moveGanttTask={moveGanttTask}
           moveUseCaseElementByDrag={moveUseCaseElementByDrag}
           mindmap={mindmap}
+          c4={c4}
           moveWbsNode={moveWbsNode}
           openClassMemberMenu={openClassMemberMenu}
           openDateActionMenu={openDateActionMenu}
@@ -3220,6 +3247,7 @@ export function App() {
           addUseCaseRelationship={addUseCaseRelationship}
           addWbsNode={addWbsNode}
           mindmap={mindmap}
+          c4={c4}
           applyProjectSettings={applyProjectSettings}
           applyWbsNode={applyWbsNode}
           applyWbsRelationshipColor={applyWbsRelationshipColor}

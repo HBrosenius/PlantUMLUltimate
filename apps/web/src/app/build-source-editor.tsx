@@ -8,6 +8,7 @@ import { findClassObjectAt } from "@plantuml-studio/diagram-class";
 import { findActivityObjectAt } from "@plantuml-studio/diagram-activity";
 import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
 import { findMindmapNodeAt } from "@plantuml-studio/diagram-mindmap";
+import type { C4Editor } from "../features/c4/use-c4-editor";
 import type { MindmapEditor } from "../features/mindmap/use-mindmap-editor";
 import type { CollaborationParticipant } from "../collaboration";
 import type { ActivityDocument } from "../../../../packages/diagram-activity/src/model";
@@ -64,6 +65,7 @@ export interface buildSourceEditorInputs {
   selectUseCaseFromSource: (highlightedId: string | undefined, fallbackObjectId?: string) => void;
   selectWbsFromSource: (highlightedId: string | undefined, fallbackNodeId?: string) => void;
   mindmap: MindmapEditor;
+  c4: C4Editor;
   selectionRequest: { from: number; to: number } | undefined;
   sequenceDocument: SequenceDocument;
   setProblemPreview: Dispatch<SetStateAction<SourceProblemPreview | undefined>>;
@@ -144,6 +146,7 @@ export function buildSourceEditor({
   selectUseCaseFromSource,
   selectWbsFromSource,
   mindmap,
+  c4,
   selectionRequest,
   sequenceDocument,
   setProblemPreview,
@@ -298,9 +301,11 @@ export function buildSourceEditor({
           // position would be looked up in the previous document. Leave the selection alone then.
           if (!sourceChanged) mindmap.selectFromSource(findMindmapNodeAt(mindmap.document, position)?.id);
         } else if (workspace.diagramKind === "c4") {
-          // C4 elements have no canvas selection; the outline lists them by their source line.
+          // The shape under the cursor is highlighted on the canvas. A source edit reports its cursor before the new
+          // source is parsed, so the position is only looked up in the document it belongs to.
           setSourceSymbol(undefined);
           setSourceSymbolPosition(undefined);
+          c4.selectFromSource(sourceChanged ? undefined : position);
         } else {
           const occurrence = symbolAt(position);
           setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);

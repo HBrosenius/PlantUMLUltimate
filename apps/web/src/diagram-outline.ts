@@ -102,7 +102,8 @@ export function filterDiagramOutline(entries: readonly DiagramOutlineEntry[], qu
 
 export function outlineTargetSelector(entry: DiagramOutlineEntry): string | undefined {
   const target = entry.target;
-  if (target.type === "c4-element") return undefined;
+  // A C4 outline entry carries the key its shape has on the canvas: the alias, or `rel:N` for a relationship.
+  if (target.type === "c4-element") return `[data-c4-object-id="${CSS.escape(target.id)}"]`;
   let attribute: string | undefined;
   let key: string | number | undefined;
   if (target.type === "semantic") {
