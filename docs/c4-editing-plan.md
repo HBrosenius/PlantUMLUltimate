@@ -1,6 +1,6 @@
 # C4 editing: the same feature set as the other diagram types — plan
 
-Status: proposed 2026-11-25; decisions in [section 7](#7-decisions-to-confirm) are open. Nothing is implemented. Builds on [B7 includes and C4](includes-c4-plan.md) (I0–I4, merged in #168) and the [sprite spike](sprites-spike.md) (branch `spike/i7-sprites`, not merged).
+Status: decided 2026-11-25 (see [section 7](#7-decisions)); C0 is next. Nothing is implemented. Builds on [B7 includes and C4](includes-c4-plan.md) (I0–I4, merged in #168) and the [sprite spike](sprites-spike.md) (branch `spike/i7-sprites`, not merged).
 
 This plan replaces B7's slices **I5** (C4 semantic review) and **I6** (C4 visual editing). B7 decision 4 said I6 should wait until the C4 kind was in use; that decision is reversed here, because C4 should match the other diagram types.
 
@@ -121,13 +121,15 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks, L ≈ 3+ weeks.**
 3. Then C4.
 4. I7a (sprites, which brings back the person icon) can land any time. Before C2 is better, so the canvas shows people as they will look.
 
-## 7. Decisions to confirm
+## 7. Decisions
 
-1. **A package of its own.** The C4 parser and edits move to `packages/diagram-c4`, like the other types, rather than staying in `apps/web`. _Recommended:_ it keeps the pattern and makes C1 testable on its own.
-2. **Which macros are editable.** C2 edits the common macros: Person, System, Container, Component, their `_Ext`, `Db` and `Queue` variants, the boundaries, `Deployment_Node`, and `Rel` with its variants. Other macros, such as dynamic `RelIndex` and C4 sequence, and custom procedures can be selected and opened in the source, but not edited in forms. _Recommended:_ this covers almost every real C4 diagram, and the list can grow later.
-3. **Layout hints.** Dragging on the canvas does not write `Lay_*` hints or change relationship directions to move shapes. Layout stays the engine's, as for the other Graphviz-based types. _Recommended:_ yes. Layout hints can be a later, explicit command.
-4. **Land I7a before C2.** _Recommended:_ yes, so people show with their icon while the canvas is built.
-5. **This replaces B7's I5 and I6**, and reverses B7 decision 4 (C4 visual editing waits). _Recommended:_ yes. `includes-c4-plan.md` gets a pointer here.
+Decided on 2026-11-25, all as recommended:
+
+1. **A package of its own.** The C4 parser and edits move to `packages/diagram-c4`, like the other types, rather than staying in `apps/web`. _Decided:_ it keeps the pattern and makes C1 testable on its own.
+2. **Which macros are editable.** C2 edits the common macros: Person, System, Container, Component, their `_Ext`, `Db` and `Queue` variants, the boundaries, `Deployment_Node`, and `Rel` with its variants. Other macros, such as dynamic `RelIndex` and C4 sequence, and custom procedures can be selected and opened in the source, but not edited in forms. _Decided:_ this covers almost every real C4 diagram, and the list can grow later.
+3. **Layout hints.** Dragging on the canvas does not write `Lay_*` hints or change relationship directions to move shapes. Layout stays the engine's, as for the other Graphviz-based types. _Decided:_ yes. Layout hints can be a later, explicit command.
+4. **Land I7a before C2.** _Decided:_ yes, so people show with their icon while the canvas is built.
+5. **This replaces B7's I5 and I6**, and reverses B7 decision 4 (C4 visual editing waits). _Decided:_ yes. `includes-c4-plan.md` gets a pointer here.
 
 ## 8. Out of scope
 
