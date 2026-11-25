@@ -296,6 +296,13 @@ describe("limits and cycles", () => {
     expect(result.text.length).toBeLessThanOrEqual(MAX_EXPANDED_CHARS + 900_100);
     expect(result.text.split("xxxxxxxxxx").length).toBeLessThan(4 * 90_000);
   });
+
+  it("stops inside one included file that runs past 2 MB", async () => {
+    const huge = Array.from({ length: 300_000 }, (_, index) => `skinparam line${index} 1`).join("\n");
+    const result = await expand(wrap("!include Huge"), docs({ Huge: huge }));
+    expect(result.diagnostics.some((item) => item.kind === "limit")).toBe(true);
+    expect(result.text.length).toBeLessThanOrEqual(MAX_EXPANDED_CHARS + 100);
+  });
 });
 
 describe("blocked forms", () => {

@@ -274,6 +274,8 @@ function blockedMessage(target: string): string {
     : `This include isn't available offline: ${target}`;
 }
 
+const limitMessage = `The included text is larger than ${MAX_EXPANDED_CHARS / 1_000_000} MB, so the rest was left out.`;
+
 export function expandIncludes(source: string, context: IncludeContext | undefined): ExpandedSource {
   const mainFile: IncludeFile = { id: "main", label: "this diagram", origin: "main" };
   const files: IncludeFile[] = [mainFile];
@@ -450,6 +452,12 @@ export function expandIncludes(source: string, context: IncludeContext | undefin
     for (const { text, line } of lines) {
       const mainLine = mainLineFor(line);
       if (overLimit) return;
+      // Checked per line, so one large file (or many lines of it) can't run far past the cap.
+      if (chars > MAX_EXPANDED_CHARS) {
+        overLimit = true;
+        diagnostics.push({ kind: "limit", message: limitMessage, mainLine, target: text.trim() });
+        return;
+      }
       if (inBlockComment) {
         push(text, file, line);
         if (text.includes("'/")) inBlockComment = false;
@@ -596,7 +604,7 @@ export function expandIncludes(source: string, context: IncludeContext | undefin
       overLimit = true;
       diagnostics.push({
         kind: "limit",
-        message: `The included text is larger than ${MAX_EXPANDED_CHARS / 1_000_000} MB, so the rest was left out.`,
+        message: limitMessage,
         mainLine,
         target,
       });
