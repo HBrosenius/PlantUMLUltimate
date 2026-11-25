@@ -2831,7 +2831,8 @@ export function App() {
     removeClassNote,
     removeClassPackage,
     removeClassRelationship,
-    removeC4Selected: c4.removeSelected,
+    // The dock calls this with the click event, so it must not take it for a selection.
+    removeC4Selected: () => void c4.removeSelected(),
     removeSequenceMessage,
     removeSequenceParticipant,
     removeSequenceStructure,

@@ -94,6 +94,9 @@ export function C4DiagramPreview({
     const host = root.current;
     const rendered = host?.querySelector<SVGSVGElement>("svg");
     if (!host || !rendered) return;
+    // The hit areas are drawn again on every change; keep the keyboard where it was.
+    const focused = window.document.activeElement;
+    const focusedKey = focused && host.contains(focused) ? focused.getAttribute("data-c4-object-id") : null;
     rendered
       .querySelectorAll(
         ".c4-semantic-hit, .c4-connection-handle, .c4-move-handle, .c4-relationship-hit, .c4-relationship-endpoint, .c4-connection-preview, .c4-boundary-frame",
@@ -164,6 +167,10 @@ export function C4DiagramPreview({
       rendered.append(moveHandle);
     }
     preserveDiagramLinkHitAreas(host, ".c4-semantic-hit");
+    if (focusedKey)
+      rendered
+        .querySelector<SVGElement>(`.c4-semantic-hit[data-c4-object-id="${CSS.escape(focusedKey)}"]`)
+        ?.focus({ preventScroll: true });
   }, [document, editingEnabled, keyboardConnectFrom, selectedKey, svg]);
 
   useEffect(() => {

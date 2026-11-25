@@ -109,6 +109,7 @@ const topics: Topic[] = [
     group: "c4",
     paragraphs: [
       "Start with New diagram → C4 diagram and pick Context, Container, Component, Dynamic or Deployment, or write the source yourself: begin with !include <C4/C4_Container> (or C4_Context, C4_Component, C4_Dynamic, C4_Deployment) and describe people, systems, containers and relationships with the C4-PlantUML macros. The library is bundled with the app, so a C4 diagram renders offline. Links to the official C4-PlantUML files on raw.githubusercontent.com work too; they are served from the bundled copy and never downloaded.",
+      "You can also build a C4 diagram without typing the macros. Insert adds a person, software system, container, component, boundary, deployment node or relationship from a form (it offers the C4 include a macro needs). Click a shape to edit its label, technology, description, tags, link and sprite in the properties panel, or change its type, direction and ends. Drag from one element to another to connect them, drag the end of a selected relationship to reconnect it, drag the square handle of an element into or out of a boundary, and press F2 to rename in place. Shapes that come from a !procedure, an !include or an !if are shown and can be selected, but only the source can change them.",
       "Type a macro name and press Ctrl+Space for suggestions: Person, System, Container, Component, boundaries, Deployment_Node and Rel come with their parameters (alias, label, technology, description) as tab stops. Rel(from, to, label, techn) draws a relationship; System_Boundary, Container_Boundary and Deployment_Node take a { … } block. Use Rel_U, Rel_D, Rel_L and Rel_R to steer the layout, and LAYOUT_WITH_LEGEND() to add a legend.",
       "The outline lists the people, systems, containers, components, boundaries, deployment nodes and relationships. Selecting one highlights its line in the source. Sprites and icons from other libraries are not available yet.",
     ],
@@ -212,6 +213,9 @@ function shortcuts(): Shortcut[] {
   add("mindmap", `${apple ? "⌥" : "Alt+"}Enter or Insert`, "Add a child to the focused node");
   add("mindmap", "Delete", "Delete the focused node and its branch");
   add("mindmap", `${apple ? "⌘" : "Ctrl+"}Enter`, "Toggle the focused node in the selection");
+  add("c4", "F2", "Rename the focused C4 shape in place");
+  add("c4", "C, then Enter on another element", "Connect the focused C4 element to another with the keyboard");
+  add("c4", "Delete", "Delete the focused C4 shape");
   add("sequence", optionShortcut("P"), "Add participant…");
   add("sequence", optionShortcut("M"), "Add message…");
   return rows;
