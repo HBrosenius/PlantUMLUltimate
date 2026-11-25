@@ -22,6 +22,7 @@
     "@codemirror/view": "^6.38.1",
     "@lezer/highlight": "^1.2.3",
     "@plantuml-studio/diagram-activity": "*",
+    "@plantuml-studio/diagram-c4": "*",
     "@plantuml-studio/diagram-class": "*",
     "@plantuml-studio/diagram-gantt": "*",
     "@plantuml-studio/diagram-mindmap": "*",
