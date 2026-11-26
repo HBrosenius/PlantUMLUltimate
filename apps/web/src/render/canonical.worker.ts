@@ -2,7 +2,7 @@
 import { parseHTML, DOMParser, SVGElement, Event as DOMEvent } from "linkedom";
 import { atlasContext, type FontAtlas } from "./font-atlas";
 import { describeSyntaxError } from "./syntax-error";
-import { spriteCanvas } from "./sprite-canvas";
+import { resetSpriteStats, spriteCanvas, spriteStats } from "./sprite-canvas";
 function nativeTextContext(): ReturnType<typeof atlasContext> | undefined {
   try {
     const context = typeof OffscreenCanvas === "function" ? new OffscreenCanvas(300, 150).getContext("2d") : null;
@@ -69,20 +69,30 @@ document.createElement = ((name: string) => {
   if (name.toLowerCase() === "canvas") return spriteCanvas(() => measurementContext);
   return createElement(name);
 }) as typeof document.createElement;
+const boxStats = { calls: 0, ms: 0 };
+function boxOf(element: Element) {
+  const size = Number(element.getAttribute("font-size") ?? 12);
+  const context = boundsContext;
+  context.font = `${size}px ${element.getAttribute("font-family") ?? "sans-serif"}`;
+  const metrics = context.measureText(element.textContent ?? "");
+  const ascent = metrics.fontBoundingBoxAscent || metrics.actualBoundingBoxAscent || size * 0.8;
+  const descent = metrics.fontBoundingBoxDescent || metrics.actualBoundingBoxDescent || size * 0.2;
+  return {
+    x: -metrics.actualBoundingBoxLeft,
+    y: -ascent,
+    width: Math.max(metrics.width, metrics.actualBoundingBoxRight) + Math.max(0, metrics.actualBoundingBoxLeft),
+    height: ascent + descent,
+  };
+}
 Object.defineProperty(SVGElement.prototype, "getBBox", {
   value(this: Element) {
-    const size = Number(this.getAttribute("font-size") ?? 12);
-    const context = boundsContext;
-    context.font = `${size}px ${this.getAttribute("font-family") ?? "sans-serif"}`;
-    const metrics = context.measureText(this.textContent ?? "");
-    const ascent = metrics.fontBoundingBoxAscent || metrics.actualBoundingBoxAscent || size * 0.8;
-    const descent = metrics.fontBoundingBoxDescent || metrics.actualBoundingBoxDescent || size * 0.2;
-    return {
-      x: -metrics.actualBoundingBoxLeft,
-      y: -ascent,
-      width: Math.max(metrics.width, metrics.actualBoundingBoxRight) + Math.max(0, metrics.actualBoundingBoxLeft),
-      height: ascent + descent,
-    };
+    const started = performance.now();
+    try {
+      return boxOf(this);
+    } finally {
+      boxStats.calls += 1;
+      boxStats.ms += performance.now() - started;
+    }
   },
 });
 Object.assign(globalThis, {
@@ -144,12 +154,26 @@ self.onmessage = async (event: MessageEvent) => {
   measurementContext = fonts ? atlasContext(fonts) : nativeTextContext()!;
   boundsContext = fonts ? atlasContext(fonts) : nativeTextContext()!;
   delete (globalThis as typeof globalThis & { _measureCtx?: unknown })._measureCtx;
+  resetSpriteStats();
+  boxStats.calls = 0;
+  boxStats.ms = 0;
   const started = performance.now();
   const send = (value: { svg?: string; error?: string; recoverable?: boolean }) =>
     self.postMessage({
       type: "result",
       requestId: request.requestId,
       durationMs: performance.now() - started,
+      // Where the worker's time went, for the preview timing marks: sprite encoding, text boxes, and
+      // the clock at posting so the receiver can time the hop back.
+      timings: {
+        spriteMs: spriteStats.ms,
+        sprites: spriteStats.sprites,
+        spritesCached: spriteStats.cached,
+        spriteUrlChars: spriteStats.urlChars,
+        boxMs: boxStats.ms,
+        boxCalls: boxStats.calls,
+        postedAt: performance.timeOrigin + performance.now(),
+      },
       ...value,
     });
   try {
