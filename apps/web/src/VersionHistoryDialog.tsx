@@ -87,7 +87,7 @@ export function VersionHistoryDialog({
   const [changesOnly, setChangesOnly] = useState(false);
   const [changeIndex, setChangeIndex] = useState(0);
   const [comparisonView, setComparisonView] = useState<"semantic" | "source" | "rendered">(
-    diagramKind === "sequence" || diagramKind === "gantt" ? "semantic" : "source",
+    diagramKind === "sequence" || diagramKind === "gantt" || diagramKind === "c4" ? "semantic" : "source",
   );
   const [creating, setCreating] = useState(false);
   const [applying, setApplying] = useState(false);

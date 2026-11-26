@@ -15,6 +15,8 @@ import {
   type C4EditResult,
 } from "@plantuml-studio/diagram-c4";
 import { C4_STARTERS } from "./c4-starters";
+import { reviewProposal } from "./features/ai-edits/proposal-checks";
+import { createReviewMarkdown } from "./features/git/git-propose";
 import { applyReviewGroups, buildReviewGroups, type ReviewGroup } from "./semantic-review";
 
 const BASE = `@startuml
@@ -368,5 +370,15 @@ describe("C4 semantic review", () => {
     expect(summary(review(BASE, replace(BASE, 'Container(web, "Web app"', 'Container( web , "Web app"')))).toEqual([
       "Reorder or reformat C4 declarations [confirmed]",
     ]);
+  });
+
+  it("reaches the AI edit review, the Propose description and the project review", () => {
+    const after = edited(updateC4Argument(BASE, { kind: "element", alias: "web" }, "label", "Storefront"));
+    const proposal = reviewProposal("c4", BASE, after, undefined);
+    expect(proposal.groups.map((group) => group.title)).toEqual(["Change container `web`: label"]);
+    expect(proposal.initiallySelected.size).toBe(1);
+    const markdown = createReviewMarkdown("docs/shop.puml", BASE, after, buildReviewGroups(BASE, after, "c4"));
+    expect(markdown).toContain("Change container");
+    expect(markdown).toMatch(/Web app.*Storefront/);
   });
 });
