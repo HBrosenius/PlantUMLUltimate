@@ -6,6 +6,7 @@ import {
   type ClassPackage,
   type ClassRelationship,
 } from "@plantuml-studio/diagram-class";
+import { buildC4Review, describeC4Hunk, type C4ReviewTarget } from "./c4-review";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
 import { plantUmlTheme } from "./plantuml-theme";
@@ -31,7 +32,8 @@ export type ReviewTarget =
   | { kind: "gantt-dependency"; predecessorId: string; successorId: string }
   | { kind: "class-entity"; id: string; label: string; alias?: string }
   | { kind: "class-package"; id: string; label: string; alias?: string }
-  | { kind: "class-relationship"; from: string; to: string; label?: string };
+  | { kind: "class-relationship"; from: string; to: string; label?: string }
+  | C4ReviewTarget;
 
 type SequenceItem =
   | { kind: "participant"; line: number; value: SequenceParticipant }
@@ -667,6 +669,8 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       // Oversized or otherwise unparseable input still receives a bounded raw-source review.
     }
   }
+  // Undefined when either side has no C4 elements or relationships, which gets the line review.
+  const c4Review = kind === "c4" ? buildC4Review(leftSource, rightSource) : undefined;
   const groups: ReviewGroup[] = [];
   const beforeTheme = plantUmlTheme(leftSource);
   const afterTheme = plantUmlTheme(rightSource);
@@ -708,6 +712,9 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       kind !== "gantt" ||
       (covered(changedLeftLines, startLeft, removedGantt, removedGanttDependencies) &&
         covered(replacement, startRight, addedGantt, addedGanttDependencies));
+    const c4Hunk = c4Review
+      ? describeC4Hunk(c4Review, startLeft, deleteCount, startRight, replacement.length)
+      : undefined;
     const description =
       themeOnly && beforeTheme !== afterTheme
         ? {
@@ -740,7 +747,9 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
                 )
               : kind === "component"
                 ? describeComponentChange(removedClass, addedClass)
-                : describeSequenceChange([], []);
+                : kind === "c4" && c4Hunk
+                  ? c4Hunk
+                  : describeSequenceChange([], []);
     return {
       id,
       ...description,
@@ -750,21 +759,25 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       deleteCount,
       replacement,
       leftTargets:
-        kind === "sequence"
-          ? sequenceTargets(removed)
-          : kind === "gantt"
-            ? ganttTargets(removedGantt, removedGanttDependencies)
-            : kind === "component"
-              ? classTargets(removedClass)
-              : [],
+        kind === "c4"
+          ? (c4Hunk?.leftTargets ?? [])
+          : kind === "sequence"
+            ? sequenceTargets(removed)
+            : kind === "gantt"
+              ? ganttTargets(removedGantt, removedGanttDependencies)
+              : kind === "component"
+                ? classTargets(removedClass)
+                : [],
       rightTargets:
-        kind === "sequence"
-          ? sequenceTargets(added)
-          : kind === "gantt"
-            ? ganttTargets(addedGantt, addedGanttDependencies)
-            : kind === "component"
-              ? classTargets(addedClass)
-              : [],
+        kind === "c4"
+          ? (c4Hunk?.rightTargets ?? [])
+          : kind === "sequence"
+            ? sequenceTargets(added)
+            : kind === "gantt"
+              ? ganttTargets(addedGantt, addedGanttDependencies)
+              : kind === "component"
+                ? classTargets(addedClass)
+                : [],
     };
   };
   let leftCursor = 0;

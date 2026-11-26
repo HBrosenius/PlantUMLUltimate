@@ -54,6 +54,17 @@ Ambiguous edits, unsupported syntax, and changes to other diagram types are labe
 **Unclassified source change**. They remain visible in the source comparison and are not
 eligible for partial semantic acceptance. The UI never infers that an alias change is a rename.
 
+## C4 diagrams
+
+C4 diagrams are compared by alias, not by line. Both sources are read with `parseC4`, and every difference is a change that knows which source lines it touches; each contiguous source change then takes the title of the changes in it.
+
+- **Elements, boundaries and deployment nodes:** added, removed, and changed (label, technology or type, description, macro such as `Container` to `ContainerDb`, tags, link, sprite, moved into or out of a boundary).
+- **Renamed aliases** are shown as ``Rename `api` → `orders_api` ``, with the references that followed. An alias counts as renamed only when the pairing is unique and either the macro and label are unchanged and no relationship contradicts it, or every relationship of the old alias reappears unchanged on the new one. Otherwise the review shows a removal and an addition.
+- **Relationships** are matched by their two ends (read through the renames), then by label within a pair, never by position. They are reported as added, removed, re-pointed (one end changed, same label, unique candidate), reversed, direction changed (`Rel` to `Rel_R`), macro changed (`Rel` to `BiRel`), or label, technology, description, tags, link or sprite changed.
+- **Layout and legend** macros, layout hints (`Lay_R`), tag styles and C4 `!include` lines.
+
+A change that spans several source regions (a rename, a move into a boundary) is shown once per region, as `(part 1)`, `(part 2)`, and is **Probable**: it cannot be selected part by part, only applied with the whole change. The same applies to changes inside `!if`, procedures and loops, since whether they are drawn depends on the preprocessor. Anything else in the changed lines (a title, a skinparam, a directive) is an unclassified source change. When either side has no C4 elements or relationships, the review is the line review.
+
 ## Exports
 
 - **Export selected patch** writes a standard whole-file unified patch for the selected groups.

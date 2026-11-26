@@ -133,6 +133,8 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks, L ≈ 3+ weeks.**
 3. Then C4.
 4. I7a (sprites, which brings back the person icon) can land any time. Before C2 is better, so the canvas shows people as they will look.
 
+**Result (C4):** `apps/web/src/c4-review.ts` adds the `c4` branch of `buildReviewGroups`; the gate is `apps/web/src/semantic-review-c4.test.ts`, with `tests/e2e/c4-semantic-review.spec.ts` for version history and the Propose description. See [semantic-review.md](semantic-review.md#c4-diagrams). Version history now opens C4 comparisons on the Review view. The AI edit review code path shows the same groups, but AI edits are not offered for C4 yet (`AI_EDIT_KINDS` is sequence and Gantt), so there is no e2e test for it.
+
 ## 7. Decisions
 
 Decided on 2026-11-25, all as recommended:

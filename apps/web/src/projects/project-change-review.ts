@@ -89,7 +89,8 @@ function changedDiagram(
         const semantic =
           after.document.current.diagramKind === "gantt" ||
           after.document.current.diagramKind === "sequence" ||
-          after.document.current.diagramKind === "component";
+          after.document.current.diagramKind === "component" ||
+          after.document.current.diagramKind === "c4";
         return {
           mode: semantic ? ("semantic" as const) : ("source" as const),
           addedLines: diff.filter((line) => line.kind === "added").length,
