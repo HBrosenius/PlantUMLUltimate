@@ -569,7 +569,7 @@ export function AppOverlays({
           </button>
           {aiAssistantEnabled &&
             aiEditSupports(workspace.diagramKind) &&
-            ["task", "participant"].includes(
+            ["task", "participant", "c4-element"].includes(
               (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
                 ?.kind ?? "",
             ) && (

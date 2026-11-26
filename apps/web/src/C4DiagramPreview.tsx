@@ -16,6 +16,7 @@ import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNaviga
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { buildC4Canvas, type C4Canvas, type C4CanvasShape } from "./features/c4/c4-canvas";
 import { type C4Selection } from "./features/c4/c4-forms";
+import { AskAiButton } from "./features/ai-edits/AskAiButton";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -407,6 +408,7 @@ export function C4DiagramPreview({
             ? "Choose a target and press Enter · Esc cancels"
             : "Drag between elements to connect · C for keyboard"}
         </span>
+        <AskAiButton />
       </div>
       <div
         className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}

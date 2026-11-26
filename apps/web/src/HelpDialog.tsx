@@ -65,7 +65,7 @@ const topics: Topic[] = [
     group: "Editing",
     paragraphs: [
       "The AI assistant is off by default. Turn it on in Settings → AI assistant, read what is sent, and add an Anthropic API key from the Claude Console (platform.claude.com). A Claude Pro or Max subscription does not include API access. The key stays in memory unless you choose to remember it on this device, and Forget key removes it.",
-      "Select lines in the source, a message or participant in a Sequence diagram, or a task in a Gantt plan, then use Commands → Ask AI to change the selection…, right-click the item and choose Ask AI to change this…, or use the button in the task inspector. Describe the change, open What will be sent to see the exact text, and press Send. Cancel stops a request.",
+      "Select lines in the source, a message or participant in a Sequence diagram, a task in a Gantt plan, or an element, boundary or relationship in a C4 diagram, then use Commands → Ask AI to change the selection…, right-click the item and choose Ask AI to change this…, or use the button in the task or C4 properties panel. Describe the change, open What will be sent to see the exact text, and press Send. Cancel stops a request.",
       "The assistant only proposes. A proposal is checked first (it must parse and add no errors, and it is re-based onto edits you made meanwhile) and then shown as change groups with a before and after preview. Groups outside your selection start unchecked. Apply selected is one undo step. If the assistant needs more information it asks questions instead of guessing.",
     ],
   },
