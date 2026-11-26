@@ -16,13 +16,15 @@ PlantUML turns a raster sprite (a grayscale `sprite $x [WxH/16] {...}`, its `z` 
 
 **Why the pixel path keeps that intent.**
 
-- It only encodes pixels the engine computed itself: `createImageData` returns a zeroed buffer, the engine fills it, `putImageData` keeps a reference, `toDataURL` writes it as a PNG (stored deflate, CRC32 and Adler32 in plain JavaScript) and returns a `data:image/png;base64,...` URL.
+- It only encodes pixels the engine computed itself: `createImageData` returns a zeroed buffer, the engine fills it, `putImageData` keeps a reference, `toDataURL` writes it as a PNG (smallest exact colour type, filtered scanlines, a small synchronous deflate, CRC32 and Adler32, all in plain JavaScript) and returns a `data:image/png;base64,...` URL.
 - It decodes nothing and has no drawing API. The context has no `drawImage`, `createPattern`, `getImageData` or `Image`, so a source cannot make it read an image. `<img:https://...>` still produces no image and no request, and `<img:data:...>` is read by the engine's own PNG reader, never by the canvas.
 - It makes no requests and loads no script.
-- It is capped: a bitmap larger than 512 x 512 pixels (1 MiB of pixels) fails the render, sizes are checked as integers before any allocation, and `toDataURL` without a drawn bitmap throws.
+- It is capped: a bitmap larger than 512 x 512 pixels (1 MiB of pixels) fails the render, sizes are checked as integers before any allocation, and `toDataURL` without a drawn bitmap throws. Identical bitmaps are encoded once (a bounded cache that compares the full pixels), so an icon used many times costs one encode.
 - The sandbox is as before. The renderer frame's CSP is `default-src 'none'; img-src data:; connect-src 'none'; ...`, so a `data:` image is already allowed and nothing can be fetched. The worker still loads scripts from `blob:` URLs only, and include blocking is unchanged.
 
-Tests: `sprite-canvas.test.ts` (PNG round trip, size and capability limits), `render/sprite-export-path.test.ts` (the frame CSP is pinned to `img-src data:` and `connect-src 'none'`; the canvas context offers no image loading), `tests/e2e/sprites.spec.ts` (preview, no requests) and `tests/e2e/sprites-exports.spec.ts` (every export path).
+Tests: `sprite-canvas.test.ts` (every colour type decodes to the exact input, identical input gives identical bytes, cache, size and capability limits), `deflate.test.ts` (against a real inflate), `render/sprite-export-path.test.ts` (the frame CSP is pinned to `img-src data:` and `connect-src 'none'`; the canvas context offers no image loading), `tests/e2e/sprites.spec.ts` (preview, no requests) and `tests/e2e/sprites-exports.spec.ts` (every export path).
+
+**Speed with many icons.** Each render records its phases as `plantuml:preview:*` performance measures (`edit-to-post`, `source-plan`, `font-atlas`, `worker-total`, `worker-sprites`, `worker-boxes`, `worker-hop`, `sanitize-incoming`, `sanitize-decorated`, `install`; latest only, no source text). `SPRITE_BENCH=1 npx playwright test sprites-performance --workers=1` prints them for 1, 20 and 40 synthetic icons. Twenty icons take about 0.5 s in Chromium and 1.3 s in WebKit from the edit; most of the worker time is the engine itself, not sprite encoding. See `docs/sprites-spike.md` section 10.
 
 **Where a sprite travels, and what each step does with an `<image>`:**
 

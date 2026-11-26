@@ -1,6 +1,6 @@
 # Sprites and icon libraries: spike (I7)
 
-Status: spike done 2026-11-25. **I7a (raster sprite rendering) landed on `feat/sprites`; see section 9.** Input to slice I7 of the [includes and C4 plan](includes-c4-plan.md). Nothing from the icon libraries is bundled; I7a only makes sprites render and checks that they leave the app correctly.
+Status: spike done 2026-11-25. **I7a (raster sprite rendering) landed (section 9); I7b (rendering many icons fast) landed, see section 10: the WebKit slowness was a measurement artifact, not the render.** Input to slice I7 of the [includes and C4 plan](includes-c4-plan.md). Nothing from the icon libraries is bundled.
 
 ## 1. Findings
 
@@ -137,22 +137,24 @@ Measured end to end in the app after the fix, warm worker (first render of the p
 
 So person icons cost nothing measurable. Twenty icons cost about 2.5 s more in Chromium, about 120 ms per 48 x 48 sprite in total (not profiled; the PNG writer is a small loop over 9 K pixels and is unlikely to be the main part). WebKit is much slower and not yet understood: skipping sprite data in the atlas saved about 8 s, but 20 icons still take about 14 s there. The cause is not established (not profiled): either the engine's own sprite work or the rest of the render being slower in WebKit.
 
+**Correction (I7b, section 10):** these timings started the clock when the test began typing the source into the editor. In WebKit, Playwright's `insertText` of the 20-icon source (about 12 KB, 1,000 lines) takes 10 to 13 s by itself, so about 13 of the 14 s were the harness, not the render. Measured from the moment the app sees the edit, 20 icons take about 1.3 s in WebKit and 0.5 s in Chromium.
+
 ## 7. Open risks
 
-- **WebKit and icon-heavy diagrams** (about 14 s for 20 icons, the 30 s render timeout is near at 40 to 50 icons). Needs a profile before I7 ships icons; options are to profile the engine per sprite and to cache.
+- **WebKit and icon-heavy diagrams**: resolved in I7b (section 10). 20 icons render in about 1.3 s and 40 in about 1.9 s from the edit; the 14 s above was the test typing the source into the editor.
 - **Chromium stack overflow on SVG sprites with long path data** (Archimate). Engine limit, section 9.4; tupadr3 does not use SVG sprites.
 - **Firefox:** a CSS attribute selector `image[href^="data:image/png..."]` does not match the engine's `<image>` there (the element has both `xlink:href` and `href`, and `getAttribute("href")` works). The e2e test reads the attribute instead.
 - **Licences:** Font Awesome 4 and the OFL sets are not settled (section 4). The `plantuml-stdlib` repository has no licence file.
 - **Exports:** checked and tested in I7a (section 9.1).
 - **Zoom quality:** a 48 x 48 bitmap scales up blurry when the preview is zoomed; the official server has the same limit.
-- The PNG writer stores uncompressed data: a 64 x 64 sprite is about 17 KB of base64 in the SVG (the 20-icon diagram's SVG is large). A real deflate would be smaller; not needed yet.
+- The PNG writer stored uncompressed data (a 48 x 48 sprite was about 12 KB of base64, twice per image in the SVG). Fixed in I7b: real deflate, about half the size.
 
 ## 8. Recommendation for I7: go
 
 Sprites work now with a small, contained change that keeps the sandbox, CSP and no-network rule as they are. Go, with these slices:
 
 1. **I7a. Land the PoC** (this branch): sprite canvas, restored C4 person icon, atlas change, tests. Review the security argument in section 3.
-2. **I7b. WebKit performance for sprites**: profile the 20-icon case, then decide on caching or lowering the atlas work further. Gate: 20 icons under 5 s in WebKit.
+2. **I7b. WebKit performance for sprites** (done, section 10): profiled the 20 and 40 icon cases; the gate (20 icons under 5 s in WebKit) holds at about 1.3 s.
 3. **I7c. Licence decisions and notices**: settle FA 4 and the OFL sets, add the third-party notices file and the About entry. No files bundled before this.
 4. **I7d. Build script and index** (`scripts/update-tupadr3-stdlib.mjs`): packed buckets, `z` rows, index, tests that the recorded tag and licence agree (as for C4).
 5. **I7e. Font Awesome 5 and Material first**, then the other sets one at a time (S each as planned); expander resolves `<tupadr3/...>`; completion of icon names; a help section.
@@ -180,4 +182,85 @@ Not ours. A sprite that is a single `<path d="...">` fails in Chromium once the 
 
 ### 9.5 Still open
 
-WebKit speed with many icons (I7b), licence decisions (I7c), the sanitiser allow-list above, zoom blur and the uncompressed PNG size (section 7).
+Licence decisions (I7c), the sanitiser allow-list above and zoom blur. WebKit speed and the PNG size were closed in I7b (section 10).
+
+## 10. I7b: rendering many icons fast
+
+Branch `feat/icon-render-speed`. Scope: find where the time goes for icon-heavy diagrams, fix what is real, add a benchmark and a regression test. No icon data is bundled; the fixtures are synthetic.
+
+### 10.1 How it was measured
+
+`tests/e2e/sprites-performance.spec.ts` renders generated 48 x 48 grayscale `/16` sprites (`tests/e2e/sprite-fixtures.ts`: deterministic rings and bars that differ per icon, one in eight is `/8`, one in eight `z` compressed) in a component diagram (`<$iconN>` in a rectangle) and in a C4 container diagram (`$sprite=`), at 1, 20 and 40 distinct icons, warm (a one-icon diagram is rendered first, then each fixture twice with a changed title). `SPRITE_BENCH=1 npx playwright test sprites-performance --workers=1` prints a JSON line per run. The phases are `plantuml:preview:*` performance measures that the app now records itself (latest only, no source text): `edit-to-post` (debounce, include expansion, atlas), `source-plan`, `font-atlas`, `worker-total`, `worker-sprites`, `worker-boxes` (text `getBBox`), `worker-hop` (worker to page), `sanitize-incoming`, then DOM insertion and paint up to two animation frames after the images are present.
+
+The clock starts when the app sees the edit, not when the test starts typing. That is the whole story of the earlier numbers:
+
+| Step (WebKit, 20 icons)                                       | Time                         |
+| ------------------------------------------------------------- | ---------------------------- |
+| Playwright `keyboard.insertText` of the 12 KB source          | 10.5 s (probe), 12.9 s (run) |
+| CodeMirror transaction for the same text, dispatched directly | 31 ms (paint 140 to 210 ms)  |
+| Everything the app does from the edit to the painted diagram  | about 1.3 s                  |
+
+One `beforeinput` event arrives and the editor equals the text 127 ms after `insertText` returns, so the 10 s is spent inside the WebKit driver, not in the app. Typing time grows with the source: about 40 s for 40 icons. Chromium needs about 3 s (10 s for 40 icons) and Firefox 0.1 s for the same insertion. Icons that come from `!include` are not in the editor at all.
+
+### 10.2 Where the time goes (after, median of 2 to 3 warm runs, ms)
+
+| Browser  | Fixture   | Icons | Edit to post (atlas) | Worker (sprites, boxes) | Hop | Sanitise | DOM and paint | Total |
+| -------- | --------- | ----- | -------------------- | ----------------------- | --- | -------- | ------------- | ----- |
+| WebKit   | component | 1     | 169 (76)             | 30 (3, 1)               | 27  | 2        | 133           | 362   |
+| WebKit   | component | 20    | 544 (213)            | 502 (27, 0)             | 22  | 10       | 174           | 1,275 |
+| WebKit   | component | 40    | 886 (265)            | 801 (48, 2)             | 13  | 15       | 203           | 1,894 |
+| WebKit   | C4        | 20    | 615 (312)            | 1,666 (56, 1)           | 28  | 24       | 183           | 2,504 |
+| Chromium | component | 20    | 80 (no atlas)        | 303 (20, 0)             | 3   | 7        | 60            | 460   |
+
+- **The engine is most of the worker time**: about 24 ms per icon in WebKit and 15 ms in Chromium; the C4 library adds about 0.9 s. Sprite encoding is 5 to 6 % of the worker time, text boxes nothing.
+- **Edit to post** is the render debounce, include expansion and, in WebKit and Firefox, the font atlas. The atlas cost is measuring the real labels (`Item 1` to `Item 20` in 84 fonts each), not sprite rows: scanning the source with and without the sprite rows differs by 12 ms in WebKit (77 against 65 ms, everything cached).
+- **Sanitising** is 10 to 24 ms and **DOM and paint** 0.13 to 0.28 s in WebKit.
+
+### 10.3 Candidates checked
+
+| Candidate                                     | Measured                                                                           | Verdict                                 |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------- |
+| PNG writer speed (`crc32`, `adler32`, base64) | 1.7 ms to encode 20 sprites, 9 to 11 ms with base64 (WebKit), 16 ms in Firefox     | Not a hot spot                          |
+| PNG size (stored deflate)                     | 9.3 KB per sprite, SVG 596 KB for 20 icons (1,193 KB for 40)                       | Real, but not a time cost: fixed (10.4) |
+| Caching identical sprites                     | The engine draws every use again; at 0.5 to 1.5 ms per sprite it is not measurable | Added (cheap, bounded)                  |
+| Font atlas measuring sprite rows              | Already skipped; the rows cost 12 ms to scan                                       | Nothing to gain                         |
+| DOMPurify on large `data:` hrefs              | 12 to 22 ms for 0.6 to 1.2 MB; 7 to 15 ms after the size fix                       | Not a hot spot. No sanitiser change.    |
+| Repeated `getBBox`                            | 0.1 to 2 ms in total                                                               | Not a hot spot                          |
+| Editor insertion                              | See 10.1: the harness                                                              | Not the app                             |
+
+### 10.4 What changed
+
+`render/sprite-canvas.ts` and the new `render/deflate.ts`:
+
+- The PNG is written in the smallest exact colour type: grey when every pixel is opaque and has equal red, green and blue, grey with alpha when only the colour is grey (what the engine writes for a sprite: it varies alpha), RGBA otherwise. Each scanline uses the best of the five PNG filters, and the data is compressed with a small synchronous deflate (LZ77 with a hash chain, fixed Huffman code, wrapped as zlib with Adler-32). `CompressionStream` is asynchronous and the engine's canvas calls are not, so it could not be used.
+- Identical bitmaps are encoded once: a bounded cache (256 entries, 8 MB, nothing over 256 KB per entry) of the pixels and the URL, compared in full on a hit.
+- Result: the SVG for 20 icons goes from 596 KB to 284 KB (component) and 636 KB to 479 KB (C4, whose library text is the rest); for 40 icons 1,193 KB to 571 KB. Sprite encoding itself got a little slower (for 40 icons about 21 to 39 ms in Chromium; the filter and deflate pass) and sanitising a little faster (22 to 15 ms): end to end it is a wash within noise. The point is size: exports, snapshots, version history and the render cache hold half as much.
+
+Why it is safe: the writer still only encodes pixels the engine computed in the buffer `createImageData` gave it. It decodes nothing, reads no URL, makes no request, keeps the 512 x 512 cap and the integer size checks, and the output is the same `data:image/png;base64,` URL as before, which the sanitiser, the CSP and every export path already accept. The sanitiser, CSP, sandbox, no-network rule and include blocking were not touched. Tests decode every colour type back to the exact RGBA input (a full inflate, unfilter and compare), check that identical input gives identical bytes, and check that the cache returns the right image and stays bounded; `deflate.test.ts` checks the compressor against Node's `inflateRawSync` for empty, tiny, random, long-run, window-wide and 258-length inputs.
+
+### 10.5 Result: before and after
+
+End to end from the app seeing the edit to the painted preview, warm, median of 2 runs (component 20 after: 3), milliseconds. Before is `origin/main` plus the timing marks; after adds the PNG change.
+
+| Fixture   | Icons | Chromium before | Chromium after | Firefox before | Firefox after | WebKit before | WebKit after |
+| --------- | ----- | --------------- | -------------- | -------------- | ------------- | ------------- | ------------ |
+| component | 1     | 178             | 194            | 149            | 148           | 307           | 362          |
+| component | 20    | 451             | 460            | 508            | 537           | 1,233         | 1,275        |
+| component | 40    | 674             | 693            | 777            | 791           | 2,185         | 1,894        |
+| C4        | 1     | 760             | 682            | 1,068          | 1,026         | 1,255         | 1,262        |
+| C4        | 20    | 1,190           | 1,302          | 1,702          | 1,745         | 2,548         | 2,504        |
+| C4        | 40    | 1,573           | 1,645          | 2,327          | 2,360         | 3,532         | 3,802        |
+
+Rendered SVG size (KB, as the DOM serialises it): component 15 (1 icon), 284 (20), 571 (40), before 30, 596, 1,193; C4 24, 479, 957, before 31, 636, 1,271.
+
+**Gate.** Twenty icons under 5 s warm in WebKit: met before and after, at about 1.3 s (component) and 2.5 s (C4, of which the C4 library is about 1 s). Chromium and Firefox are no slower than before (the differences are within the run-to-run spread of about 10 %). Forty icons: 1.9 s (component) and 3.8 s (C4) in WebKit, 0.7 and 1.6 s in Chromium, 0.8 and 2.4 s in Firefox. The 30 s render timeout is not near.
+
+A regression test runs in every browser: `20 distinct icons render in a bounded time` fails if 20 icons take over 10 s from the edit or the SVG exceeds 450 KB.
+
+### 10.6 What is left
+
+- **I7c**: licence decisions and notices, unchanged.
+- **I7d and I7e** (packed buckets, include resolution): the render path is ready for them. Plan for C4 plus 40 icons at about 3.8 s in WebKit, of which about 0.9 s is the C4 library and the engine takes about 24 ms per icon. Nothing in the app is worth changing before then; measure with `SPRITE_BENCH` once real icon sets are included.
+- A diagram taller than about 4,000 px is refused by the size limit, which a chain of 40 icons hits; the fixtures are laid out in rows of five for that reason.
+- Typing a very large source with Playwright's WebKit driver is slow (10 s per 12 KB). For large sources in e2e tests, dispatch through `EditorView` in `page.evaluate`.
+- The sanitiser allow-list for `<image>` hrefs (section 9.2) is still open.
