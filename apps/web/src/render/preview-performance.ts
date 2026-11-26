@@ -16,3 +16,9 @@ export function measurePreviewPhase<T>(phase: string, run: () => T): T {
     recordPreviewPhase(phase, start);
   }
 }
+
+/** Records a duration measured elsewhere (the renderer worker), under the same latest-only rule. */
+export function recordPreviewDuration(phase: string, durationMs: number): void {
+  if (!Number.isFinite(durationMs) || durationMs < 0) return;
+  recordPreviewPhase(phase, performance.now() - durationMs);
+}

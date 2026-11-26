@@ -20,7 +20,7 @@ import { mapErrorPictureToSource, mapSyntaxErrorToSource } from "./syntax-error"
 import { loadRendererAssets, frameDocument } from "./renderer-assets";
 import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
-import { measurePreviewPhase } from "./preview-performance";
+import { measurePreviewPhase, recordPreviewDuration, recordPreviewPhase } from "./preview-performance";
 import { buildFontAtlas } from "./font-atlas";
 import { renderDebounceMs } from "./render-debounce";
 
@@ -45,6 +45,23 @@ interface FrameMessage {
   error?: string;
   durationMs?: number;
   nativeTextMetrics?: boolean;
+  timings?: Record<string, unknown>;
+}
+/** Where the worker's time went (see canonical.worker.ts), kept as the latest preview timing marks. */
+function recordWorkerTimings(message: FrameMessage): void {
+  const t = message.timings;
+  if (!t || typeof t !== "object") return;
+  const number = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
+  const durations: [string, number | undefined][] = [
+    ["worker-total", number(message.durationMs)],
+    ["worker-sprites", number(t.spriteMs)],
+    ["worker-boxes", number(t.boxMs)],
+    [
+      "worker-hop",
+      number(t.postedAt) === undefined ? undefined : performance.timeOrigin + performance.now() - number(t.postedAt)!,
+    ],
+  ];
+  for (const [phase, ms] of durations) if (ms !== undefined) recordPreviewDuration(phase, Math.max(0, ms));
 }
 const TIMEOUT_MS = 15_000;
 const RENDER_TIMEOUT_MS = 30_000;
@@ -209,9 +226,11 @@ export function useRenderer(
       const preparation = ensureGraphviz(request).then(() => {
         if (abandoned()) return undefined;
         armRenderTimeout();
-        return nativeTextMetrics && document.fonts.size === 0
-          ? undefined
-          : buildFontAtlas(request.atlasSource ?? request.renderSource, abandoned);
+        if (nativeTextMetrics && document.fonts.size === 0) return undefined;
+        const atlasStart = performance.now();
+        return buildFontAtlas(request.atlasSource ?? request.renderSource, abandoned).finally(() =>
+          recordPreviewPhase("font-atlas", atlasStart),
+        );
       });
       void preparation.then(
         (fonts) => {
@@ -224,6 +243,7 @@ export function useRenderer(
             sendPending();
             return;
           }
+          if (lastEditAt.current !== undefined) recordPreviewPhase("edit-to-post", lastEditAt.current);
           const { lineMap: _lineMap, includeKey: _includeKey, atlasSource: _atlasSource, ...wire } = request;
           frame?.contentWindow?.postMessage(
             { channel, type: "render", ...wire, fonts },
@@ -335,6 +355,7 @@ export function useRenderer(
         return;
       }
       if (message.type !== "result" || !inFlight || message.requestId !== inFlight.requestId) return;
+      recordWorkerTimings(message);
       const request = inFlight;
       inFlight = undefined;
       window.clearTimeout(timeout);
@@ -465,7 +486,7 @@ export function useRenderer(
       const queue = () => {
         if (cancelled || requestId.current !== id) return;
         // Expanded again now that everything it needed is loaded.
-        const plan = planForPlantUmlRenderer(source, context);
+        const plan = measurePreviewPhase("source-plan", () => planForPlantUmlRenderer(source, context));
         const key = expandable ? hashText(plan.text) : "";
         includeKeyRef.current = key;
         publishIncludes(setIncludeInfo, expandable ? plan : undefined);
