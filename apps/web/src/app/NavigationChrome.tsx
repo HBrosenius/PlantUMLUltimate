@@ -7,6 +7,7 @@ import { StageTopBar } from "../stage/StageTopBar";
 import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
 import type { ActiveCollaboration } from "../use-collaboration-lifecycle";
 import type { RefObject, Dispatch, SetStateAction } from "react";
+import { useMenuInViewport } from "../use-menu-in-viewport";
 import type { PortableProject } from "../../../../packages/document-format/src/types";
 import type { VirtualProject } from "../projects/project-index";
 import type { ViewMode } from "../model";
@@ -129,6 +130,7 @@ export function NavigationChrome({
   viewModes,
   workspace,
 }: NavigationChromeProps) {
+  const tabMenuPlacement = useMenuInViewport<HTMLDivElement>(tabMenu?.x, tabMenu?.y);
   return (
     <>
       <WorkspaceNavigation
@@ -260,7 +262,8 @@ export function NavigationChrome({
           className="tab-menu"
           role="menu"
           aria-label="Tab actions"
-          style={{ left: tabMenu.x, top: tabMenu.y }}
+          ref={tabMenuPlacement.ref}
+          style={tabMenuPlacement.style}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key === "Escape") {

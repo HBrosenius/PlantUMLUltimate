@@ -1028,9 +1028,13 @@ export function AddClassPackageDialog({
     [alias, setAlias] = useState(""),
     [color, setColor] = useState(""),
     [parentId, setParentId] = useState("");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label={`Add ${componentMode ? "Component container" : "Class package"}`}
@@ -1230,9 +1234,13 @@ export function AddClassNoteDialog({
     [placement, setPlacement] = useState<ClassNoteInput["placement"]>("right"),
     [text, setText] = useState(""),
     [color, setColor] = useState("");
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialogRef, onClose);
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
+        ref={dialogRef}
+        aria-modal="true"
         className="task-dialog"
         role="dialog"
         aria-label={`Add ${componentMode ? "Component" : "Class"} note`}
