@@ -12,6 +12,7 @@ describe("shared diagram diagnostics", () => {
     { kind: "activity", source: "@startuml\nwhile (More?)\n:Work;\n@enduml", fix: true },
     { kind: "wbs", source: "*** Orphan", fix: true },
     { kind: "mindmap", source: "*** Orphan", fix: true },
+    { kind: "c4", source: '@startuml\n!include <C4/C4_Container>\nContainer(a, "A"\n@enduml', fix: true },
   ];
 
   for (const item of cases)
@@ -26,7 +27,17 @@ describe("shared diagram diagnostics", () => {
 });
 
 describe("syntax repairs", () => {
-  for (const kind of ["gantt", "wbs", "mindmap", "sequence", "usecase", "class", "component", "activity"] as const) {
+  for (const kind of [
+    "gantt",
+    "wbs",
+    "mindmap",
+    "sequence",
+    "usecase",
+    "class",
+    "component",
+    "activity",
+    "c4",
+  ] as const) {
     const tag = diagramTagSuffix(kind);
     it(`repairs both misspelled tags for ${kind} without changing tag arguments`, () => {
       const source = `@strat${tag} output\n@end${tag.slice(0, -1)}`;

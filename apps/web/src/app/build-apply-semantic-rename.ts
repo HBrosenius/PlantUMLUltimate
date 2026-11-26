@@ -28,6 +28,8 @@ export interface buildApplySemanticRenameInputs {
   mapWbsProjectEdit: (node: WbsNode, source: string) => void;
   referenceSymbol: { kind: SemanticSymbolOccurrence["kind"]; key: string; label: string } | undefined;
   renameCapacity: (currentName: string, nextName: string) => void;
+  /** An alias was renamed: a selection on the old alias follows it, so the properties panel stays open. */
+  renameC4Selection?: (from: string, to: string) => void;
   restoreRenamedDiagramFocus: (kind: SemanticSymbolOccurrence["kind"], key: string | undefined) => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
   setReferenceSymbol: Dispatch<
@@ -50,6 +52,7 @@ export function buildApplySemanticRename({
   mapWbsProjectEdit,
   referenceSymbol,
   renameCapacity,
+  renameC4Selection,
   restoreRenamedDiagramFocus,
   setInteractionMessage,
   setReferenceSymbol,
@@ -92,6 +95,7 @@ export function buildApplySemanticRename({
       else if (target.occurrence.kind === "activity-action" || target.occurrence.kind === "activity-partition")
         setSourceHighlightedActivityId(result.nextKey);
       else if (target.occurrence.kind === "wbs-node") setSourceHighlightedWbsNodeId(result.nextKey);
+      else if (target.occurrence.kind === "c4-element") renameC4Selection?.(target.occurrence.key, result.nextKey);
     }
     if (referenceSymbol?.kind === target.occurrence.kind && referenceSymbol.key === target.occurrence.key)
       setReferenceSymbol({

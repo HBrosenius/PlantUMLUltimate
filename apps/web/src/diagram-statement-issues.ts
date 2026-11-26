@@ -1,12 +1,14 @@
 import type { DiagramKind } from "./model";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
 import { opensNoteBlock } from "./block-repair-safety";
+import { c4StatementIssues } from "./diagram-c4-issues";
 
 type StatementIssue = Omit<DiagramQuickFix, "replacement"> & { replacement?: string };
 const endpoint = String.raw`(?:"(?:\\.|[^"\\])+"|\[[^\]]+\]|\([^()]+\)|:[^:]+:|[\p{L}_$][\p{L}\p{N}_.$]*)`;
 
 /** Check statement operands only outside member bodies, embedded languages and prose. */
 export function statementIssues(kind: DiagramKind, source: string): StatementIssue[] {
+  if (kind === "c4") return c4StatementIssues(source);
   const issues: StatementIssue[] = [];
   const declared = new Set<string>();
   let offset = 0;

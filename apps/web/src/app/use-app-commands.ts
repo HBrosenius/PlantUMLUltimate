@@ -31,6 +31,7 @@ export interface useAppCommandsInputs {
   exportSvg: () => void;
   newDocument: () => void;
   openActivitySettingsFromToolbar: () => void;
+  openC4SettingsFromToolbar: () => void;
   openClassSettingsFromToolbar: () => void;
   openDialog: (next: AppDialog) => void;
   openDocument: () => Promise<void>;
@@ -122,6 +123,7 @@ export function useAppCommands({
   exportSvg,
   newDocument,
   openActivitySettingsFromToolbar,
+  openC4SettingsFromToolbar,
   openClassSettingsFromToolbar,
   openDialog,
   openDocument,
@@ -327,7 +329,28 @@ export function useAppCommands({
                   category: "Edit",
                   run: () => openDialog({ kind: "add-sequence-structure", structureKind: kind }),
                 }))
-              : [];
+              : workspace.diagramKind === "c4"
+                ? [
+                    ...(["person", "system", "container", "component"] as const).map((elementKind) => ({
+                      id: `edit.add-c4-${elementKind}`,
+                      label: `Add ${elementKind}…`,
+                      category: "Edit",
+                      run: () => openDialog({ kind: "add-c4-element", elementKind }),
+                    })),
+                    {
+                      id: "edit.add-c4-boundary",
+                      label: "Add boundary…",
+                      category: "Edit",
+                      run: () => openDialog({ kind: "add-c4-boundary" }),
+                    },
+                    {
+                      id: "edit.add-c4-relationship",
+                      label: "Add relationship…",
+                      category: "Edit",
+                      run: () => openDialog({ kind: "add-c4-relationship" }),
+                    },
+                  ]
+                : [];
     const settingsCommand =
       workspace.diagramKind === "sequence"
         ? openSequenceSettings
@@ -337,7 +360,9 @@ export function useAppCommands({
             ? openClassSettingsFromToolbar
             : workspace.diagramKind === "activity"
               ? openActivitySettingsFromToolbar
-              : undefined;
+              : workspace.diagramKind === "c4"
+                ? openC4SettingsFromToolbar
+                : undefined;
     return [
       { id: "file.version-history", label: "Version history…", category: "File", run: () => void openVersionHistory() },
       {
@@ -599,6 +624,7 @@ export function useAppCommands({
     openVersionHistory,
     openSequenceSettings,
     openUseCaseSettingsFromToolbar,
+    openC4SettingsFromToolbar,
     openClassSettingsFromToolbar,
     openActivitySettingsFromToolbar,
     setJiraDialogOpen,

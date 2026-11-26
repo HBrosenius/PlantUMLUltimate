@@ -76,6 +76,7 @@ export function C4Panels({
           }
           onDirection={(direction) => c4.setDirection(selectedRelationship.index, direction)}
           onReverse={() => c4.reverse(selectedRelationship.index)}
+          onBothWays={(both) => c4.setBothWays(selectedRelationship.index, selectedRelationship.macro, both)}
           onDelete={() => void c4.removeRelationship(selectedRelationship)}
           onClose={c4.clearSelection}
         />

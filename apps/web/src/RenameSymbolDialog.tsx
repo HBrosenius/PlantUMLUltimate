@@ -32,7 +32,8 @@ export function RenameSymbolDialog({
     | "activity partition"
     | "WBS node"
     | "WBS node alias"
-    | "Mindmap node";
+    | "Mindmap node"
+    | "C4 alias";
   value: string;
   occurrenceCount: number;
   occurrences: Array<{ range: { from: number; to: number }; role: "declaration" | "reference" }>;

@@ -232,7 +232,11 @@ describe("ProjectNavigator", () => {
       "activity",
       "wbs",
       "mindmap",
+      "c4",
     ]);
+
+    fireEvent.change(type, { target: { value: "c4" } });
+    expect((screen.getByRole("textbox", { name: "Diagram name" }) as HTMLInputElement).value).toBe("C4 diagram");
 
     fireEvent.change(type, { target: { value: "activity" } });
     expect((screen.getByRole("textbox", { name: "Diagram name" }) as HTMLInputElement).value).toBe("Activity diagram");

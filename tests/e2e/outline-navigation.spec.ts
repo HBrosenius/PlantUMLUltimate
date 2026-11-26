@@ -130,3 +130,31 @@ test("lists mindmap nodes in the outline and selects one in the diagram", async 
   ).toHaveValue("Budget");
   expect(await readEditorSource(page)).toBe(original);
 });
+
+test("lists C4 elements and relationships in the outline, searches and selects one", async ({ page }) => {
+  test.setTimeout(60_000);
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab", exact: true }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await chooser.getByRole("button", { name: "C4 diagram", exact: true }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  await fillSource(
+    page,
+    '@startuml\n!include <C4/C4_Container>\nPerson(user, "Customer")\nSystem_Boundary(shop, "Web shop") {\n  Container(web, "Web app", "React")\n}\nRel(user, web, "Uses")\n@enduml',
+  );
+  const original = await readEditorSource(page);
+  await openRibbonGroup(page, "View", "Navigation and panels");
+  await page.getByRole("button", { name: "Outline", exact: true }).click();
+  const modal = page.getByRole("dialog", { name: "Diagram outline", exact: true });
+  await expect(modal.getByRole("button", { name: /^Customer/ })).toBeVisible();
+  await expect(modal.getByRole("button", { name: /^Web shop/ })).toBeVisible();
+  await expect(modal.getByRole("button", { name: /^Uses/ })).toBeVisible();
+  await modal.getByLabel("Search diagram elements").fill("Web app");
+  await expect(modal.getByRole("button", { name: /^Web app/ })).toBeVisible();
+  await expect(modal.getByRole("button", { name: /^Customer/ })).toHaveCount(0);
+  await modal.getByRole("button", { name: /^Web app/ }).click();
+  await expect(page.getByRole("complementary", { name: "C4 element inspector" }).getByLabel("Alias")).toHaveValue(
+    "web",
+  );
+  expect(await readEditorSource(page)).toBe(original);
+});

@@ -44,8 +44,22 @@ function preservedSyntax(kind: DiagramKind, source: string): string[] {
               ? parseWbs(source).unknown
               : kind === "mindmap"
                 ? parseMindmap(source).unknown
-                : [];
+                : kind === "c4"
+                  ? c4PreservedSyntax(source)
+                  : [];
   return unknown.map((item) => item.text);
+}
+
+/**
+ * The preprocessor lines of a C4 diagram: the `!include` that gives it its macros, themes and the definitions it
+ * makes itself. They are not editable in forms, so an edit that changes or drops one is refused.
+ */
+function c4PreservedSyntax(source: string): Array<{ text: string }> {
+  return source
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^!\s*(?:include\w*|theme|define\w*|(?:unquoted\s+)?(?:procedure|function))\b/i.test(line))
+    .map((text) => ({ text }));
 }
 
 const occurrences = (source: string, value: string): number =>

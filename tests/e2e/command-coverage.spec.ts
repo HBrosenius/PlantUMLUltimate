@@ -21,6 +21,7 @@ test("palette creation commands match every diagram family", async ({ page }) =>
     ["Use Case", "Add actor…"],
     ["Class", "Add entity…"],
     ["Component", "Add entity…"],
+    ["C4", "Add person…"],
     ["Activity", "Add action…"],
   ]) {
     if (kind !== "Gantt") {
