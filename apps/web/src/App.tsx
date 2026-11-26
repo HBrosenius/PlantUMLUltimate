@@ -68,6 +68,7 @@ import {
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
 import { useC4Editor, useC4Selection } from "./features/c4/use-c4-editor";
+import { c4AiEditRange } from "./features/c4/c4-forms";
 import { useMindmapEditor, useMindmapSelection } from "./features/mindmap/use-mindmap-editor";
 import { parseActivitySettings } from "./activity-settings";
 import type { ActivityDialogKind } from "./features/activity/ActivityDialogs";
@@ -2248,10 +2249,12 @@ export function App() {
     selectedObjectRange:
       workspace.diagramKind === "gantt"
         ? selectedTask?.sourceRange
-        : (
-            sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId) ??
-            sequenceDocument.participants.find((item) => item.id === selectedSequenceParticipantId)
-          )?.sourceRange,
+        : workspace.diagramKind === "c4"
+          ? c4AiEditRange(c4Selection.document, c4Selection.selectedKey)
+          : (
+              sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId) ??
+              sequenceDocument.participants.find((item) => item.id === selectedSequenceParticipantId)
+            )?.sourceRange,
     openAiSettings: () => {
       setSettingsCategory("AI assistant");
       setSettingsOpen(true);
@@ -2262,8 +2265,10 @@ export function App() {
     askAiAt(
       (workspace.diagramKind === "gantt"
         ? parseResult.document.symbols.tasks.get(occurrence.key)?.sourceRange
-        : sequenceDocument.participants.find((item) => item.id === occurrence.key || item.alias === occurrence.key)
-            ?.sourceRange) ?? occurrence.range,
+        : workspace.diagramKind === "c4"
+          ? c4AiEditRange(c4Selection.document, occurrence.key)
+          : sequenceDocument.participants.find((item) => item.id === occurrence.key || item.alias === occurrence.key)
+              ?.sourceRange) ?? occurrence.range,
     );
   const startInlineRename = (id: string, anchor: Element) => {
     if (commandReadOnly || diagramMulti.multiple || status !== "idle" || anchor.closest("[data-class-member-id]"))

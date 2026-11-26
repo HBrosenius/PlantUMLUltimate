@@ -48,6 +48,16 @@ const KIND_RULES: Partial<Record<DiagramKind, string>> = {
     "- When a task is split, removed or renamed, update every line that referred to it (starts at, ends at, happens at) so no dependency points at a task that no longer exists.",
     "- Do not invent dates, durations or people. Compute only what the instruction states; ask instead when a number is missing.",
   ].join("\n"),
+  c4: [
+    "C4 diagram rules (C4-PlantUML):",
+    '- Elements are macro calls, one per line: `Person(alias, "Label", "Description")`, `System(alias, "Label", "Description")`, `Container(alias, "Label", "Technology", "Description")` and `Component(...)` with the same arguments. Variants: `ContainerDb`, `ContainerQueue`, `SystemDb`, `ComponentDb`, ... and `_Ext` for external ones (`System_Ext`, `Person_Ext`). Optional named arguments such as `$tags="..."` keep their exact form.',
+    '- Boundaries group elements: `System_Boundary(alias, "Label") {`, `Container_Boundary`, `Enterprise_Boundary`, `Boundary`, and `Deployment_Node(alias, "Label", "Type") {` in deployment diagrams. Each `{` is closed by a `}` on its own line; put new elements inside the boundary they belong to.',
+    '- Relationships refer to aliases, never labels: `Rel(from, to, "Label", "Technology")`, `BiRel(...)`, `Rel_Back(...)` and the direction forms `Rel_U`, `Rel_D`, `Rel_L`, `Rel_R`. Every relationship needs a short verb label. Declare an element before a relationship uses it.',
+    "- An alias uses only letters, digits and underscores, never starts with a digit, never contains a dot, and is unique. Reuse existing aliases exactly. When an alias is renamed, update every relationship and `Lay_` line that uses it.",
+    '- Never put a double quote inside a label, technology or description, and never write `\\"`: the C4 library cannot draw it. Use a single quote instead.',
+    "- Keep every `!include` line. A macro from a deeper C4 level needs its library: `Container` needs `!include <C4/C4_Container>`, `Component` needs `<C4/C4_Component>`, `Deployment_Node` needs `<C4/C4_Deployment>`. Add or upgrade an include only when the change needs it, and keep the existing include style (`<C4/...>` or a URL).",
+    "- Do not add `Lay_` layout hints, change `LAYOUT_...` or legend lines, or switch relationship directions unless the instruction asks for layout.",
+  ].join("\n"),
 };
 
 const BASE_RULES = [

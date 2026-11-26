@@ -15,9 +15,11 @@ import {
   type C4SettingsInput,
 } from "../../c4-source";
 import { InspectorPanel } from "../../InspectorPanel";
+import { requestAiEditDialog } from "../ai-edits/ai-edit-bridge";
 import {
   C4_BOUNDARY_CHOICES,
   C4_DIRECTION_LABELS,
+  c4AiEditRange,
   c4Connectable,
   c4Containers,
   c4EditBlocker,
@@ -277,6 +279,9 @@ export function C4ElementInspector({
           />
         </fieldset>
         <div className="inspector-actions">
+          <button type="button" onClick={() => requestAiEditDialog(c4AiEditRange(document, element.id))}>
+            Ask AI to change this…
+          </button>
           <button type="button" className="danger" disabled={Boolean(blocker)} onClick={onDelete}>
             Delete {isBoundary ? noun : "element"}
           </button>
@@ -390,6 +395,9 @@ export function C4RelationshipInspector({
           {text("Tags", "tags")}
         </fieldset>
         <div className="inspector-actions">
+          <button type="button" onClick={() => requestAiEditDialog(relationship.range)}>
+            Ask AI to change this…
+          </button>
           <button type="button" className="danger" disabled={Boolean(blocker)} onClick={onDelete}>
             Delete relationship
           </button>

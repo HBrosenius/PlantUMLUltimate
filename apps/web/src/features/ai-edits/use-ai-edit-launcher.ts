@@ -4,7 +4,7 @@ import { onAiEditDialogRequest, currentEditorSelection, type AiEditRange } from 
 import { getAiAssistantState, isAiAssistantReady, loadRememberedAiKey, subscribeAiAssistant } from "./ai-settings";
 
 /** Diagram kinds the assistant can change. */
-export const AI_EDIT_KINDS: readonly DiagramKind[] = ["sequence", "gantt"];
+export const AI_EDIT_KINDS: readonly DiagramKind[] = ["sequence", "gantt", "c4"];
 
 export function aiEditSupports(kind: DiagramKind): boolean {
   return AI_EDIT_KINDS.includes(kind);
@@ -55,7 +55,7 @@ export function useAiEditLauncher(input: AiEditLauncherInput) {
     const current = latest.current;
     if (current.readOnly) return current.notify("This document is read-only, so the AI assistant cannot change it.");
     if (!aiEditSupports(current.kind))
-      return current.notify("The AI assistant can change Sequence and Gantt diagrams for now.");
+      return current.notify("The AI assistant can change Sequence, Gantt and C4 diagrams for now.");
     await loadRememberedAiKey();
     if (!isAiAssistantReady()) {
       current.notify("Turn on the AI assistant and add a key in Settings first.");

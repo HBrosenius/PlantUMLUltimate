@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { C4_ELEMENT_MACROS, parseC4 } from "../../c4-source";
 import {
   addC4Include,
+  c4AiEditRange,
   c4Connectable,
   c4Containers,
   c4EditBlocker,
@@ -149,5 +150,17 @@ describe("selection helpers", () => {
   it("lists what a relationship can connect and what can hold elements", () => {
     expect(c4Connectable(document).map((item) => item.id)).toEqual(["user", "web", "$alias"]);
     expect(c4Containers(document).map((item) => item.id)).toEqual(["shop"]);
+  });
+
+  it("gives an AI edit the element's line, a boundary's whole block, or a relationship's line", () => {
+    const text = (range: { from: number; to: number } | undefined) =>
+      range ? SOURCE.slice(range.from, range.to) : undefined;
+    expect(text(c4AiEditRange(document, "web"))).toBe('  Container(web, "Web", "React")');
+    expect(text(c4AiEditRange(document, "shop"))).toBe(
+      'System_Boundary(shop, "Shop") {\n  Container(web, "Web", "React")\n}',
+    );
+    expect(text(c4AiEditRange(document, "rel:0"))).toBe('Rel(user, web, "Uses")');
+    expect(c4AiEditRange(document, "missing")).toBeUndefined();
+    expect(c4AiEditRange(document, undefined)).toBeUndefined();
   });
 });

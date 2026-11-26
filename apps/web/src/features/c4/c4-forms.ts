@@ -195,6 +195,21 @@ export function c4SelectionAtPosition(document: C4Document, position: number): C
 }
 
 /** The key the outline gives an entry (`alias` or `rel:N`) as a selection. */
+/**
+ * The source lines an AI edit of a selected C4 object should focus on: an element's line, a boundary's whole
+ * block (so the AI sees what is inside it), or a relationship's line. Undefined when the key matches nothing.
+ */
+export function c4AiEditRange(document: C4Document, key: string | undefined): TextRange | undefined {
+  if (!key) return undefined;
+  const selection = c4SelectionFromKey(key);
+  if (selection.kind === "relationship") return document.relationships[selection.index]?.range;
+  const element = document.elements.find((item) => item.id === selection.alias);
+  if (!element) return undefined;
+  return element.blockOpen && element.closeRange
+    ? { from: element.range.from, to: element.closeRange.to }
+    : element.range;
+}
+
 export function c4SelectionFromKey(key: string): C4Selection {
   const relationship = /^rel:(\d+)$/.exec(key);
   return relationship ? { kind: "relationship", index: Number(relationship[1]) } : { kind: "element", alias: key };

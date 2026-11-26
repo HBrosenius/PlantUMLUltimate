@@ -1,5 +1,6 @@
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
+import { parseC4 } from "@plantuml-studio/diagram-c4";
 import { analyzeDiagram } from "../../diagram-diagnostics";
 import { resolveThreeWayMerge, threeWayMerge } from "../../external-file-merge";
 import type { DiagramKind } from "../../model";
@@ -81,6 +82,11 @@ export function parseProblem(kind: DiagramKind, source: string): string | undefi
   try {
     if (kind === "sequence") parseSequence(source);
     else if (kind === "gantt") parseGantt(source);
+    else if (kind === "c4") {
+      const document = parseC4(source);
+      if (document.elements.length === 0 && document.relationships.length === 0)
+        return "The proposal has no C4 elements or relationships left.";
+    }
   } catch {
     return "The proposal could not be parsed.";
   }

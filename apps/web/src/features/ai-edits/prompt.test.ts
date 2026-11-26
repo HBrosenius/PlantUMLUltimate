@@ -77,3 +77,14 @@ describe("request building", () => {
     expect(checkRequestSize({ kind: "sequence", source: SOURCE, instruction: "x".repeat(6001) }).ok).toBe(false);
   });
 });
+
+describe("C4 rules", () => {
+  it("adds the C4 rules to the system prompt, including the library's quote limit and include levels", () => {
+    const prompt = systemPromptFor("c4");
+    expect(prompt).toContain("C4 diagram rules");
+    expect(prompt).toContain("never contains a dot");
+    expect(prompt).toContain("Never put a double quote inside a label");
+    expect(prompt).toContain("<C4/C4_Component>");
+    expect(systemPromptFor("sequence")).not.toContain("C4 diagram rules");
+  });
+});
