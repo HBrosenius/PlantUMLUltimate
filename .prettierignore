@@ -9,3 +9,4 @@ apps/web/public
 graft
 .trail
 THIRD_PARTY_NOTICES.md
+apps/web/src/render/stdlib/tupadr3/**/*.json

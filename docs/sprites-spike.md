@@ -284,3 +284,36 @@ How credit is given:
 - I7e adds a credit next to the icon picker, and adds each icon set to `third-party-credits.json` (with its licence file) when it is bundled, then regenerates the notices.
 
 The notices already cover what was bundled before I7: the engine (`@plantuml/core`, MIT), C4-PlantUML (MIT) and the 44 PlantUML themes. 31 themes are MIT, 3 Apache 2.0, one (`sunlust`) GPL 3+, and 9 declare no licence of their own (they come from the PlantUML project). The GPL theme was flagged for the owner's review.
+
+## 12. I7d landed
+
+`scripts/update-tupadr3-stdlib.mjs <tag>` packs the tupadr3 sets into `apps/web/src/render/stdlib/tupadr3/`. Data only: nothing imports the buckets except tests, nothing is fetched at runtime, and the main bundle did not change. Run at tag `v3.0.0` (the latest tupadr3 release) on 2026-11-28.
+
+**What was generated.** `font-awesome-5` (1,457 icons) and `material` (933 icons). Per set: `index.json` (`name -> bucket`), 14 files `bucket-<id>.json` and the set's licence file (FA5 `LICENSE.txt` at tag 5.15.3, Material `LICENSE` at tag 3.0.2). At the top: `common.puml` (as is), `LICENSE` (tupadr3, MIT), `manifest.json` (tag, date, counts, bucket sizes) and a `README.md` like the C4 one. tupadr3 takes Font Awesome 5 from the branch `5.x`, not a tag; 5.15.3 is the final 5.x release and the tag the licence was read at.
+
+**Bucketing rule.** By the first character of the icon name, with small letters merged: digits and `a` go to `0a`, then `b`, `c`, `de`, `f`, `gh`, `ik`, `l`, `mo`, `p`, `qr`, `s`, `tu`, `vz`. Anything else falls into `0a`. The rule is fixed, not derived from the data, so a refresh never moves an icon. It exists in the script and in `tupadr3Bucket()` (`render/tupadr3-icons.ts`); a test checks that the committed files follow it. The largest bucket (`s` of Font Awesome 5) is 64 KB raw.
+
+**The macro pattern holds.** All 2,390 files have the shape: `@startuml`, one 48x48/16 sprite named like the file, two blank lines, four `!define PREFIX_NAME(...)` lines, one `skinparam folderBackgroundColor<<PREFIX NAME>> White` line, `@enduml`, and no trailing newline. There were no exceptions. The script still stores any deviation (other size, other sprite name, other tail) as an object with only the deviating fields, and a file that does not even parse as sprite-then-macros whole as `{ "raw": ... }`, so nothing is dropped. For every icon the script regenerates the text from the entry and compares it with the upstream file before writing anything.
+
+**`z` rows: yes.** A sprite is stored as PlantUML `z` data: one byte per pixel, raw deflate (level 9), PlantUML's 6-bit alphabet, the same encoding the e2e fixtures use and the engine reads. Decoding gives back the original hex rows exactly (proved for every icon by the script, and for five committed upstream files by the unit tests). The regenerated text still uses plain hex rows, so it is byte-identical to upstream.
+
+**Sizes** (JSON files, bytes):
+
+| Set            | Icons | Buckets raw | Buckets gzip | Index raw / gzip | Total raw | Total gzip |
+| -------------- | ----- | ----------- | ------------ | ---------------- | --------- | ---------- |
+| font-awesome-5 | 1,457 | 533,261     | 395,769      | 26,178 / 6,801   | 559,439   | 402,647    |
+| material       | 933   | 219,718     | 156,611      | 18,603 / 4,861   | 238,321   | 157,117    |
+| Both           | 2,390 | 752,979     | 552,380      | 44,781 / 11,662  | 797,760   | 564,042    |
+
+The `z` text is base64-like and does not compress much more, so the saving against plain rows is modest after gzip (about 0.17 KB per icon gzipped, against the spike's estimate of about a third). It still avoids shipping and parsing 2.3 KB of hex per icon. A diagram with five icons from one set loads one bucket, 25 to 65 KB raw, 18 to 48 KB gzipped.
+
+**Regenerating.** `regenerateTupadr3Icon(set, name, entry)` in `render/tupadr3-icons.ts` returns the exact upstream `.puml`. It is synchronous (it uses `fflate`'s `inflateSync`), so it can run inside the include expander. It also exports `tupadr3Bucket`, `TUPADR3_SETS` and `TUPADR3_BUCKETS`.
+
+**Tests.** `render/tupadr3-icons.test.ts` (tag and licences against the README and manifest, index and bucket consistency, rule, every icon regenerates into a well-formed file, five upstream icons committed verbatim under `render/tupadr3-fixtures/` compared exactly, z round trip, exceptions). `tests/e2e/sprites-tupadr3.spec.ts` renders a regenerated icon through the real engine (Chromium, Firefox, WebKit). No test reads the network.
+
+**What I7e must do.**
+
+- Resolve `!include <tupadr3/common>` (copy of `common.puml`) and `!include <tupadr3/font-awesome-5/user>` / `<tupadr3/material/...>` through `index.json`, lazily load the bucket with `import.meta.glob("./stdlib/tupadr3/*/bucket-*.json", { import: "default" })` and call `regenerateTupadr3Icon`. Keep includes blocked for anything not in the index. Note `common.puml` and each icon are `@startuml` files: extract the body as the C4 expander does, and include `common` once.
+- Add both sets and tupadr3 to `third-party-credits.json` (licence files are in the stdlib folders; FA5 needs the CC BY credit and the "converted to PlantUML sprites" note), regenerate `THIRD_PARTY_NOTICES.md`, and add the credit next to the picker and in Help.
+- Completion of icon names from `index.json`, and the help section.
+- The index is about 45 KB raw for both sets; load it lazily when the user types `<tupadr3/`.

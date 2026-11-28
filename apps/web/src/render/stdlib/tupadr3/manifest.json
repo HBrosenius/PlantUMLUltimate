@@ -1,0 +1,75 @@
+{
+  "repository": "tupadr3/plantuml-icon-font-sprites",
+  "tag": "v3.0.0",
+  "date": "2026-11-28",
+  "bucketRule": [
+    "0a",
+    "b",
+    "c",
+    "de",
+    "f",
+    "gh",
+    "ik",
+    "l",
+    "mo",
+    "p",
+    "qr",
+    "s",
+    "tu",
+    "vz"
+  ],
+  "sets": {
+    "font-awesome-5": {
+      "prefix": "FA5",
+      "upstream": "FortAwesome/Font-Awesome",
+      "upstreamRef": "branch 5.x (final release 5.15.3)",
+      "licenceTag": "5.15.3",
+      "licenceFile": "LICENSE.txt",
+      "licenceSummary": "Icons CC BY 4.0, fonts SIL OFL 1.1, code MIT",
+      "icons": 1457,
+      "exceptions": 0,
+      "buckets": {
+        "0a": 78,
+        "b": 93,
+        "c": 168,
+        "de": 104,
+        "f": 88,
+        "gh": 157,
+        "ik": 56,
+        "l": 47,
+        "mo": 106,
+        "p": 95,
+        "qr": 61,
+        "s": 174,
+        "tu": 140,
+        "vz": 90
+      }
+    },
+    "material": {
+      "prefix": "MATERIAL",
+      "upstream": "google/material-design-icons",
+      "upstreamRef": "tag 3.0.2",
+      "licenceTag": "3.0.2",
+      "licenceFile": "LICENSE",
+      "licenceSummary": "Apache License 2.0",
+      "icons": 933,
+      "exceptions": 0,
+      "buckets": {
+        "0a": 71,
+        "b": 54,
+        "c": 85,
+        "de": 71,
+        "f": 88,
+        "gh": 43,
+        "ik": 32,
+        "l": 75,
+        "mo": 62,
+        "p": 83,
+        "qr": 47,
+        "s": 113,
+        "tu": 50,
+        "vz": 59
+      }
+    }
+  }
+}

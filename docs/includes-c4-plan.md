@@ -112,7 +112,7 @@ Effort for one developer: **S ≈ days, M ≈ 1–3 weeks**.
 | **I6. C4 visual editing**             | Select, rename, edit fields, add relationships and elements on the canvas.                                                                    | M–L    | The C4 edits round-trip without touching unrelated source.                                            |
 | **I7. More libraries**                | Icon sets and cloud libraries, per file and on demand.                                                                                        | S each | Size budget kept; licences checked.                                                                   |
 
-I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md). **I7a (raster sprite rendering, restored C4 person icon, export checks, security note), I7b (compressed sprite PNGs, render timing) and I7c (licence decisions, notices and credits) are done**; I7d to I7f follow the spike's recommendation.
+I7 spike (sprites, tupadr3 licences, sizes, timings, slices): [sprites-spike.md](sprites-spike.md). **I7a (raster sprite rendering, restored C4 person icon, export checks, security note), I7b (compressed sprite PNGs, render timing), I7c (licence decisions, notices and credits) and I7d (build script, packed buckets and index for Font Awesome 5 and Material, data only) are done**; I7e and I7f follow the spike's recommendation.
 
 > **2026-11-25:** I5 and I6 are replaced by [C4 editing](c4-editing-plan.md), which brings C4 up to the other diagram types.
 
