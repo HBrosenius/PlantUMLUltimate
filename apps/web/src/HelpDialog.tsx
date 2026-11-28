@@ -4,6 +4,7 @@ import { isApplePlatform, modShortcut, optionShortcut } from "./platform-shortcu
 import type { DiagramKind } from "./model";
 import { trainingVideos } from "./training-videos";
 import { appIdentity } from "./app-identity";
+import thirdPartyCredits from "./third-party-credits.json";
 
 type Topic = {
   title: string;
@@ -302,6 +303,25 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
             <dt>Version</dt>
             <dd>{app.version}</dd>
           </dl>
+        </details>
+        <details className="help-about help-credits">
+          <summary>Credits and licences</summary>
+          <p>Bundled with the app and run on your device; nothing here is fetched while you work.</p>
+          <ul>
+            {thirdPartyCredits.credits.map((credit) => (
+              <li key={credit.id}>
+                <a href={credit.url} target="_blank" rel="noopener noreferrer">
+                  {credit.name}
+                </a>{" "}
+                ({credit.licence}): {credit.use}
+              </li>
+            ))}
+          </ul>
+          <p>
+            <a href="/third-party-notices.txt" target="_blank" rel="noopener noreferrer">
+              Full notices and licence texts (opens in a new tab)
+            </a>
+          </p>
         </details>
         <div className="help-search">
           <label>
