@@ -1,0 +1,31 @@
+{
+  "credits": [
+    {
+      "id": "plantuml-core",
+      "name": "PlantUML",
+      "use": "The diagram engine (@plantuml/core), bundled and run in a sandboxed worker.",
+      "copyright": "Copyright 2009-2024, Arnaud Roques",
+      "licence": "MIT",
+      "url": "https://github.com/plantuml/plantuml",
+      "licenceFile": "node_modules/@plantuml/core/LICENSE"
+    },
+    {
+      "id": "c4-plantuml",
+      "name": "C4-PlantUML",
+      "use": "The C4 diagram library, bundled as data and inlined into C4 diagrams.",
+      "copyright": "Copyright 2018-2020 Ricardo Niepel, 2021-2026 Ricardo Niepel, kirchsth and contributors",
+      "licence": "MIT",
+      "url": "https://github.com/plantuml-stdlib/C4-PlantUML",
+      "licenceFile": "apps/web/src/render/stdlib/C4/LICENSE"
+    },
+    {
+      "id": "plantuml-themes",
+      "name": "PlantUML themes",
+      "use": "The bundled !theme files, from the PlantUML project. Each theme's author and licence are listed below.",
+      "copyright": "Each theme's author, as listed",
+      "licence": "As declared by each theme",
+      "url": "https://github.com/plantuml/plantuml/tree/master/themes",
+      "themes": "apps/web/src/render/themes"
+    }
+  ]
+}

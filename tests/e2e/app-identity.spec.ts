@@ -20,7 +20,7 @@ test("local installs expose their address, distinctive manifest, icon and About 
   expect((await page.request.get(manifest.icons[0].src)).ok()).toBe(true);
   await page.getByRole("button", { name: "Help", exact: true }).click();
   await page.getByText("About this app", { exact: true }).click();
-  const about = page.locator(".help-about");
+  const about = page.locator(".help-about").filter({ hasText: "About this app" });
   await expect(about).toContainText(new URL(page.url()).origin);
   await expect(about).toContainText("Local development");
   await expect(about.locator("dd").last()).toHaveText(/^\d+\.\d+\.\d+/);
